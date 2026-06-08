@@ -1,0 +1,40 @@
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from './hooks/useAuth.jsx'
+import Login from './pages/Login'
+import Shows from './pages/Shows'
+import Setlist from './pages/Setlist'
+import Members from './pages/Members'
+import Editor from './pages/Editor'
+
+
+function RequireAuth({ children }) {
+  const { session, loading } = useAuth()
+  if (loading) return (
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <span className="text-gray-500 text-sm">Carregant...</span>
+    </div>
+  )
+  if (!session) return <Navigate to="/login" replace />
+  return children
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/" element={<RequireAuth><Shows /></RequireAuth>} />
+      <Route path="/show/:id" element={<RequireAuth><Setlist /></RequireAuth>} />
+      <Route path="/members" element={<RequireAuth><Members /></RequireAuth>} />
+      <Route path="/show/:id/song/:sid/moment/:mid" element={<RequireAuth><Editor /></RequireAuth>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
+  )
+}
