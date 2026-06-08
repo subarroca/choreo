@@ -1,6 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { LayoutGrid, Hexagon, Move } from 'lucide-react'
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../lib/supabase'
 import { VOICE_COLORS, VOICE_LABELS, VOICE_SHORT } from '../lib/constants'
 import Layout from '../components/Layout'
@@ -13,7 +16,7 @@ const TOKEN_R = Math.floor(CELL * 0.38)
 const DEFAULT_ROW_LABELS = ['Tarima 4', 'Tarima 3', 'Tarima 2', 'Tarima 1', 'Terra']
 const DEFAULT_COLS = 14
 
-// ─── Rounded hexagon path ─────────────────────────────────────
+// ─── Rounded hexagon ──────────────────────────────────────────
 function roundedHexPath(ctx, cx, cy, r, cr = 4) {
   const pts = []
   for (let i = 0; i < 6; i++) {
@@ -35,58 +38,50 @@ function roundedHexPath(ctx, cx, cy, r, cr = 4) {
   ctx.closePath()
 }
 
-// ─── Geometry helpers (all take dims) ────────────────────────
+// ─── Geometry helpers ─────────────────────────────────────────
 function tokenXY(row, col, mode) {
   const shift = mode === 'alternate' && row % 2 === 1 ? CELL / 2 : 0
   return { x: LABEL_W + col * CELL + CELL / 2 + shift, y: row * CELL + CELL / 2 }
 }
-
 function pixelToCell(px, py, mode, dims) {
-  const { ROWS, COLS } = dims
   const row = Math.floor(py / CELL)
-  if (row < 0 || row >= ROWS) return null
+  if (row < 0 || row >= dims.ROWS) return null
   const shift = mode === 'alternate' && row % 2 === 1 ? CELL / 2 : 0
   const col = Math.floor((px - LABEL_W - shift) / CELL)
-  if (col < 0 || col >= COLS) return null
+  if (col < 0 || col >= dims.COLS) return null
   return { row, col }
 }
-
 function computeRelCenterX(placements, members, mode, dims) {
-  const { ROWS, GW } = dims
   const placed = members.filter(m => m.role !== 'director' && placements[m.id])
   if (!placed.length) return null
   const byRow = {}
   for (const m of placed) {
     const pos = placements[m.id]
-    const row = pos.free ? Math.min(ROWS - 1, Math.floor(pos.y * ROWS)) : pos.row
+    const row = pos.free ? Math.min(dims.ROWS - 1, Math.floor(pos.y * dims.ROWS)) : pos.row
     ;(byRow[row] ??= []).push(m)
   }
   const longest = Object.values(byRow).reduce((best, arr) => arr.length > best.length ? arr : best, [])
   if (!longest.length) return null
   const sum = longest.reduce((s, m) => {
     const pos = placements[m.id]
-    if (pos.free) return s + pos.x * GW
+    if (pos.free) return s + pos.x * dims.GW
     const { x } = tokenXY(pos.row, pos.col, mode)
     return s + (x - LABEL_W)
   }, 0)
   return sum / longest.length
 }
-
 function eventToCanvas(e, rotated, dims) {
-  const { CW, CH } = dims
   const rect = e.currentTarget.getBoundingClientRect()
-  let px = (e.clientX - rect.left) * (CW / rect.width)
-  let py = (e.clientY - rect.top) * (CH / rect.height)
-  if (rotated) { px = CW - px; py = CH - py }
+  let px = (e.clientX - rect.left) * (dims.CW / rect.width)
+  let py = (e.clientY - rect.top) * (dims.CH / rect.height)
+  if (rotated) { px = dims.CW - px; py = dims.CH - py }
   return { x: px, y: py }
 }
-
 function getMemberPixelPos(pos, mode, dims) {
   if (!pos) return null
   if (pos.free) return { x: LABEL_W + pos.x * dims.GW, y: pos.y * dims.GH }
   return tokenXY(pos.row, pos.col, mode)
 }
-
 function fillTextFlipped(ctx, text, x, y, rotated) {
   if (rotated) {
     ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI); ctx.fillText(text, 0, 0); ctx.restore()
@@ -95,26 +90,23 @@ function fillTextFlipped(ctx, text, x, y, rotated) {
   }
 }
 
-// ─── Arrow drawing ────────────────────────────────────────────
+// ─── Arrow helper ─────────────────────────────────────────────
 function drawArrow(ctx, x1, y1, x2, y2, color) {
   const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy)
   if (len < TOKEN_R * 3) return
-  const nx = dx / len, ny = dy / len
-  const gap = TOKEN_R + 4
-  const sx = x1 + nx * gap, sy = y1 + ny * gap
-  const ex = x2 - nx * gap, ey = y2 - ny * gap
+  const nx = dx / len, ny = dy / len, gap = TOKEN_R + 4
+  const sx = x1 + nx * gap, sy = y1 + ny * gap, ex = x2 - nx * gap, ey = y2 - ny * gap
   ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3])
   ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke(); ctx.setLineDash([])
   const a = Math.atan2(ey - sy, ex - sx), hl = 7, ha = Math.PI / 5
   ctx.fillStyle = color
-  ctx.beginPath()
-  ctx.moveTo(ex, ey)
+  ctx.beginPath(); ctx.moveTo(ex, ey)
   ctx.lineTo(ex - hl * Math.cos(a - ha), ey - hl * Math.sin(a - ha))
   ctx.lineTo(ex - hl * Math.cos(a + ha), ey - hl * Math.sin(a + ha))
   ctx.closePath(); ctx.fill()
 }
 
-// ─── Main canvas draw ─────────────────────────────────────────
+// ─── Canvas draw ──────────────────────────────────────────────
 function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
   drag, selectedIds, rotated, dims, trajectoryConfig }) {
   if (!canvas) return
@@ -123,10 +115,8 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
   canvas.width = CW * dpr; canvas.height = CH * dpr
   const ctx = canvas.getContext('2d')
   ctx.scale(dpr, dpr)
-
   const hasHighlight = !!highlightId
 
-  // Background
   ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, CW, CH)
 
   if (mode === 'free') {
@@ -158,35 +148,29 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
       fillTextFlipped(ctx, c + 1, LABEL_W + c * CELL + CELL / 2, 3, rotated)
   }
 
-  // Row labels
   ctx.fillStyle = '#94a3b8'; ctx.font = '10px system-ui'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
   for (let r = 0; r < ROWS; r++)
     fillTextFlipped(ctx, rowLabels[r] ?? `Fila ${r + 1}`, LABEL_W - 6, r * CELL + CELL / 2, rotated)
 
-  // Center-of-mass line (not in free mode — director is fixed)
   if (mode !== 'free') {
     const relCX = computeRelCenterX(placements, members, mode, dims)
     if (relCX != null) {
-      const absX = LABEL_W + relCX
       ctx.strokeStyle = '#fbbf2466'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4])
-      ctx.beginPath(); ctx.moveTo(absX, 0); ctx.lineTo(absX, GH); ctx.stroke(); ctx.setLineDash([])
+      ctx.beginPath(); ctx.moveTo(LABEL_W + relCX, 0); ctx.lineTo(LABEL_W + relCX, GH); ctx.stroke(); ctx.setLineDash([])
     }
   }
 
-  // Director zone
   ctx.strokeStyle = '#334155'; ctx.lineWidth = 1
   ctx.beginPath(); ctx.moveTo(0, GH); ctx.lineTo(CW, GH); ctx.stroke()
   ctx.fillStyle = '#475569'; ctx.font = '9px system-ui'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
   fillTextFlipped(ctx, 'DIR', LABEL_W - 6, GH + DIRECTOR_H / 2, rotated)
 
-  // Trajectory overlay (draws on top of grid, replaces token rendering)
   if (trajectoryConfig) {
     drawTrajectoryOverlay(ctx, trajectoryConfig, mode, dims, members)
     if (directorAbsX != null) drawDirectorDiamond(ctx, directorAbsX, GH + DIRECTOR_H / 2)
     return
   }
 
-  // Skip tokens being dragged
   const skipIds = new Set()
   if (drag?.type === 'member') skipIds.add(drag.memberId)
   if (drag?.type === 'group') drag.members.forEach(id => skipIds.add(id))
@@ -208,7 +192,6 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
     }
     ctx.globalAlpha = 1
   }
-
   if (drag?.type === 'member') {
     const m = members.find(m => m.id === drag.memberId)
     if (m) {
@@ -223,7 +206,6 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
       }
     }
   }
-
   if (drag?.type === 'select-rect') {
     const rx = Math.min(drag.startX, drag.currentX), ry = Math.min(drag.startY, drag.currentY)
     const rw = Math.abs(drag.currentX - drag.startX), rh = Math.abs(drag.currentY - drag.startY)
@@ -231,22 +213,17 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
     ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 1; ctx.setLineDash([4, 3])
     ctx.strokeRect(rx, ry, rw, rh); ctx.setLineDash([])
   }
-
   if (directorAbsX != null) drawDirectorDiamond(ctx, directorAbsX, GH + DIRECTOR_H / 2)
 }
 
 function drawToken(ctx, x, y, member, highlighted, selected, hasHighlight) {
   const c = VOICE_COLORS[member.voice] ?? VOICE_COLORS.extra
   const initials = (member.initials || member.name.slice(0, 2)).toUpperCase()
-
   if (selected) {
-    roundedHexPath(ctx, x, y, TOKEN_R + 5)
-    ctx.strokeStyle = '#60a5fa'; ctx.lineWidth = 2; ctx.stroke()
+    roundedHexPath(ctx, x, y, TOKEN_R + 5); ctx.strokeStyle = '#60a5fa'; ctx.lineWidth = 2; ctx.stroke()
   }
-
   if (hasHighlight && !highlighted) {
-    roundedHexPath(ctx, x, y, TOKEN_R)
-    ctx.strokeStyle = c.bg + 'aa'; ctx.lineWidth = 1.5; ctx.stroke()
+    roundedHexPath(ctx, x, y, TOKEN_R); ctx.strokeStyle = c.bg + 'aa'; ctx.lineWidth = 1.5; ctx.stroke()
     ctx.fillStyle = c.bg + '88'; ctx.font = 'bold 10px system-ui'
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(initials, x, y)
   } else if (highlighted) {
@@ -265,30 +242,24 @@ function drawDirectorDiamond(ctx, x, y) {
   const s = TOKEN_R * 1.1
   ctx.beginPath()
   ctx.moveTo(x, y - s); ctx.lineTo(x + s, y); ctx.lineTo(x, y + s); ctx.lineTo(x - s, y)
-  ctx.closePath()
-  ctx.fillStyle = VOICE_COLORS.director.bg; ctx.fill()
-  ctx.fillStyle = VOICE_COLORS.director.fg
-  ctx.font = 'bold 9px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-  ctx.fillText('DIR', x, y)
+  ctx.closePath(); ctx.fillStyle = VOICE_COLORS.director.bg; ctx.fill()
+  ctx.fillStyle = VOICE_COLORS.director.fg; ctx.font = 'bold 9px system-ui'
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('DIR', x, y)
 }
 
 function drawTrajectoryOverlay(ctx, { allMoments, allPositions, memberId, currentMomentId }, mode, dims, members) {
   const member = members.find(m => m.id === memberId)
   if (!member) return
   const c = VOICE_COLORS[member.voice] ?? VOICE_COLORS.extra
-
-  // Collect trajectory points in moment order
   const traj = []
   for (const m of allMoments) {
     const pos = allPositions[m.id]?.[memberId]
     if (pos) {
       const pt = getMemberPixelPos(pos, mode, dims)
-      if (pt) traj.push({ momentId: m.id, momentTitle: m.title, pt, n: traj.length + 1 })
+      if (pt) traj.push({ momentId: m.id, pt, n: traj.length + 1 })
     }
   }
-
-  // Draw ghost distribution for current moment
-  ctx.globalAlpha = 0.2
+  ctx.globalAlpha = 0.18
   const currentPlacements = allPositions[currentMomentId] ?? {}
   for (const [mId, pos] of Object.entries(currentPlacements)) {
     if (mId === memberId) continue
@@ -298,23 +269,46 @@ function drawTrajectoryOverlay(ctx, { allMoments, allPositions, memberId, curren
     if (pt) drawToken(ctx, pt.x, pt.y, m, false, false, false)
   }
   ctx.globalAlpha = 1
-
-  // Draw arrows
   for (let i = 0; i < traj.length - 1; i++)
     drawArrow(ctx, traj[i].pt.x, traj[i].pt.y, traj[i + 1].pt.x, traj[i + 1].pt.y, c.bg + 'cc')
-
-  // Draw numbered dots
   for (const { pt, n, momentId } of traj) {
     const isCurrent = momentId === currentMomentId
-    ctx.beginPath()
-    ctx.arc(pt.x, pt.y, TOKEN_R + (isCurrent ? 3 : 0), 0, Math.PI * 2)
-    ctx.fillStyle = isCurrent ? c.bg : c.bg + 'bb'
-    ctx.fill()
+    ctx.beginPath(); ctx.arc(pt.x, pt.y, TOKEN_R + (isCurrent ? 3 : 0), 0, Math.PI * 2)
+    ctx.fillStyle = isCurrent ? c.bg : c.bg + 'bb'; ctx.fill()
     if (isCurrent) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke() }
     ctx.fillStyle = c.fg; ctx.font = `bold ${TOKEN_R > 14 ? 11 : 9}px system-ui`
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-    ctx.fillText(String(n), pt.x, pt.y)
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(n), pt.x, pt.y)
   }
+}
+
+// ─── Sortable row item (for grid config) ──────────────────────
+function SortableRow({ id, label, onEdit, onRemove }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  return (
+    <div ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+      className="flex items-center gap-1">
+      <button {...attributes} {...listeners}
+        className="text-gray-700 hover:text-gray-400 cursor-grab active:cursor-grabbing text-xs shrink-0 touch-none px-0.5">⠿</button>
+      <input value={label} onChange={e => onEdit(e.target.value)}
+        className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-[10px] text-white focus:outline-none focus:border-blue-500" />
+      <button onClick={onRemove} className="text-gray-600 hover:text-red-500 text-xs shrink-0">×</button>
+    </div>
+  )
+}
+
+// ─── Sidebar section accordion ────────────────────────────────
+function SidebarSection({ title, open, onToggle, children, badge }) {
+  return (
+    <div>
+      <button onClick={onToggle}
+        className="flex items-center justify-between w-full text-[10px] text-gray-600 uppercase tracking-wider font-medium hover:text-gray-400 py-0.5 select-none">
+        <span className="flex items-center gap-1">{title}{badge && <span className="text-gray-700 font-normal normal-case">{badge}</span>}</span>
+        <span className="text-gray-700 text-[8px]">{open ? '▴' : '▾'}</span>
+      </button>
+      {open && <div className="mt-1">{children}</div>}
+    </div>
+  )
 }
 
 // ─── Component ────────────────────────────────────────────────
@@ -335,10 +329,32 @@ export default function Editor() {
   const [directorManualX, setDirectorManualX] = useState(null)
   const [selectedIds, setSelectedIds] = useState(new Set())
 
+  // Sidebar panels state (persisted)
+  const [panels, setPanels] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('editorPanels') ?? '{}') } catch { return {} }
+  })
+  const isPanelOpen = (key, def = true) => panels[key] ?? def
+  function togglePanel(key, def = true) {
+    const next = { ...panels, [key]: !isPanelOpen(key, def) }
+    setPanels(next); localStorage.setItem('editorPanels', JSON.stringify(next))
+  }
+
+  // Voice subgroup collapse
+  const [collapsedVoices, setCollapsedVoices] = useState(new Set())
+
   // Trajectory mode
   const [trajectoryMode, setTrajectoryMode] = useState(false)
   const [trajectoryMemberId, setTrajectoryMemberId] = useState('')
-  const [allSongPositions, setAllSongPositions] = useState({}) // { [momentId]: { [memberId]: pos } }
+  const [allSongPositions, setAllSongPositions] = useState({})
+
+  // Add moment panel
+  const [addingMoment, setAddingMoment] = useState(false)
+  const [newMomentTitle, setNewMomentTitle] = useState('')
+  const [cloneFrom, setCloneFrom] = useState('') // '' | 'moment:id' | 'other'
+  const [otherSongs, setOtherSongs] = useState(null)
+  const [otherSongMoments, setOtherSongMoments] = useState({})
+  const [selectedOtherSongId, setSelectedOtherSongId] = useState('')
+  const [selectedOtherMomentId, setSelectedOtherMomentId] = useState('')
 
   const canvasRef = useRef(null)
   const dragRef = useRef(null)
@@ -352,8 +368,8 @@ export default function Editor() {
   const rotatedRef = useRef(rotated)
   const dimsRef = useRef(null)
   const saveTimerRef = useRef(null)
-  const shiftSelectedRef = useRef(null)
   const gridSaveTimerRef = useRef(null)
+  const shiftSelectedRef = useRef(null)
   const momentsRef = useRef(moments)
   const allSongPositionsRef = useRef(allSongPositions)
 
@@ -367,7 +383,7 @@ export default function Editor() {
   useEffect(() => { momentsRef.current = moments }, [moments])
   useEffect(() => { allSongPositionsRef.current = allSongPositions }, [allSongPositions])
 
-  // ─── Derived dims (dynamic from show config) ──────────────
+  // ─── Derived dims ────────────────────────────────────────
   const rowLabels = show?.grid_rows ?? DEFAULT_ROW_LABELS
   const ROWS = rowLabels.length
   const COLS = show?.grid_cols ?? DEFAULT_COLS
@@ -378,7 +394,7 @@ export default function Editor() {
   const dims = { ROWS, COLS, rowLabels, GW, GH, CW, CH }
   dimsRef.current = dims
 
-  // ─── Load ─────────────────────────────────────────────────
+  // ─── Load ────────────────────────────────────────────────
   useEffect(() => {
     async function load() {
       const [showRes, songRes, momentRes, momentsRes, membersRes, exclusionsRes, posRes] = await Promise.all([
@@ -413,7 +429,7 @@ export default function Editor() {
     load()
   }, [momentId])
 
-  // ─── Director X ───────────────────────────────────────────
+  // ─── Director X ──────────────────────────────────────────
   const relCX = mode === 'free' ? null : computeRelCenterX(placements, members, mode, dims)
   const directorAbsX = mode === 'free'
     ? LABEL_W + GW / 2
@@ -428,16 +444,15 @@ export default function Editor() {
     return mX != null ? LABEL_W + mX : rCX != null ? LABEL_W + rCX : null
   }
 
-  // ─── Draw ─────────────────────────────────────────────────
+  // ─── Draw ────────────────────────────────────────────────
   useEffect(() => {
     const tConfig = trajectoryMode && trajectoryMemberId
       ? { allMoments: moments, allPositions: allSongPositions, memberId: trajectoryMemberId, currentMomentId: momentId }
       : null
     drawAll(canvasRef.current, { placements, members, mode, highlightId, directorAbsX,
-      drag: null, selectedIds, rotated, dims,
-      trajectoryConfig: tConfig })
-  }, [placements, members, mode, highlightId, directorAbsX, selectedIds, rotated, dims,
-    trajectoryMode, trajectoryMemberId, allSongPositions, momentId, moments])
+      drag: null, selectedIds, rotated, dims, trajectoryConfig: tConfig })
+  }, [placements, members, mode, highlightId, directorAbsX, selectedIds, rotated,
+    dims, trajectoryMode, trajectoryMemberId, allSongPositions, momentId, moments])
 
   function redrawWithDrag(drag) {
     drawAll(canvasRef.current, {
@@ -448,68 +463,61 @@ export default function Editor() {
     })
   }
 
-  // ─── Save positions ────────────────────────────────────────
+  // ─── Save ────────────────────────────────────────────────
   function scheduleSave(p) {
     clearTimeout(saveTimerRef.current)
-    saveTimerRef.current = setTimeout(() => savePositions(p), 800)
+    saveTimerRef.current = setTimeout(() => {
+      const rows = Object.entries(p).map(([memberId, pos]) => ({
+        moment_id: momentId, member_id: memberId,
+        grid_row: pos.free ? null : pos.row, grid_col: pos.free ? null : pos.col,
+        free_x: pos.free ? pos.x : null, free_y: pos.free ? pos.y : null,
+      }))
+      supabase.from('positions').delete().eq('moment_id', momentId).then(() => {
+        if (rows.length) supabase.from('positions').insert(rows)
+      })
+    }, 800)
   }
-
-  async function savePositions(p) {
-    const rows = Object.entries(p).map(([memberId, pos]) => ({
-      moment_id: momentId, member_id: memberId,
-      grid_row: pos.free ? null : pos.row, grid_col: pos.free ? null : pos.col,
-      free_x: pos.free ? pos.x : null, free_y: pos.free ? pos.y : null,
-    }))
-    await supabase.from('positions').delete().eq('moment_id', momentId)
-    if (rows.length) await supabase.from('positions').insert(rows)
-  }
-
   function applyPlacements(next) {
     placementsRef.current = next; setPlacements(next); scheduleSave(next)
   }
 
-  // ─── Grid config ──────────────────────────────────────────
+  // ─── Grid config ─────────────────────────────────────────
   function scheduleGridSave(gridRows, gridCols) {
     clearTimeout(gridSaveTimerRef.current)
     gridSaveTimerRef.current = setTimeout(() => {
       supabase.from('shows').update({ grid_rows: gridRows, grid_cols: gridCols }).eq('id', showId)
     }, 600)
   }
-
-  function addRow() {
-    const newLabels = [...rowLabels, `Fila ${ROWS + 1}`]
-    setShow(prev => ({ ...prev, grid_rows: newLabels }))
-    scheduleGridSave(newLabels, COLS)
+  function setRowLabels(labels) {
+    setShow(prev => ({ ...prev, grid_rows: labels })); scheduleGridSave(labels, COLS)
   }
-
-  function removeRow(i) {
-    if (ROWS <= 1) return
-    const newLabels = rowLabels.filter((_, idx) => idx !== i)
-    setShow(prev => ({ ...prev, grid_rows: newLabels }))
-    scheduleGridSave(newLabels, COLS)
-  }
-
-  function updateRowLabel(i, val) {
-    const newLabels = rowLabels.map((l, idx) => idx === i ? val : l)
-    setShow(prev => ({ ...prev, grid_rows: newLabels }))
-    scheduleGridSave(newLabels, COLS)
-  }
-
+  function addRow() { setRowLabels([...rowLabels, `Fila ${ROWS + 1}`]) }
+  function removeRow(i) { if (ROWS > 1) setRowLabels(rowLabels.filter((_, idx) => idx !== i)) }
+  function updateRowLabel(i, val) { setRowLabels(rowLabels.map((l, idx) => idx === i ? val : l)) }
+  function reorderRows(newLabels) { setRowLabels(newLabels) }
   function updateCols(n) {
-    const newCols = Math.max(4, Math.min(30, n))
-    setShow(prev => ({ ...prev, grid_cols: newCols }))
-    scheduleGridSave(rowLabels, newCols)
+    const c = Math.max(4, Math.min(30, n))
+    setShow(prev => ({ ...prev, grid_cols: c })); scheduleGridSave(rowLabels, c)
   }
 
-  // ─── Trajectory mode ──────────────────────────────────────
+  const rowSensors = useSensors(useSensor(PointerSensor))
+  const rowItems = rowLabels.map((label, i) => ({ id: String(i), label }))
+
+  function handleRowDragEnd({ active, over }) {
+    if (!over || active.id === over.id) return
+    const oldIdx = rowItems.findIndex(r => r.id === active.id)
+    const newIdx = rowItems.findIndex(r => r.id === over.id)
+    reorderRows(arrayMove(rowLabels, oldIdx, newIdx))
+  }
+
+  // ─── Trajectory mode ─────────────────────────────────────
   async function enterTrajectoryMode(memberId) {
     if (!memberId) { setTrajectoryMode(false); setTrajectoryMemberId(''); return }
-    setTrajectoryMemberId(memberId)
-    setTrajectoryMode(true)
-    // Load all positions for all moments in this song
+    setTrajectoryMemberId(memberId); setTrajectoryMode(true)
     const allMoments = momentsRef.current
     if (!allMoments.length) return
-    const { data } = await supabase.from('positions').select('*').in('moment_id', allMoments.map(m => m.id))
+    const { data } = await supabase.from('positions').select('*')
+      .in('moment_id', allMoments.map(m => m.id))
     const byMoment = {}
     for (const m of allMoments) byMoment[m.id] = {}
     for (const pos of (data ?? [])) {
@@ -520,6 +528,52 @@ export default function Editor() {
         byMoment[pos.moment_id][pos.member_id] = { row: pos.grid_row, col: pos.grid_col }
     }
     setAllSongPositions(byMoment)
+  }
+
+  // ─── Add moment with clone ────────────────────────────────
+  function openAddMoment() {
+    setNewMomentTitle(`Moment ${moments.length + 1}`)
+    setCloneFrom('')
+    setSelectedOtherSongId(''); setSelectedOtherMomentId('')
+    setAddingMoment(true)
+  }
+
+  async function handleCloneFromChange(val) {
+    setCloneFrom(val)
+    if (val === 'other' && otherSongs === null) {
+      const { data: songs } = await supabase.from('songs').select('*').eq('show_id', showId).order('order_index')
+      const songIds = (songs ?? []).map(s => s.id)
+      const { data: moms } = songIds.length
+        ? await supabase.from('moments').select('*').in('song_id', songIds).order('order_index')
+        : { data: [] }
+      const grouped = {}
+      for (const m of (moms ?? [])) (grouped[m.song_id] ??= []).push(m)
+      setOtherSongs((songs ?? []).filter(s => s.id !== songId))
+      setOtherSongMoments(grouped)
+    }
+  }
+
+  async function createMoment() {
+    const title = newMomentTitle.trim(); if (!title) return
+    const { data: newMom, error } = await supabase.from('moments')
+      .insert({ song_id: songId, title, order_index: moments.length, grid_mode: mode })
+      .select().single()
+    if (error || !newMom) return
+    let cloneMomentId = null
+    if (cloneFrom.startsWith('moment:')) cloneMomentId = cloneFrom.slice(7)
+    else if (cloneFrom === 'other' && selectedOtherMomentId) cloneMomentId = selectedOtherMomentId
+    if (cloneMomentId) {
+      const { data: srcPos } = await supabase.from('positions').select('*').eq('moment_id', cloneMomentId)
+      if (srcPos?.length) {
+        await supabase.from('positions').insert(srcPos.map(p => ({
+          moment_id: newMom.id, member_id: p.member_id,
+          grid_row: p.grid_row, grid_col: p.grid_col, free_x: p.free_x, free_y: p.free_y,
+        })))
+      }
+    }
+    setMoments(prev => [...prev, newMom])
+    setAddingMoment(false)
+    navigate(`/show/${showId}/song/${songId}/moment/${newMom.id}`)
   }
 
   // ─── Shift selected ───────────────────────────────────────
@@ -559,7 +613,7 @@ export default function Editor() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [trajectoryMode])
 
-  // ─── Hit test ─────────────────────────────────────────────
+  // ─── Hit tests ────────────────────────────────────────────
   function hitTest(x, y) {
     const dirAbsX = currentDirAbsX()
     if (dirAbsX != null && Math.abs(x - dirAbsX) + Math.abs(y - (dimsRef.current.GH + DIRECTOR_H / 2)) < TOKEN_R * 1.3)
@@ -570,7 +624,6 @@ export default function Editor() {
     }
     return null
   }
-
   function hitTestTrajectory(x, y) {
     for (const m of momentsRef.current) {
       const pos = allSongPositionsRef.current[m.id]?.[trajectoryMemberId]
@@ -585,23 +638,20 @@ export default function Editor() {
   function handleMouseDown(e) {
     if (e.button !== 0) return
     const { x, y } = eventToCanvas(e, rotated, dimsRef.current)
-
     if (trajectoryMode) {
       const hitMomentId = hitTestTrajectory(x, y)
       if (hitMomentId) navigate(`/show/${showId}/song/${songId}/moment/${hitMomentId}`)
       return
     }
-
     const hit = hitTest(x, y)
     if (hit?.type === 'director') { dirDragRef.current = { active: true }; return }
     if (hit?.type === 'member') {
       const { memberId } = hit
       if (e.shiftKey) {
-        setSelectedIds(prev => { const n = new Set(prev); n.has(memberId) ? n.delete(memberId) : n.add(memberId); return n })
-        return
+        setSelectedIds(prev => { const n = new Set(prev); n.has(memberId) ? n.delete(memberId) : n.add(memberId); return n }); return
       }
-      const inSelection = selectedIdsRef.current.has(memberId)
-      if (inSelection && selectedIdsRef.current.size > 1) {
+      const inSel = selectedIdsRef.current.has(memberId)
+      if (inSel && selectedIdsRef.current.size > 1) {
         const origPositions = {}
         for (const id of selectedIdsRef.current) {
           const pos = placementsRef.current[id]
@@ -657,12 +707,8 @@ export default function Editor() {
     } else {
       const cell = pixelToCell(x, y, modeRef.current, d)
       if (cell) {
-        const occupant = Object.entries(next).find(([id, p]) => id !== memberId && !p.free && p.row === cell.row && p.col === cell.col)
-        if (occupant) {
-          const own = next[memberId]
-          next[occupant[0]] = own && !own.free ? { row: own.row, col: own.col } : null
-          if (!next[occupant[0]]) delete next[occupant[0]]
-        }
+        const occ = Object.entries(next).find(([id, p]) => id !== memberId && !p.free && p.row === cell.row && p.col === cell.col)
+        if (occ) { const own = next[memberId]; next[occ[0]] = own && !own.free ? { row: own.row, col: own.col } : null; if (!next[occ[0]]) delete next[occ[0]] }
         next[memberId] = { row: cell.row, col: cell.col }
       } else { delete next[memberId] }
     }
@@ -704,12 +750,12 @@ export default function Editor() {
     const x1 = Math.min(drag.startX, drag.currentX), x2 = Math.max(drag.startX, drag.currentX)
     const y1 = Math.min(drag.startY, drag.currentY), y2 = Math.max(drag.startY, drag.currentY)
     if (x2 - x1 < 5 && y2 - y1 < 5) return
-    const newSelected = new Set(selectedIdsRef.current)
+    const newSel = new Set(selectedIdsRef.current)
     for (const [id, pos] of Object.entries(placementsRef.current)) {
       const pt = getMemberPixelPos(pos, modeRef.current, dimsRef.current)
-      if (pt && pt.x >= x1 && pt.x <= x2 && pt.y >= y1 && pt.y <= y2) newSelected.add(id)
+      if (pt && pt.x >= x1 && pt.x <= x2 && pt.y >= y1 && pt.y <= y2) newSel.add(id)
     }
-    setSelectedIds(newSelected); selectedIdsRef.current = newSelected
+    setSelectedIds(newSel); selectedIdsRef.current = newSel
   }
 
   function handleDoubleClick(e) {
@@ -740,38 +786,31 @@ export default function Editor() {
     applyPlacements(next)
   }
 
-  // ─── Toolbar actions ──────────────────────────────────────
+  // ─── Mode change ─────────────────────────────────────────
   async function changeMode(newMode) {
     setMode(newMode); modeRef.current = newMode
     await supabase.from('moments').update({ grid_mode: newMode }).eq('id', momentId)
   }
 
-  async function addMoment() {
-    const title = prompt('Nom del nou moment:'); if (!title?.trim()) return
-    const { data } = await supabase.from('moments')
-      .insert({ song_id: songId, title: title.trim(), order_index: moments.length, grid_mode: mode })
-      .select().single()
-    if (!data) return
-    const rows = Object.entries(placements).map(([memberId, pos]) => ({
-      moment_id: data.id, member_id: memberId,
-      grid_row: pos.free ? null : pos.row, grid_col: pos.free ? null : pos.col,
-      free_x: pos.free ? pos.x : null, free_y: pos.free ? pos.y : null,
-    }))
-    if (rows.length) await supabase.from('positions').insert(rows)
-    setMoments(prev => [...prev, data])
-    navigate(`/show/${showId}/song/${songId}/moment/${data.id}`)
-  }
-
-  // ─── Derived ──────────────────────────────────────────────
+  // ─── Derived ─────────────────────────────────────────────
   const choirMembers = members.filter(m => m.role !== 'director')
   const allVoices = [...new Set(choirMembers.map(m => m.voice))]
   const visibleMembers = choirMembers.filter(m => !hiddenVoices.has(m.voice))
+  const unplacedCount = visibleMembers.filter(m => !placements[m.id]).length
+
+  const voiceGroups = allVoices.map(v => ({
+    voice: v,
+    color: VOICE_COLORS[v] ?? VOICE_COLORS.extra,
+    members: visibleMembers.filter(m => m.voice === v),
+  })).filter(g => g.members.length > 0)
 
   const MODES = [
     { id: 'square',    Icon: LayoutGrid, label: 'Quadrat'  },
     { id: 'alternate', Icon: Hexagon,    label: 'Alternat' },
     { id: 'free',      Icon: Move,       label: 'Lliure'   },
   ]
+
+  const inputCls = 'bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500'
 
   // ─── Render ───────────────────────────────────────────────
   return (
@@ -787,30 +826,25 @@ export default function Editor() {
             <span className="mx-0.5 shrink-0">›</span>
             <span className="text-gray-300 truncate">{moment?.title ?? '…'}</span>
           </nav>
-
           <div className="flex items-center gap-1.5 shrink-0">
             {!trajectoryMode && <>
               <div className="flex rounded-lg border border-gray-700 overflow-hidden">
                 {[['↑',-1,0],['↓',1,0],['←',0,-1],['→',0,1]].map(([a,dr,dc]) => (
                   <button key={a} onClick={() => shiftSelected(dr, dc)}
-                    className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 text-xs transition-colors border-r border-gray-700 last:border-0">
-                    {a}
-                  </button>
+                    className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 text-xs transition-colors border-r border-gray-700 last:border-0">{a}</button>
                 ))}
               </div>
               {selectedIds.size > 0 && (
                 <span className="flex items-center gap-1 text-xs text-blue-400 border border-blue-800 px-2 py-0.5 rounded-full">
                   {selectedIds.size} sel.
-                  <button onClick={() => setSelectedIds(new Set())} className="text-gray-500 hover:text-white leading-none">×</button>
+                  <button onClick={() => setSelectedIds(new Set())} className="text-gray-500 hover:text-white">×</button>
                 </span>
               )}
             </>}
-
             <button onClick={() => { const n = !rotated; setRotated(n); localStorage.setItem('rotated', n) }}
               className={`px-2 py-1 rounded-lg text-xs border transition-colors ${rotated ? 'border-blue-600 text-blue-400 bg-blue-900/20' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
               ↺ {rotated ? '180°' : '0°'}
             </button>
-
             {!trajectoryMode && (
               <select value={highlightId}
                 onChange={e => { setHighlightId(e.target.value); localStorage.setItem('highlightMemberId', e.target.value) }}
@@ -819,14 +853,10 @@ export default function Editor() {
                 {choirMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             )}
-
-            {/* Trajectory toggle */}
-            <button
-              onClick={() => trajectoryMode ? enterTrajectoryMode('') : setTrajectoryMode(true)}
+            <button onClick={() => trajectoryMode ? enterTrajectoryMode('') : setTrajectoryMode(true)}
               className={`px-2 py-1 rounded-lg text-xs border transition-colors ${trajectoryMode ? 'border-violet-600 text-violet-400 bg-violet-900/20' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
               ↝ Trajectòria
             </button>
-
             {trajectoryMode && (
               <select value={trajectoryMemberId} onChange={e => enterTrajectoryMode(e.target.value)}
                 className="bg-gray-800 border border-violet-700 rounded-lg text-xs text-violet-300 px-2 py-1 focus:outline-none max-w-[130px]">
@@ -834,7 +864,6 @@ export default function Editor() {
                 {choirMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             )}
-
             {directorManualX != null && !trajectoryMode && (
               <button onClick={() => setDirectorManualX(null)}
                 className="text-xs text-yellow-500 hover:text-yellow-400 border border-yellow-800 px-2 py-1 rounded-lg transition-colors">
@@ -848,12 +877,10 @@ export default function Editor() {
         <div className="flex flex-1 min-h-0">
 
           {/* Sidebar */}
-          <div className="w-40 shrink-0 border-r border-gray-800 bg-gray-950 flex flex-col overflow-y-auto">
+          <div className="w-44 shrink-0 border-r border-gray-800 bg-gray-950 flex flex-col overflow-y-auto">
             <div className="p-2.5 space-y-3">
 
-              {/* Mode toggle */}
-              <div className="space-y-1">
-                <p className="text-[10px] text-gray-600 uppercase tracking-wider font-medium">Mode</p>
+              <SidebarSection title="Mode" open={isPanelOpen('mode')} onToggle={() => togglePanel('mode')}>
                 <div className="flex rounded-lg border border-gray-700 overflow-hidden">
                   {MODES.map(({ id, Icon, label }) => (
                     <button key={id} onClick={() => changeMode(id)} title={label}
@@ -862,11 +889,9 @@ export default function Editor() {
                     </button>
                   ))}
                 </div>
-              </div>
+              </SidebarSection>
 
-              {/* Voice filter */}
-              <div className="space-y-1">
-                <p className="text-[10px] text-gray-600 uppercase tracking-wider font-medium">Cordes</p>
+              <SidebarSection title="Cordes" open={isPanelOpen('voices')} onToggle={() => togglePanel('voices')}>
                 <div className="flex flex-wrap gap-1">
                   {allVoices.map(v => {
                     const c = VOICE_COLORS[v]
@@ -879,58 +904,71 @@ export default function Editor() {
                     )
                   })}
                 </div>
-              </div>
+              </SidebarSection>
 
-              {/* Grid config */}
-              <div className="space-y-1">
-                <p className="text-[10px] text-gray-600 uppercase tracking-wider font-medium">Graella</p>
+              <SidebarSection title="Graella" open={isPanelOpen('grid', false)} onToggle={() => togglePanel('grid', false)}>
                 <div className="space-y-0.5">
-                  {rowLabels.map((label, i) => (
-                    <div key={i} className="flex items-center gap-1">
-                      <input value={label} onChange={e => updateRowLabel(i, e.target.value)}
-                        className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-[10px] text-white focus:outline-none focus:border-blue-500" />
-                      <button onClick={() => removeRow(i)} className="text-gray-600 hover:text-red-500 text-xs shrink-0">×</button>
-                    </div>
-                  ))}
-                  <button onClick={addRow} className="text-[10px] text-blue-500 hover:text-blue-400 transition-colors">+ Fila</button>
+                  <DndContext sensors={rowSensors} collisionDetection={closestCenter} onDragEnd={handleRowDragEnd}>
+                    <SortableContext items={rowItems.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                      {rowItems.map(({ id, label }, i) => (
+                        <SortableRow key={id} id={id} label={label}
+                          onEdit={val => updateRowLabel(i, val)}
+                          onRemove={() => removeRow(i)} />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
+                  <button onClick={addRow} className="text-[10px] text-blue-500 hover:text-blue-400 transition-colors mt-0.5">+ Fila</button>
                 </div>
-                <div className="flex items-center gap-1.5 mt-1">
+                <div className="flex items-center gap-1.5 mt-1.5">
                   <span className="text-[10px] text-gray-500">Col.</span>
-                  <button onClick={() => updateCols(COLS - 1)} className="w-5 h-5 text-gray-400 hover:text-white bg-gray-800 rounded text-xs leading-none">−</button>
+                  <button onClick={() => updateCols(COLS - 1)} className="w-5 h-5 text-gray-400 hover:text-white bg-gray-800 rounded text-xs">−</button>
                   <span className="text-[10px] text-gray-300 w-5 text-center tabular-nums">{COLS}</span>
-                  <button onClick={() => updateCols(COLS + 1)} className="w-5 h-5 text-gray-400 hover:text-white bg-gray-800 rounded text-xs leading-none">+</button>
+                  <button onClick={() => updateCols(COLS + 1)} className="w-5 h-5 text-gray-400 hover:text-white bg-gray-800 rounded text-xs">+</button>
                 </div>
-              </div>
+              </SidebarSection>
 
-              {/* Unplaced members (hidden in trajectory mode) */}
               {!trajectoryMode && (
-                <div className="space-y-1">
-                  <p className="text-[10px] text-gray-600 uppercase tracking-wider font-medium">
-                    No col·locats ({visibleMembers.filter(m => !placements[m.id]).length})
-                  </p>
-                  <div className="space-y-0.5">
-                    {visibleMembers.map(m => {
-                      const placed = !!placements[m.id]
-                      const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
+                <SidebarSection title="Persones" open={isPanelOpen('members')} onToggle={() => togglePanel('members')}
+                  badge={unplacedCount > 0 ? ` (${unplacedCount} pendents)` : ''}>
+                  <div className="space-y-1.5">
+                    {voiceGroups.map(({ voice, color: c, members: grpMembers }) => {
+                      const collapsed = collapsedVoices.has(voice)
+                      const unplacedInGroup = grpMembers.filter(m => !placements[m.id]).length
                       return (
-                        <div key={m.id} draggable={!placed} onDragStart={e => e.dataTransfer.setData('memberId', m.id)}
-                          className={`flex items-center gap-1.5 px-1.5 py-1 rounded-lg text-xs select-none transition-opacity ${placed ? 'opacity-20' : 'cursor-grab active:cursor-grabbing hover:bg-gray-800'}`}>
-                          <span className="w-5 h-5 rounded flex items-center justify-center font-bold shrink-0 text-[9px]"
-                            style={{ backgroundColor: c.bg, color: c.fg }}>
-                            {(m.initials || m.name.slice(0, 2)).toUpperCase()}
-                          </span>
-                          <span className="text-gray-300 truncate text-[11px]">{m.name}</span>
+                        <div key={voice}>
+                          <button
+                            onClick={() => setCollapsedVoices(prev => { const n = new Set(prev); n.has(voice) ? n.delete(voice) : n.add(voice); return n })}
+                            className="flex items-center gap-1.5 w-full py-0.5 hover:opacity-80 select-none">
+                            <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: c.bg }} />
+                            <span className="text-[10px] text-gray-400 font-medium flex-1 text-left">{VOICE_LABELS[voice]}</span>
+                            {unplacedInGroup > 0 && <span className="text-[9px] text-gray-600">{unplacedInGroup}</span>}
+                            <span className="text-gray-700 text-[8px]">{collapsed ? '▾' : '▴'}</span>
+                          </button>
+                          {!collapsed && grpMembers.map(m => {
+                            const placed = !!placements[m.id]
+                            return (
+                              <div key={m.id} draggable={!placed}
+                                onDragStart={e => e.dataTransfer.setData('memberId', m.id)}
+                                className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded text-xs select-none ml-3 ${placed ? 'opacity-25' : 'cursor-grab active:cursor-grabbing hover:bg-gray-800'}`}>
+                                <span className="w-5 h-5 rounded flex items-center justify-center font-bold shrink-0 text-[9px]"
+                                  style={{ backgroundColor: c.bg, color: c.fg }}>
+                                  {(m.initials || m.name.slice(0, 2)).toUpperCase()}
+                                </span>
+                                <span className="text-gray-300 truncate text-[11px]">{m.name}</span>
+                              </div>
+                            )
+                          })}
                         </div>
                       )
                     })}
                   </div>
-                </div>
+                </SidebarSection>
               )}
             </div>
           </div>
 
-          {/* Canvas */}
-          <div className="flex-1 overflow-auto bg-gray-950 flex flex-col">
+          {/* Canvas — right padding so it doesn't touch edge */}
+          <div className="flex-1 overflow-auto bg-gray-950 flex flex-col pr-3">
             <canvas ref={canvasRef}
               style={{ width: '100%', aspectRatio: `${CW} / ${CH}`, transform: rotated ? 'rotate(180deg)' : undefined, display: 'block', cursor: trajectoryMode ? 'pointer' : 'default' }}
               onMouseDown={handleMouseDown} onMouseMove={handleMouseMove}
@@ -939,11 +977,69 @@ export default function Editor() {
               onDragOver={handleDragOver} onDrop={handleDrop} />
             <p className="text-[10px] text-gray-700 text-center select-none py-1">
               {trajectoryMode
-                ? 'Clica qualsevol punt de la trajectòria per anar a aquell moment · Esc per sortir'
+                ? 'Clica qualsevol punt per anar a aquell moment · Esc per sortir'
                 : 'Arrossega · Shift+clic o quadre per seleccionar · ↑↓←→ mouen selecció · Doble clic per treure'}
             </p>
           </div>
         </div>
+
+        {/* ── Add moment panel ── */}
+        {addingMoment && (
+          <div className="border-t border-gray-700 bg-gray-900 px-3 py-2 shrink-0">
+            <div className="flex flex-wrap gap-2 items-end">
+              <div className="space-y-0.5">
+                <label className="text-[10px] text-gray-500">Títol</label>
+                <input value={newMomentTitle} onChange={e => setNewMomentTitle(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') createMoment(); if (e.key === 'Escape') setAddingMoment(false) }}
+                  autoFocus className={inputCls + ' w-36'} />
+              </div>
+              <div className="space-y-0.5">
+                <label className="text-[10px] text-gray-500">Font</label>
+                <select value={cloneFrom} onChange={e => handleCloneFromChange(e.target.value)}
+                  className={inputCls}>
+                  <option value="">Des de 0</option>
+                  <option value={`moment:${momentId}`}>Clonar actual</option>
+                  {moments.filter(m => m.id !== momentId).map(m => (
+                    <option key={m.id} value={`moment:${m.id}`}>Clonar: {m.title}</option>
+                  ))}
+                  <option value="other">D'altra cançó…</option>
+                </select>
+              </div>
+              {cloneFrom === 'other' && otherSongs !== null && (
+                <div className="space-y-0.5">
+                  <label className="text-[10px] text-gray-500">Cançó</label>
+                  <select value={selectedOtherSongId}
+                    onChange={e => { setSelectedOtherSongId(e.target.value); setSelectedOtherMomentId('') }}
+                    className={inputCls}>
+                    <option value="">Tria…</option>
+                    {otherSongs.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                  </select>
+                </div>
+              )}
+              {cloneFrom === 'other' && selectedOtherSongId && (
+                <div className="space-y-0.5">
+                  <label className="text-[10px] text-gray-500">Moment</label>
+                  <select value={selectedOtherMomentId} onChange={e => setSelectedOtherMomentId(e.target.value)}
+                    className={inputCls}>
+                    <option value="">Tria…</option>
+                    {(otherSongMoments[selectedOtherSongId] ?? []).map(m => (
+                      <option key={m.id} value={m.id}>{m.title}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {cloneFrom === 'other' && otherSongs === null && (
+                <span className="text-xs text-gray-500 self-end pb-1">Carregant…</span>
+              )}
+              <div className="flex gap-1.5 self-end">
+                <button onClick={createMoment}
+                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">Crear</button>
+                <button onClick={() => setAddingMoment(false)}
+                  className="text-gray-500 hover:text-white text-xs px-2 py-1.5 transition-colors">Cancel·lar</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Moment bar ── */}
         <div className="border-t border-gray-800 bg-gray-900 px-3 py-1.5 shrink-0">
@@ -955,7 +1051,7 @@ export default function Editor() {
                 {i + 1}. {m.title}
               </button>
             ))}
-            <button onClick={addMoment}
+            <button onClick={openAddMoment}
               className="shrink-0 px-3 py-1 rounded-full text-xs bg-gray-800 text-gray-500 hover:text-white hover:bg-gray-700 transition-colors">
               + Moment
             </button>
