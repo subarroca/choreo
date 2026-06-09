@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Generador d'Assets PWA</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    button {
+      background: #1f2937;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background: #374151;
+    }
+    .preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .preview-item {
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    .preview-item img {
+      display: block;
+      max-width: 200px;
+      margin: 10px 0;
+    }
+    h2 {
+      color: #1f2937;
+    }
+  </style>
+</head>
+<body>
+  <h1>Generador d'Assets PWA per Choir Positions</h1>
+  <p>Fes clic als botons per generar i descarregar tots els assets necessaris:</p>
+  
+  <button onclick="generateAllIcons()">1. Generar Totes les Icones</button>
+  <button onclick="generateAllScreenshots()">2. Generar Screenshots</button>
+  <button onclick="downloadAll()">3. Descarregar Tot</button>
+  
+  <div id="output" class="preview"></div>
+
+  <script>
+    const assets = new Map();
+
+    function drawIcon(canvas, size) {
+      const ctx = canvas.getContext('2d');
+      const scale = size / 192;
+
+      // Fons amb border radius
+      ctx.fillStyle = '#1f2937';
+      ctx.fillRect(0, 0, size, size);
+
+      // Notes musicals
+      ctx.fillStyle = 'white';
+      
+      // Primera nota
+      ctx.beginPath();
+      ctx.arc(60 * scale, 100 * scale, 8 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(67 * scale, 60 * scale, 6 * scale, 40 * scale);
+
+      // Segona nota
+      ctx.beginPath();
+      ctx.arc(90 * scale, 110 * scale, 8 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(97 * scale, 70 * scale, 6 * scale, 40 * scale);
+
+      // Tercera nota
+      ctx.beginPath();
+      ctx.arc(120 * scale, 95 * scale, 8 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(127 * scale, 55 * scale, 6 * scale, 40 * scale);
+
+      // Línies del pentagrama
+      ctx.globalAlpha = 0.3;
+      [80, 90, 100, 110, 120].forEach(y => {
+        ctx.fillRect(40 * scale, y * scale, 112 * scale, 2 * scale);
+      });
+
+      // Text
+      ctx.globalAlpha = 1;
+      ctx.font = `bold ${20 * scale}px Arial, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('CHOIR', size / 2, 160 * scale);
+    }
+
+    function drawScreenshot(canvas, width, height, isMobile) {
+      const ctx = canvas.getContext('2d');
+      
+      // Fons blanc
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+
+      // Header
+      ctx.fillStyle = '#1f2937';
+      ctx.fillRect(0, 0, width, isMobile ? 60 : 80);
+      
+      ctx.fillStyle = 'white';
+      ctx.font = `bold ${isMobile ? 20 : 32}px Arial, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('Choir Positions', width / 2, isMobile ? 38 : 50);
+
+      // Contingut simulat
+      const contentY = isMobile ? 80 : 100;
+      const cardHeight = isMobile ? 60 : 80;
+      const padding = isMobile ? 15 : 20;
+      const gap = isMobile ? 10 : 15;
+
+      // Títol
+      ctx.fillStyle = '#1f2937';
+      ctx.font = `bold ${isMobile ? 16 : 24}px Arial, sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText('Membres del Cor', padding, contentY + 30);
+
+      // Cards simulades
+      for (let i = 0; i < 4; i++) {
+        const y = contentY + 50 + (i * (cardHeight + gap));
+        
+        // Card background
+        ctx.fillStyle = '#f3f4f6';
+        ctx.fillRect(padding, y, width - (padding * 2), cardHeight);
+        
+        // Card border
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(padding, y, width - (padding * 2), cardHeight);
+        
+        // Avatar simulat
+        ctx.fillStyle = '#9ca3af';
+        ctx.beginPath();
+        ctx.arc(padding + 25, y + cardHeight/2, 15, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Text
+        ctx.fillStyle = '#374151';
+        ctx.font = `${isMobile ? 14 : 16}px Arial, sans-serif`;
+        ctx.fillText(`Cantant ${i + 1}`, padding + 50, y + cardHeight/2 - 5);
+        
+        ctx.fillStyle = '#6b7280';
+        ctx.font = `${isMobile ? 12 : 14}px Arial, sans-serif`;
+        ctx.fillText('Soprano', padding + 50, y + cardHeight/2 + 15);
+      }
+    }
+
+    async function generateAllIcons() {
+      const sizes = [192, 512];
+      const output = document.getElementById('output');
+      output.innerHTML = '<h2>Icones Generades:</h2>';
+
+      for (const size of sizes) {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        drawIcon(canvas, size);
+
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        const url = URL.createObjectURL(blob);
+        const filename = `icon-${size}.png`;
+        
+        assets.set(filename, { blob, url });
+
+        const div = document.createElement('div');
+        div.className = 'preview-item';
+        div.innerHTML = `
+          <strong>${filename}</strong> (${size}x${size}px)
+          <img src="${url}" width="100">
+          <button onclick="downloadFile('${filename}')">Descarregar</button>
+        `;
+        output.appendChild(div);
+      }
+    }
+
+    async function generateAllScreenshots() {
+      const screenshots = [
+        { name: 'screenshot-desktop.png', width: 1280, height: 720, isMobile: false },
+        { name: 'screenshot-mobile.png', width: 540, height: 720, isMobile: true }
+      ];
+      
+      const output = document.getElementById('output');
+      const heading = document.createElement('h2');
+      heading.textContent = 'Screenshots Generades:';
+      output.appendChild(heading);
+
+      for (const { name, width, height, isMobile } of screenshots) {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        drawScreenshot(canvas, width, height, isMobile);
+
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        const url = URL.createObjectURL(blob);
+        
+        assets.set(name, { blob, url });
+
+        const div = document.createElement('div');
+        div.className = 'preview-item';
+        div.innerHTML = `
+          <strong>${name}</strong> (${width}x${height}px)
+          <img src="${url}" style="max-width: 200px;">
+          <button onclick="downloadFile('${name}')">Descarregar</button>
+        `;
+        output.appendChild(div);
+      }
+    }
+
+    function downloadFile(filename) {
+      const asset = assets.get(filename);
+      if (!asset) return;
+      
+      const a = document.createElement('a');
+      a.href = asset.url;
+      a.download = filename;
+      a.click();
+    }
+
+    async function downloadAll() {
+      if (assets.size === 0) {
+        alert('Primer genera les icones i screenshots!');
+        return;
+      }
+
+      for (const [filename, asset] of assets) {
+        const a = document.createElement('a');
+        a.href = asset.url;
+        a.download = filename;
+        a.click();
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
+      alert(`${assets.size} fitxers descarregats! Copia'ls a la carpeta public/ del projecte.`);
+    }
+  </script>
+</body>
+</html>

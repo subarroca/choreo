@@ -1,0 +1,19 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#1f2937"/>
+  <g fill="white">
+    <!-- Notes musicals (escalat) -->
+    <circle cx="160" cy="267" r="21"/>
+    <rect x="179" y="160" width="16" height="107"/>
+    <circle cx="240" cy="293" r="21"/>
+    <rect x="259" y="187" width="16" height="107"/>
+    <circle cx="320" cy="253" r="21"/>
+    <rect x="339" y="147" width="16" height="107"/>
+    <!-- Línies del pentagrama -->
+    <rect x="107" y="213" width="299" height="5" opacity="0.3"/>
+    <rect x="107" y="240" width="299" height="5" opacity="0.3"/>
+    <rect x="107" y="267" width="299" height="5" opacity="0.3"/>
+    <rect x="107" y="293" width="299" height="5" opacity="0.3"/>
+    <rect x="107" y="320" width="299" height="5" opacity="0.3"/>
+  </g>
+  <text x="256" y="427" font-family="Arial, sans-serif" font-size="53" font-weight="bold" fill="white" text-anchor="middle">CHOIR</text>
+</svg>
