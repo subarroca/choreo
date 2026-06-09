@@ -1,12 +1,18 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { LayoutGrid, Hexagon, Move } from 'lucide-react'
+import {
+  LayoutGrid, Hexagon, Move,
+  RotateCcw, Waypoints, GripVertical, Pencil, X,
+  ChevronUp, ChevronDown,
+  ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
+  Plus, AlignCenter, AlignVerticalJustifyEnd, Target,
+} from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { VOICE_COLORS, VOICE_LABELS, VOICE_SHORT } from '../lib/constants' // VOICE_SHORT used in members sidebar
+import Layout from '../components/Layout'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { supabase } from '../lib/supabase'
-import { VOICE_COLORS, VOICE_LABELS, VOICE_SHORT } from '../lib/constants'
-import Layout from '../components/Layout'
 
 // ─── Static constants ─────────────────────────────────────────
 const CELL = 44
@@ -15,6 +21,7 @@ const DIRECTOR_H = 60
 const TOKEN_R = Math.floor(CELL * 0.38)
 const DEFAULT_ROW_LABELS = ['Tarima 4', 'Tarima 3', 'Tarima 2', 'Tarima 1', 'Terra']
 const DEFAULT_COLS = 14
+const VOICE_ORDER = ['soprano1','soprano2','alto1','alto2','tenor1','tenor2','baritone','bass']
 
 // ─── Rounded hexagon ──────────────────────────────────────────
 function roundedHexPath(ctx, cx, cy, r, cr = 4) {
@@ -167,7 +174,7 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
 
   if (trajectoryConfig) {
     drawTrajectoryOverlay(ctx, trajectoryConfig, mode, dims, members)
-    if (directorAbsX != null) drawDirectorDiamond(ctx, directorAbsX, GH + DIRECTOR_H / 2)
+    if (directorAbsX != null) drawDirectorToken(ctx, directorAbsX, GH + DIRECTOR_H / 2)
     return
   }
 
@@ -213,7 +220,7 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
     ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 1; ctx.setLineDash([4, 3])
     ctx.strokeRect(rx, ry, rw, rh); ctx.setLineDash([])
   }
-  if (directorAbsX != null) drawDirectorDiamond(ctx, directorAbsX, GH + DIRECTOR_H / 2)
+  if (directorAbsX != null) drawDirectorToken(ctx, directorAbsX, GH + DIRECTOR_H / 2)
 }
 
 function drawToken(ctx, x, y, member, highlighted, selected, hasHighlight) {
@@ -238,12 +245,12 @@ function drawToken(ctx, x, y, member, highlighted, selected, hasHighlight) {
   }
 }
 
-function drawDirectorDiamond(ctx, x, y) {
-  const s = TOKEN_R * 1.1
-  ctx.beginPath()
-  ctx.moveTo(x, y - s); ctx.lineTo(x + s, y); ctx.lineTo(x, y + s); ctx.lineTo(x - s, y)
-  ctx.closePath(); ctx.fillStyle = VOICE_COLORS.director.bg; ctx.fill()
-  ctx.fillStyle = VOICE_COLORS.director.fg; ctx.font = 'bold 9px system-ui'
+// Director is now also a hexagon (larger, amber)
+function drawDirectorToken(ctx, x, y) {
+  const c = VOICE_COLORS.director
+  roundedHexPath(ctx, x, y, TOKEN_R * 1.15)
+  ctx.fillStyle = c.bg; ctx.fill()
+  ctx.fillStyle = c.fg; ctx.font = 'bold 9px system-ui'
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('DIR', x, y)
 }
 
@@ -281,7 +288,7 @@ function drawTrajectoryOverlay(ctx, { allMoments, allPositions, memberId, curren
   }
 }
 
-// ─── Sortable row item (for grid config) ──────────────────────
+// ─── Sortable row item ────────────────────────────────────────
 function SortableRow({ id, label, onEdit, onRemove }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
   return (
@@ -289,22 +296,26 @@ function SortableRow({ id, label, onEdit, onRemove }) {
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
       className="flex items-center gap-1">
       <button {...attributes} {...listeners}
-        className="text-gray-700 hover:text-gray-400 cursor-grab active:cursor-grabbing text-xs shrink-0 touch-none px-0.5">⠿</button>
+        className="text-gray-700 hover:text-gray-400 cursor-grab active:cursor-grabbing shrink-0 touch-none px-0.5">
+        <GripVertical size={10} />
+      </button>
       <input value={label} onChange={e => onEdit(e.target.value)}
         className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-[10px] text-white focus:outline-none focus:border-blue-500" />
-      <button onClick={onRemove} className="text-gray-600 hover:text-red-500 text-xs shrink-0">×</button>
+      <button onClick={onRemove} className="text-gray-600 hover:text-red-500 shrink-0">
+        <X size={10} />
+      </button>
     </div>
   )
 }
 
-// ─── Sidebar section accordion ────────────────────────────────
+// ─── Sidebar section ──────────────────────────────────────────
 function SidebarSection({ title, open, onToggle, children, badge }) {
   return (
     <div>
       <button onClick={onToggle}
         className="flex items-center justify-between w-full text-[10px] text-gray-600 uppercase tracking-wider font-medium hover:text-gray-400 py-0.5 select-none">
         <span className="flex items-center gap-1">{title}{badge && <span className="text-gray-700 font-normal normal-case">{badge}</span>}</span>
-        <span className="text-gray-700 text-[8px]">{open ? '▴' : '▾'}</span>
+        {open ? <ChevronUp size={9} className="text-gray-700" /> : <ChevronDown size={9} className="text-gray-700" />}
       </button>
       {open && <div className="mt-1">{children}</div>}
     </div>
@@ -324,12 +335,11 @@ export default function Editor() {
   const [placements, setPlacements] = useState({})
   const [mode, setMode] = useState('alternate')
   const [rotated, setRotated] = useState(() => localStorage.getItem('rotated') === 'true')
-  const [hiddenVoices, setHiddenVoices] = useState(new Set())
   const [highlightId, setHighlightId] = useState(() => localStorage.getItem('highlightMemberId') || '')
   const [directorManualX, setDirectorManualX] = useState(null)
   const [selectedIds, setSelectedIds] = useState(new Set())
 
-  // Sidebar panels state (persisted)
+  // Sidebar panels
   const [panels, setPanels] = useState(() => {
     try { return JSON.parse(localStorage.getItem('editorPanels') ?? '{}') } catch { return {} }
   })
@@ -342,15 +352,20 @@ export default function Editor() {
   // Voice subgroup collapse
   const [collapsedVoices, setCollapsedVoices] = useState(new Set())
 
-  // Trajectory mode
+  // Trajectory
   const [trajectoryMode, setTrajectoryMode] = useState(false)
   const [trajectoryMemberId, setTrajectoryMemberId] = useState('')
   const [allSongPositions, setAllSongPositions] = useState({})
 
+  // Edit moment panel
+  const [editingMoment, setEditingMoment] = useState(false)
+  const [editMomentTitle, setEditMomentTitle] = useState('')
+  const [editMomentSubtitle, setEditMomentSubtitle] = useState('')
+
   // Add moment panel
   const [addingMoment, setAddingMoment] = useState(false)
   const [newMomentTitle, setNewMomentTitle] = useState('')
-  const [cloneFrom, setCloneFrom] = useState('') // '' | 'moment:id' | 'other'
+  const [cloneFrom, setCloneFrom] = useState('')
   const [otherSongs, setOtherSongs] = useState(null)
   const [otherSongMoments, setOtherSongMoments] = useState({})
   const [selectedOtherSongId, setSelectedOtherSongId] = useState('')
@@ -410,9 +425,10 @@ export default function Editor() {
       setSong(songRes.data)
       const m = momentRes.data
       setMoment(m); setMode(m?.grid_mode ?? 'alternate')
+      setEditMomentTitle(m?.title ?? ''); setEditMomentSubtitle(m?.subtitle ?? '')
       setMoments(momentsRes.data ?? [])
       const excludedIds = new Set((exclusionsRes.data ?? []).map(e => e.member_id))
-      const mems = (membersRes.data ?? []).filter(m => !excludedIds.has(m.id))
+      const mems = (membersRes.data ?? []).filter(m => m.active !== false && !excludedIds.has(m.id))
       setMembers(mems); membersRef.current = mems
       const p = {}
       for (const pos of (posRes.data ?? [])) {
@@ -500,17 +516,74 @@ export default function Editor() {
     setShow(prev => ({ ...prev, grid_cols: c })); scheduleGridSave(rowLabels, c)
   }
 
-  const rowSensors = useSensors(useSensor(PointerSensor))
-  const rowItems = rowLabels.map((label, i) => ({ id: String(i), label }))
+  // ─── Compact / pinya ─────────────────────────────────────
+  // axis: 'h' = horizontal only (pack within rows, no row change)
+  //       'hv' = horizontal + vertical (also pack rows together)
+  function compactPositions(axis = 'hv') {
+    const d = dimsRef.current
+    const placed = []
+    for (const [id, pos] of Object.entries(placementsRef.current)) {
+      if (!pos || pos.free) continue
+      const m = membersRef.current.find(m => m.id === id)
+      if (!m || m.role === 'director') continue
+      placed.push({ id, row: pos.row, col: pos.col })
+    }
+    if (!placed.length) return
+    placed.sort((a, b) => a.row !== b.row ? a.row - b.row : a.col - b.col)
+    const next = { ...placementsRef.current }
 
-  function handleRowDragEnd({ active, over }) {
-    if (!over || active.id === over.id) return
-    const oldIdx = rowItems.findIndex(r => r.id === active.id)
-    const newIdx = rowItems.findIndex(r => r.id === over.id)
-    reorderRows(arrayMove(rowLabels, oldIdx, newIdx))
+    // Group by original row
+    const byRow = {}
+    for (const p of placed) (byRow[p.row] ??= []).push(p)
+    const occupiedRows = Object.keys(byRow).map(Number).sort((a, b) => a - b)
+
+    if (axis === 'h') {
+      // Pack each row to center, no gaps
+      for (const origRow of occupiedRows) {
+        const items = byRow[origRow]
+        const n = items.length
+        const startCol = Math.max(0, Math.floor((d.COLS - n) / 2))
+        items.forEach(({ id }, i) => { next[id] = { row: origRow, col: startCol + i } })
+      }
+    } else {
+      // H+V: compact rows to consecutive, starting from bottom, each row packed to center
+      const numRows = occupiedRows.length
+      const startRow = Math.max(0, d.ROWS - numRows)
+      occupiedRows.forEach((origRow, rowIdx) => {
+        const newRow = startRow + rowIdx
+        const items = byRow[origRow]
+        const n = items.length
+        const startCol = Math.max(0, Math.floor((d.COLS - n) / 2))
+        items.forEach(({ id }, i) => { next[id] = { row: newRow, col: startCol + i } })
+      })
+    }
+
+    applyPlacements(next)
   }
 
-  // ─── Trajectory mode ─────────────────────────────────────
+  // ─── Moment meta ─────────────────────────────────────────
+  async function saveMomentMeta() {
+    const title = editMomentTitle.trim(); if (!title) return
+    const subtitle = editMomentSubtitle.trim()
+    await supabase.from('moments').update({ title, subtitle }).eq('id', momentId)
+    setMoment(prev => ({ ...prev, title, subtitle }))
+    setMoments(prev => prev.map(m => m.id === momentId ? { ...m, title, subtitle } : m))
+    setEditingMoment(false)
+  }
+
+  async function handleDeleteMoment(mId) {
+    if (!confirm('Eliminar aquest moment i totes les seves posicions?')) return
+    await supabase.from('moments').delete().eq('id', mId)
+    const remaining = moments.filter(m => m.id !== mId)
+    setMoments(remaining)
+    if (mId === momentId && remaining.length) {
+      navigate(`/show/${showId}/song/${songId}/moment/${remaining[remaining.length - 1].id}`)
+    } else if (!remaining.length) {
+      navigate(`/show/${showId}`)
+    }
+  }
+
+  // ─── Trajectory ──────────────────────────────────────────
   async function enterTrajectoryMode(memberId) {
     if (!memberId) { setTrajectoryMode(false); setTrajectoryMemberId(''); return }
     setTrajectoryMemberId(memberId); setTrajectoryMode(true)
@@ -530,12 +603,11 @@ export default function Editor() {
     setAllSongPositions(byMoment)
   }
 
-  // ─── Add moment with clone ────────────────────────────────
+  // ─── Add moment ──────────────────────────────────────────
   function openAddMoment() {
     setNewMomentTitle(`Moment ${moments.length + 1}`)
-    setCloneFrom('')
-    setSelectedOtherSongId(''); setSelectedOtherMomentId('')
-    setAddingMoment(true)
+    setCloneFrom(''); setSelectedOtherSongId(''); setSelectedOtherMomentId('')
+    setAddingMoment(true); setEditingMoment(false)
   }
 
   async function handleCloneFromChange(val) {
@@ -556,7 +628,7 @@ export default function Editor() {
   async function createMoment() {
     const title = newMomentTitle.trim(); if (!title) return
     const { data: newMom, error } = await supabase.from('moments')
-      .insert({ song_id: songId, title, order_index: moments.length, grid_mode: mode })
+      .insert({ song_id: songId, title, subtitle: '', order_index: moments.length, grid_mode: mode })
       .select().single()
     if (error || !newMom) return
     let cloneMomentId = null
@@ -576,7 +648,7 @@ export default function Editor() {
     navigate(`/show/${showId}/song/${songId}/moment/${newMom.id}`)
   }
 
-  // ─── Shift selected ───────────────────────────────────────
+  // ─── Shift selection ──────────────────────────────────────
   function shiftSelected(dr, dc) {
     const toMove = selectedIdsRef.current.size > 0
       ? selectedIdsRef.current
@@ -612,6 +684,16 @@ export default function Editor() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [trajectoryMode])
+
+  // ─── Grid drag-sort ──────────────────────────────────────
+  const rowSensors = useSensors(useSensor(PointerSensor))
+  const rowItems = rowLabels.map((label, i) => ({ id: String(i), label }))
+  function handleRowDragEnd({ active, over }) {
+    if (!over || active.id === over.id) return
+    const oldIdx = rowItems.findIndex(r => r.id === active.id)
+    const newIdx = rowItems.findIndex(r => r.id === over.id)
+    reorderRows(arrayMove(rowLabels, oldIdx, newIdx))
+  }
 
   // ─── Hit tests ────────────────────────────────────────────
   function hitTest(x, y) {
@@ -786,7 +868,7 @@ export default function Editor() {
     applyPlacements(next)
   }
 
-  // ─── Mode change ─────────────────────────────────────────
+  // ─── Mode ─────────────────────────────────────────────────
   async function changeMode(newMode) {
     setMode(newMode); modeRef.current = newMode
     await supabase.from('moments').update({ grid_mode: newMode }).eq('id', momentId)
@@ -794,9 +876,13 @@ export default function Editor() {
 
   // ─── Derived ─────────────────────────────────────────────
   const choirMembers = members.filter(m => m.role !== 'director')
-  const allVoices = [...new Set(choirMembers.map(m => m.voice))]
-  const visibleMembers = choirMembers.filter(m => !hiddenVoices.has(m.voice))
+  const visibleMembers = choirMembers
   const unplacedCount = visibleMembers.filter(m => !placements[m.id]).length
+  const allVoices = [...new Set(choirMembers.map(m => m.voice))]
+    .sort((a, b) => {
+      const ia = VOICE_ORDER.indexOf(a), ib = VOICE_ORDER.indexOf(b)
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib)
+    })
 
   const voiceGroups = allVoices.map(v => ({
     voice: v,
@@ -821,30 +907,34 @@ export default function Editor() {
         <div className="flex items-center gap-2 flex-wrap px-3 py-2 bg-gray-900 border-b border-gray-800 shrink-0">
           <nav className="flex items-center gap-1 text-sm text-gray-500 flex-1 min-w-0 truncate">
             <Link to="/" className="hover:text-gray-300 shrink-0">{show?.name ?? '…'}</Link>
-            <span className="mx-0.5 shrink-0">›</span>
+            <span className="mx-0.5 shrink-0">/</span>
             <Link to={`/show/${showId}`} className="hover:text-gray-300 shrink-0 truncate max-w-[120px]">{song?.title ?? '…'}</Link>
-            <span className="mx-0.5 shrink-0">›</span>
+            <span className="mx-0.5 shrink-0">/</span>
             <span className="text-gray-300 truncate">{moment?.title ?? '…'}</span>
           </nav>
           <div className="flex items-center gap-1.5 shrink-0">
             {!trajectoryMode && <>
               <div className="flex rounded-lg border border-gray-700 overflow-hidden">
-                {[['↑',-1,0],['↓',1,0],['←',0,-1],['→',0,1]].map(([a,dr,dc]) => (
-                  <button key={a} onClick={() => shiftSelected(dr, dc)}
-                    className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 text-xs transition-colors border-r border-gray-700 last:border-0">{a}</button>
+                {[[ArrowUp,-1,0],[ArrowDown,1,0],[ArrowLeft,0,-1],[ArrowRight,0,1]].map(([Icon,dr,dc]) => (
+                  <button key={`${dr}${dc}`} onClick={() => shiftSelected(dr, dc)}
+                    className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-colors border-r border-gray-700 last:border-0">
+                    <Icon size={11} />
+                  </button>
                 ))}
               </div>
               {selectedIds.size > 0 && (
                 <span className="flex items-center gap-1 text-xs text-blue-400 border border-blue-800 px-2 py-0.5 rounded-full">
                   {selectedIds.size} sel.
-                  <button onClick={() => setSelectedIds(new Set())} className="text-gray-500 hover:text-white">×</button>
+                  <button onClick={() => setSelectedIds(new Set())}><X size={10} /></button>
                 </span>
               )}
             </>}
+
             <button onClick={() => { const n = !rotated; setRotated(n); localStorage.setItem('rotated', n) }}
-              className={`px-2 py-1 rounded-lg text-xs border transition-colors ${rotated ? 'border-blue-600 text-blue-400 bg-blue-900/20' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
-              ↺ {rotated ? '180°' : '0°'}
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs border transition-colors ${rotated ? 'border-blue-600 text-blue-400 bg-blue-900/20' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
+              <RotateCcw size={11} />{rotated ? '180°' : '0°'}
             </button>
+
             {!trajectoryMode && (
               <select value={highlightId}
                 onChange={e => { setHighlightId(e.target.value); localStorage.setItem('highlightMemberId', e.target.value) }}
@@ -853,9 +943,10 @@ export default function Editor() {
                 {choirMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             )}
+
             <button onClick={() => trajectoryMode ? enterTrajectoryMode('') : setTrajectoryMode(true)}
-              className={`px-2 py-1 rounded-lg text-xs border transition-colors ${trajectoryMode ? 'border-violet-600 text-violet-400 bg-violet-900/20' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
-              ↝ Trajectòria
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs border transition-colors ${trajectoryMode ? 'border-violet-600 text-violet-400 bg-violet-900/20' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
+              <Waypoints size={11} /> Trajectòria
             </button>
             {trajectoryMode && (
               <select value={trajectoryMemberId} onChange={e => enterTrajectoryMode(e.target.value)}
@@ -864,12 +955,54 @@ export default function Editor() {
                 {choirMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             )}
+
+            {!trajectoryMode && (
+              <div className="flex rounded-lg border border-gray-700 overflow-hidden">
+                <button onClick={() => compactPositions('h')} title="Pinya horitzontal (compactar dins cada fila)"
+                  className="flex items-center gap-1 px-2 py-1 text-gray-400 hover:text-white hover:bg-gray-700 text-xs transition-colors border-r border-gray-700">
+                  <AlignCenter size={11} />H
+                </button>
+                <button onClick={() => compactPositions('hv')} title="Pinya horitzontal + vertical (compactar tot)"
+                  className="flex items-center gap-1 px-2 py-1 text-gray-400 hover:text-white hover:bg-gray-700 text-xs transition-colors">
+                  <AlignVerticalJustifyEnd size={11} />H+V
+                </button>
+              </div>
+            )}
+
             {directorManualX != null && !trajectoryMode && (
               <button onClick={() => setDirectorManualX(null)}
-                className="text-xs text-yellow-500 hover:text-yellow-400 border border-yellow-800 px-2 py-1 rounded-lg transition-colors">
-                ⬦ Auto
+                className="flex items-center gap-1 text-xs text-yellow-500 hover:text-yellow-400 border border-yellow-800 px-2 py-1 rounded-lg transition-colors">
+                <Target size={11} /> Auto
               </button>
             )}
+          </div>
+        </div>
+
+        {/* ── Moment bar (top) ── */}
+        <div className="border-b border-gray-800 bg-gray-900 px-3 py-1.5 shrink-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto">
+            {moments.map((m, i) => {
+              const isCurrent = m.id === momentId
+              return (
+                <div key={m.id} className={`shrink-0 flex items-center gap-0.5 rounded-full text-xs transition-colors ${isCurrent ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400'}`}>
+                  <button onClick={() => navigate(`/show/${showId}/song/${songId}/moment/${m.id}`)}
+                    className="px-3 py-1 font-medium hover:opacity-90">
+                    {i + 1}. {m.title}
+                    {m.subtitle && <span className="ml-1 font-normal opacity-70 text-[10px]">{m.subtitle}</span>}
+                  </button>
+                  {isCurrent && (
+                    <button onClick={() => { setEditMomentTitle(m.title); setEditMomentSubtitle(m.subtitle ?? ''); setEditingMoment(v => !v); setAddingMoment(false) }}
+                      className="pr-2 pl-0.5 hover:opacity-70" title="Editar moment">
+                      <Pencil size={10} />
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+            <button onClick={openAddMoment}
+              className="shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-gray-800 text-gray-500 hover:text-white hover:bg-gray-700 transition-colors">
+              <Plus size={10} /> Moment
+            </button>
           </div>
         </div>
 
@@ -891,21 +1024,6 @@ export default function Editor() {
                 </div>
               </SidebarSection>
 
-              <SidebarSection title="Cordes" open={isPanelOpen('voices')} onToggle={() => togglePanel('voices')}>
-                <div className="flex flex-wrap gap-1">
-                  {allVoices.map(v => {
-                    const c = VOICE_COLORS[v]
-                    return (
-                      <button key={v}
-                        onClick={() => setHiddenVoices(prev => { const n = new Set(prev); n.has(v) ? n.delete(v) : n.add(v); return n })}
-                        className="h-6 px-1.5 rounded flex items-center justify-center text-[10px] font-bold transition-opacity"
-                        style={{ backgroundColor: c.bg, color: c.fg, opacity: hiddenVoices.has(v) ? 0.2 : 1 }}
-                        title={VOICE_LABELS[v]}>{VOICE_SHORT[v] ?? v[0].toUpperCase()}</button>
-                    )
-                  })}
-                </div>
-              </SidebarSection>
-
               <SidebarSection title="Graella" open={isPanelOpen('grid', false)} onToggle={() => togglePanel('grid', false)}>
                 <div className="space-y-0.5">
                   <DndContext sensors={rowSensors} collisionDetection={closestCenter} onDragEnd={handleRowDragEnd}>
@@ -917,7 +1035,9 @@ export default function Editor() {
                       ))}
                     </SortableContext>
                   </DndContext>
-                  <button onClick={addRow} className="text-[10px] text-blue-500 hover:text-blue-400 transition-colors mt-0.5">+ Fila</button>
+                  <button onClick={addRow} className="flex items-center gap-1 text-[10px] text-blue-500 hover:text-blue-400 transition-colors mt-0.5">
+                    <Plus size={9} /> Fila
+                  </button>
                 </div>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <span className="text-[10px] text-gray-500">Col.</span>
@@ -929,7 +1049,7 @@ export default function Editor() {
 
               {!trajectoryMode && (
                 <SidebarSection title="Persones" open={isPanelOpen('members')} onToggle={() => togglePanel('members')}
-                  badge={unplacedCount > 0 ? ` (${unplacedCount} pendents)` : ''}>
+                  badge={unplacedCount > 0 ? ` (${unplacedCount})` : ''}>
                   <div className="space-y-1.5">
                     {voiceGroups.map(({ voice, color: c, members: grpMembers }) => {
                       const collapsed = collapsedVoices.has(voice)
@@ -942,7 +1062,7 @@ export default function Editor() {
                             <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: c.bg }} />
                             <span className="text-[10px] text-gray-400 font-medium flex-1 text-left">{VOICE_LABELS[voice]}</span>
                             {unplacedInGroup > 0 && <span className="text-[9px] text-gray-600">{unplacedInGroup}</span>}
-                            <span className="text-gray-700 text-[8px]">{collapsed ? '▾' : '▴'}</span>
+                            {collapsed ? <ChevronDown size={8} className="text-gray-700" /> : <ChevronUp size={8} className="text-gray-700" />}
                           </button>
                           {!collapsed && grpMembers.map(m => {
                             const placed = !!placements[m.id]
@@ -967,8 +1087,8 @@ export default function Editor() {
             </div>
           </div>
 
-          {/* Canvas — right padding so it doesn't touch edge */}
-          <div className="flex-1 overflow-auto bg-gray-950 flex flex-col pr-3">
+          {/* Canvas */}
+          <div className="flex-1 overflow-auto bg-[#0f172a] flex flex-col pr-8">
             <canvas ref={canvasRef}
               style={{ width: '100%', aspectRatio: `${CW} / ${CH}`, transform: rotated ? 'rotate(180deg)' : undefined, display: 'block', cursor: trajectoryMode ? 'pointer' : 'default' }}
               onMouseDown={handleMouseDown} onMouseMove={handleMouseMove}
@@ -978,10 +1098,38 @@ export default function Editor() {
             <p className="text-[10px] text-gray-700 text-center select-none py-1">
               {trajectoryMode
                 ? 'Clica qualsevol punt per anar a aquell moment · Esc per sortir'
-                : 'Arrossega · Shift+clic o quadre per seleccionar · ↑↓←→ mouen selecció · Doble clic per treure'}
+                : 'Arrossega · Shift+clic o quadre per seleccionar · flechas mouen selecció · Doble clic per treure'}
             </p>
           </div>
         </div>
+
+        {/* ── Edit moment panel ── */}
+        {editingMoment && (
+          <div className="border-t border-gray-700 bg-gray-900 px-3 py-2 shrink-0">
+            <div className="flex flex-wrap gap-2 items-end">
+              <div className="space-y-0.5">
+                <label className="text-[10px] text-gray-500">Títol</label>
+                <input value={editMomentTitle} onChange={e => setEditMomentTitle(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') saveMomentMeta(); if (e.key === 'Escape') setEditingMoment(false) }}
+                  autoFocus className={inputCls + ' w-36'} />
+              </div>
+              <div className="space-y-0.5">
+                <label className="text-[10px] text-gray-500">Subtítol / referència</label>
+                <input value={editMomentSubtitle} onChange={e => setEditMomentSubtitle(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') saveMomentMeta(); if (e.key === 'Escape') setEditingMoment(false) }}
+                  placeholder="ex. Entrada, pont…" className={inputCls + ' w-52'} />
+              </div>
+              <div className="flex gap-1.5 self-end">
+                <button onClick={saveMomentMeta}
+                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">Guardar</button>
+                <button onClick={() => handleDeleteMoment(momentId)}
+                  className="bg-red-900/50 hover:bg-red-800 text-red-400 hover:text-red-300 text-xs px-3 py-1.5 rounded-lg transition-colors">Eliminar</button>
+                <button onClick={() => setEditingMoment(false)}
+                  className="text-gray-500 hover:text-white text-xs px-2 py-1.5 transition-colors">Cancel·lar</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Add moment panel ── */}
         {addingMoment && (
@@ -1041,22 +1189,6 @@ export default function Editor() {
           </div>
         )}
 
-        {/* ── Moment bar ── */}
-        <div className="border-t border-gray-800 bg-gray-900 px-3 py-1.5 shrink-0">
-          <div className="flex items-center gap-1.5 overflow-x-auto">
-            {moments.map((m, i) => (
-              <button key={m.id}
-                onClick={() => navigate(`/show/${showId}/song/${songId}/moment/${m.id}`)}
-                className={`shrink-0 px-3 py-1 rounded-full text-xs transition-colors ${m.id === momentId ? 'bg-blue-600 text-white font-medium' : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'}`}>
-                {i + 1}. {m.title}
-              </button>
-            ))}
-            <button onClick={openAddMoment}
-              className="shrink-0 px-3 py-1 rounded-full text-xs bg-gray-800 text-gray-500 hover:text-white hover:bg-gray-700 transition-colors">
-              + Moment
-            </button>
-          </div>
-        </div>
       </div>
     </Layout>
   )

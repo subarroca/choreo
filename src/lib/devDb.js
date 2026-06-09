@@ -24,22 +24,22 @@ function save(table, rows) {
 
 // ─── Seed initialization ──────────────────────────────────────
 const SEED_MEMBERS = [
-  { id: 'dev-m-s1-1', name: 'Anna Soler',    initials: 'AS', voice: 'soprano1', role: 'choir' },
-  { id: 'dev-m-s1-2', name: 'Clara Puig',    initials: 'CP', voice: 'soprano1', role: 'choir' },
-  { id: 'dev-m-s2-1', name: 'Marta Blau',    initials: 'MB', voice: 'soprano2', role: 'choir' },
-  { id: 'dev-m-s2-2', name: 'Núria Ferrer',  initials: 'NF', voice: 'soprano2', role: 'choir' },
-  { id: 'dev-m-a1-1', name: 'Elena Roca',    initials: 'ER', voice: 'alto1',    role: 'choir' },
-  { id: 'dev-m-a1-2', name: 'Júlia Mas',     initials: 'JM', voice: 'alto1',    role: 'choir' },
-  { id: 'dev-m-a2-1', name: 'Laia Font',     initials: 'LF', voice: 'alto2',    role: 'choir' },
-  { id: 'dev-m-a2-2', name: 'Sofia Mir',     initials: 'SM', voice: 'alto2',    role: 'choir' },
-  { id: 'dev-m-t1-1', name: 'Carles Vidal',  initials: 'CV', voice: 'tenor1',   role: 'choir' },
-  { id: 'dev-m-t1-2', name: 'Marc Sala',     initials: 'MS', voice: 'tenor1',   role: 'choir' },
-  { id: 'dev-m-t2-1', name: 'Pere Grau',     initials: 'PG', voice: 'tenor2',   role: 'choir' },
-  { id: 'dev-m-t2-2', name: 'Jordi Font',    initials: 'JF', voice: 'tenor2',   role: 'choir' },
-  { id: 'dev-m-br-1', name: 'Ricard Bosch',  initials: 'RB', voice: 'baritone', role: 'choir' },
-  { id: 'dev-m-br-2', name: 'Pau Serra',     initials: 'PS', voice: 'baritone', role: 'choir' },
-  { id: 'dev-m-ba-1', name: 'Miquel Torres', initials: 'MT', voice: 'bass',     role: 'choir' },
-  { id: 'dev-m-ba-2', name: 'Sergi Camps',   initials: 'SC', voice: 'bass',     role: 'choir' },
+  { id: 'dev-m-s1-1', first_name: 'Anna',    last_name: 'Soler',   name: 'Anna Soler',    initials: 'AS', voice: 'soprano1', role: 'choir', height: 162, birth_date: '1998-03-14', joined_at: '2020-09-01', instagram: 'annasoler', google_account: 'anna.soler@gmail.com' },
+  { id: 'dev-m-s1-2', first_name: 'Clara',   last_name: 'Puig',    name: 'Clara Puig',    initials: 'CP', voice: 'soprano1', role: 'choir', height: 165, birth_date: '2001-07-22', joined_at: '2022-01-10', instagram: '', google_account: '' },
+  { id: 'dev-m-s2-1', first_name: 'Marta',   last_name: 'Blau',    name: 'Marta Blau',    initials: 'MB', voice: 'soprano2', role: 'choir', height: 158, birth_date: '1995-11-05', joined_at: '2018-09-01', instagram: 'martablau', google_account: '' },
+  { id: 'dev-m-s2-2', first_name: 'Núria',   last_name: 'Ferrer',  name: 'Núria Ferrer',  initials: 'NF', voice: 'soprano2', role: 'choir', height: 170, birth_date: '2000-04-30', joined_at: '2021-09-15', instagram: '', google_account: '' },
+  { id: 'dev-m-a1-1', first_name: 'Elena',   last_name: 'Roca',    name: 'Elena Roca',    initials: 'ER', voice: 'alto1',    role: 'choir', height: 167, birth_date: '1993-08-18', joined_at: '2016-01-01', instagram: 'elenaroca', google_account: 'elena.roca@gmail.com' },
+  { id: 'dev-m-a1-2', first_name: 'Júlia',   last_name: 'Mas',     name: 'Júlia Mas',     initials: 'JM', voice: 'alto1',    role: 'choir', height: 160, birth_date: '2002-02-09', joined_at: '2023-09-01', instagram: '', google_account: '' },
+  { id: 'dev-m-a2-1', first_name: 'Laia',    last_name: 'Font',    name: 'Laia Font',     initials: 'LF', voice: 'alto2',    role: 'choir', height: 172, birth_date: '1997-06-25', joined_at: '2019-09-01', instagram: 'laiafont', google_account: '' },
+  { id: 'dev-m-a2-2', first_name: 'Sofia',   last_name: 'Mir',     name: 'Sofia Mir',     initials: 'SM', voice: 'alto2',    role: 'choir', height: 155, birth_date: '2003-10-13', joined_at: '2023-01-15', instagram: '', google_account: '' },
+  { id: 'dev-m-t1-1', first_name: 'Carles',  last_name: 'Vidal',   name: 'Carles Vidal',  initials: 'CV', voice: 'tenor1',   role: 'choir', height: 178, birth_date: '1990-05-07', joined_at: '2014-09-01', instagram: 'carlesvidal', google_account: 'carles.vidal@gmail.com' },
+  { id: 'dev-m-t1-2', first_name: 'Marc',    last_name: 'Sala',    name: 'Marc Sala',     initials: 'MS', voice: 'tenor1',   role: 'choir', height: 175, birth_date: '1999-12-01', joined_at: '2021-09-01', instagram: '', google_account: '' },
+  { id: 'dev-m-t2-1', first_name: 'Pere',    last_name: 'Grau',    name: 'Pere Grau',     initials: 'PG', voice: 'tenor2',   role: 'choir', height: 182, birth_date: '1988-09-20', joined_at: '2012-01-01', instagram: '', google_account: '' },
+  { id: 'dev-m-t2-2', first_name: 'Jordi',   last_name: 'Font',    name: 'Jordi Font',    initials: 'JF', voice: 'tenor2',   role: 'choir', height: 176, birth_date: '1994-03-11', joined_at: '2017-09-01', instagram: 'jordifont', google_account: '' },
+  { id: 'dev-m-br-1', first_name: 'Ricard',  last_name: 'Bosch',   name: 'Ricard Bosch',  initials: 'RB', voice: 'baritone', role: 'choir', height: 180, birth_date: '1985-07-16', joined_at: '2010-09-01', instagram: '', google_account: 'ricard.bosch@gmail.com' },
+  { id: 'dev-m-br-2', first_name: 'Pau',     last_name: 'Serra',   name: 'Pau Serra',     initials: 'PS', voice: 'baritone', role: 'choir', height: 174, birth_date: '1996-01-28', joined_at: '2020-01-15', instagram: 'pauserra', google_account: '' },
+  { id: 'dev-m-ba-1', first_name: 'Miquel',  last_name: 'Torres',  name: 'Miquel Torres', initials: 'MT', voice: 'bass',     role: 'choir', height: 185, birth_date: '1982-11-03', joined_at: '2008-09-01', instagram: '', google_account: 'miquel.torres@gmail.com' },
+  { id: 'dev-m-ba-2', first_name: 'Sergi',   last_name: 'Camps',   name: 'Sergi Camps',   initials: 'SC', voice: 'bass',     role: 'choir', height: 183, birth_date: '1991-04-19', joined_at: '2015-09-01', instagram: '', google_account: '' },
 ]
 
 function ensureSeedData() {
@@ -53,13 +53,25 @@ function ensureSeedData() {
   }))
   if (JSON.stringify(updatedShows) !== JSON.stringify(shows)) save('shows', updatedShows)
 
-  // Add any missing seed members (by id)
+  // Add any missing seed members (by id), and migrate existing ones with new fields
   const existing = load('members')
   const existingIds = new Set(existing.map(m => m.id))
   const toAdd = SEED_MEMBERS
     .filter(m => !existingIds.has(m.id))
-    .map(m => ({ ...m, created_at: new Date().toISOString() }))
-  if (toAdd.length) save('members', [...existing, ...toAdd])
+    .map(m => ({ active: true, ...m, created_at: new Date().toISOString() }))
+  // Migrate existing seed members to add new fields if missing
+  const migrated = existing.map(m => {
+    const seed = SEED_MEMBERS.find(s => s.id === m.id)
+    const base = seed ? {
+      first_name: seed.first_name, last_name: seed.last_name,
+      height: seed.height, birth_date: seed.birth_date,
+      joined_at: seed.joined_at, instagram: seed.instagram,
+      google_account: seed.google_account,
+    } : {}
+    return { active: true, ...base, ...m }
+  })
+  const changed = JSON.stringify(migrated) !== JSON.stringify(existing)
+  if (toAdd.length || changed) save('members', [...migrated, ...toAdd])
 }
 
 ensureSeedData()

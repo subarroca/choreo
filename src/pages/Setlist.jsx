@@ -7,6 +7,7 @@ import {
   arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { GripVertical, Pencil, X, ChevronUp, ChevronDown, ChevronRight, ChevronsUp, ChevronsDown, Mic, Music, Plus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
 import Layout from '../components/Layout'
@@ -16,50 +17,50 @@ function SortableSong({ song, moments, parts, expanded, onToggle, onEdit, onDele
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: song.id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
 
-  function handleTitleClick() {
-    if (moments.length > 0) onGoToMoment(song.id, moments[0].id)
-    else onAddMoment(song.id, true)
-  }
-
   return (
     <div ref={setNodeRef} style={style} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3">
+      <div className="flex items-center gap-2 px-3 py-2.5">
         <button {...attributes} {...listeners}
-          className="text-gray-600 hover:text-gray-400 cursor-grab active:cursor-grabbing p-1 -ml-1 touch-none text-sm">⠿</button>
-        <span className="text-gray-600 text-xs w-5 text-center">{song.order_index + 1}</span>
-        <button onClick={handleTitleClick}
-          className="flex-1 text-left text-white font-medium hover:text-blue-400 transition-colors text-sm">
+          className="text-gray-600 hover:text-gray-400 cursor-grab active:cursor-grabbing p-1 -ml-1 touch-none">
+          <GripVertical size={14} />
+        </button>
+        <button onClick={onToggle} className="text-gray-500 hover:text-white transition-colors shrink-0">
+          {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+        </button>
+        <button onClick={() => moments.length > 0 ? onGoToMoment(song.id, moments[0].id) : onAddMoment(song.id, true)}
+          className="flex-1 text-left text-white font-medium hover:text-blue-400 transition-colors text-sm truncate">
           {song.title}
+          {song.notes && <span className="ml-2 text-xs text-gray-500 font-normal">{song.notes}</span>}
         </button>
-        <span className="text-xs text-gray-600">{moments.length} moment{moments.length !== 1 ? 's' : ''}</span>
-        <button onClick={onToggle} className="text-gray-500 hover:text-white transition-colors text-base leading-none px-1">
-          {expanded ? '▴' : '▾'}
-        </button>
+        <span className="text-xs text-gray-600 shrink-0">{moments.length}m</span>
         <button onClick={() => onEdit(song)}
-          className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-800 transition-colors">Editar</button>
+          className="text-gray-500 hover:text-white p-1 rounded hover:bg-gray-800 transition-colors shrink-0"><Pencil size={12} /></button>
         <button onClick={() => onDelete(song.id)}
-          className="text-xs text-red-500 hover:text-red-400 px-2 py-1 rounded hover:bg-gray-800 transition-colors">×</button>
+          className="text-gray-600 hover:text-red-500 p-1 rounded hover:bg-gray-800 transition-colors shrink-0"><X size={12} /></button>
       </div>
       {expanded && (
-        <div className="border-t border-gray-800 px-4 py-3 space-y-2">
+        <div className="border-t border-gray-800 px-3 py-2 bg-gray-950/50">
           {moments.length === 0
             ? <p className="text-xs text-gray-600 italic">Sense moments</p>
             : (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {moments.map((m, i) => (
-                  <div key={m.id} className="flex items-center gap-1">
+                  <div key={m.id} className="flex items-center gap-0 rounded-lg overflow-hidden border border-gray-700 hover:border-gray-600">
                     <button onClick={() => onGoToMoment(song.id, m.id)}
-                      className="bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs px-3 py-1.5 rounded-lg transition-colors">
-                      {i + 1}. {m.title}
+                      className="bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs px-2.5 py-1 transition-colors leading-snug text-left">
+                      <span className="text-gray-500 mr-1">{i + 1}.</span>{m.title}
+                      {m.subtitle && <span className="ml-1.5 text-gray-500 text-[10px]">{m.subtitle}</span>}
                     </button>
                     <button onClick={() => onDeleteMoment(m.id)}
-                      className="text-gray-600 hover:text-red-500 text-xs px-1 transition-colors">×</button>
+                      className="bg-gray-800 hover:bg-red-900/40 text-gray-600 hover:text-red-400 px-1.5 py-1 border-l border-gray-700 transition-colors flex items-center"><X size={10} /></button>
                   </div>
                 ))}
               </div>
             )}
           <button onClick={() => onAddMoment(song.id, false)}
-            className="text-xs text-blue-500 hover:text-blue-400 transition-colors">+ Afegir moment</button>
+            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-400 transition-colors mt-1.5">
+            <Plus size={10} /> Moment
+          </button>
         </div>
       )}
     </div>
@@ -122,8 +123,8 @@ function PartSection({ part, songs, moments, parts, allParts, expanded, expanded
       {/* Part header */}
       <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-colors ${part ? 'bg-gray-900 border-gray-700' : 'bg-transparent border-transparent'}`}>
         {part && (
-          <button onClick={onTogglePart} className="text-gray-500 hover:text-white text-sm leading-none px-1">
-            {expanded ? '▴' : '▾'}
+          <button onClick={onTogglePart} className="text-gray-500 hover:text-white">
+            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
         )}
         <span className={`font-semibold text-sm ${part ? 'text-gray-200' : 'text-gray-500'}`}>
@@ -132,10 +133,8 @@ function PartSection({ part, songs, moments, parts, allParts, expanded, expanded
         <span className="text-xs text-gray-600">{songs.length} cançó{songs.length !== 1 ? 'ns' : ''}</span>
         {part && (
           <div className="ml-auto flex gap-1">
-            <button onClick={() => onEditPart(part)}
-              className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-800 transition-colors">Editar</button>
-            <button onClick={() => onDeletePart(part.id)}
-              className="text-xs text-red-500 hover:text-red-400 px-2 py-1 rounded hover:bg-gray-800 transition-colors">×</button>
+            <button onClick={() => onEditPart(part)} className="text-gray-400 hover:text-white p-1 rounded hover:bg-gray-800 transition-colors"><Pencil size={12} /></button>
+            <button onClick={() => onDeletePart(part.id)} className="text-gray-600 hover:text-red-500 p-1 rounded hover:bg-gray-800 transition-colors"><X size={12} /></button>
           </div>
         )}
       </div>
@@ -211,6 +210,7 @@ export default function Setlist() {
   const [exclusions, setExclusions] = useState(new Set())
   const [expandedParts, setExpandedParts] = useState({})
   const [expandedSongs, setExpandedSongs] = useState({})
+  const [allExpanded, setAllExpanded] = useState(true)
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [creatingPart, setCreatingPart] = useState(false)
@@ -233,6 +233,9 @@ export default function Setlist() {
       setSongs(songList)
       setAllMembers(membersRes.data ?? [])
       setExclusions(new Set((exclusionsRes.data ?? []).map(e => e.member_id)))
+      // Default all songs expanded
+      const expInit = {}; for (const s of songList) expInit[s.id] = true
+      setExpandedSongs(expInit)
       if (songList.length) {
         const { data: momentData } = await supabase
           .from('moments').select('*').in('song_id', songList.map(s => s.id)).order('order_index')
@@ -306,6 +309,7 @@ export default function Setlist() {
     if (!error) {
       setMoments(prev => ({ ...prev, [songId]: [...(prev[songId] ?? []), data] }))
       setExpandedSongs(prev => ({ ...prev, [songId]: true }))
+      setAllExpanded(true)
       if (navigateAfter) navigate(`/show/${showId}/song/${songId}/moment/${data.id}`)
     }
   }
@@ -365,9 +369,19 @@ export default function Setlist() {
             <h1 className="text-2xl font-bold text-white">{show?.name ?? 'Carregant…'}</h1>
           </div>
           <div className="flex gap-2 flex-wrap">
+            <button onClick={() => {
+              const next = !allExpanded
+              setAllExpanded(next)
+              const expAll = {}; for (const s of songs) expAll[s.id] = next
+              setExpandedSongs(expAll)
+            }}
+              className="flex items-center gap-1 text-sm px-3 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+              title={allExpanded ? 'Replegar tot' : 'Expandir tot'}>
+              {allExpanded ? <ChevronsUp size={14} /> : <ChevronsDown size={14} />}
+            </button>
             <button onClick={() => setShowCast(v => !v)}
-              className={`text-sm px-4 py-2 rounded-lg border transition-colors ${showCast ? 'border-blue-600 text-blue-400 bg-blue-900/20' : 'border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800'}`}>
-              🎤 Membres {exclusions.size > 0 && <span className="ml-1 text-xs text-yellow-500">({allMembers.length - exclusions.size}/{allMembers.length})</span>}
+              className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border transition-colors ${showCast ? 'border-blue-600 text-blue-400 bg-blue-900/20' : 'border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800'}`}>
+              <Mic size={14} /> Membres {exclusions.size > 0 && <span className="ml-1 text-xs text-yellow-500">({allMembers.length - exclusions.size}/{allMembers.length})</span>}
             </button>
             {!creatingPart && (
               <button onClick={() => setCreatingPart(true)}
@@ -443,7 +457,7 @@ export default function Setlist() {
             ))}
             {songs.length === 0 && !creating && (
               <div className="text-center py-16 text-gray-500">
-                <p className="text-4xl mb-4">🎵</p>
+                <Music size={40} className="mx-auto mb-4 opacity-30" />
                 <p>Afegeix les cançons del setlist.</p>
               </div>
             )}

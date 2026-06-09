@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { Clapperboard } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import Layout from '../components/Layout'
@@ -133,7 +134,7 @@ export default function Shows() {
           <p className="text-gray-500">Carregant...</p>
         ) : shows.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
-            <p className="text-4xl mb-4">🎭</p>
+            <Clapperboard size={40} className="mx-auto mb-4 opacity-30" />
             <p>Encara no hi ha cap espectacle.</p>
             <p className="text-sm mt-1">Crea el primer amb el botó de dalt.</p>
           </div>

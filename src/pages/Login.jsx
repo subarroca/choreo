@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Music } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 export default function Login() {
@@ -33,7 +34,7 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-white text-center mb-8">🎵 Choir Positions</h1>
+        <h1 className="flex items-center justify-center gap-2 text-2xl font-bold text-white text-center mb-8"><Music size={22} /> Choir Positions</h1>
         <div className="bg-gray-900 rounded-xl p-6 space-y-4 border border-gray-800">
           <h2 className="text-lg font-semibold text-white">Iniciar sessió</h2>
 
