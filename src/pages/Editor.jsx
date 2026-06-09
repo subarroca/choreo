@@ -20,7 +20,7 @@ const LABEL_W = 72
 const DIRECTOR_H = 60
 const TOKEN_R = Math.floor(CELL * 0.38)
 const DEFAULT_ROW_LABELS = ['Tarima 4', 'Tarima 3', 'Tarima 2', 'Tarima 1', 'Terra']
-const DEFAULT_COLS = 14
+const DEFAULT_COLS = 20
 const VOICE_ORDER = ['soprano1','soprano2','alto1','alto2','tenor1','tenor2','baritone','bass']
 
 // ─── Rounded hexagon ──────────────────────────────────────────
@@ -114,7 +114,7 @@ function drawArrow(ctx, x1, y1, x2, y2, color) {
 }
 
 // ─── Canvas draw ──────────────────────────────────────────────
-function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
+function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX, directorMember,
   drag, selectedIds, rotated, dims, trajectoryConfig }) {
   if (!canvas) return
   const { ROWS, COLS, rowLabels, GW, GH, CW, CH } = dims
@@ -170,11 +170,12 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
   ctx.strokeStyle = '#334155'; ctx.lineWidth = 1
   ctx.beginPath(); ctx.moveTo(0, GH); ctx.lineTo(CW, GH); ctx.stroke()
   ctx.fillStyle = '#475569'; ctx.font = '9px system-ui'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
-  fillTextFlipped(ctx, 'DIR', LABEL_W - 6, GH + DIRECTOR_H / 2, rotated)
+  const dirLabel = directorMember ? (directorMember.initials || (directorMember.first_name ?? '').slice(0,1) + (directorMember.last_name ?? '').slice(0,1)) : 'DIR'
+  fillTextFlipped(ctx, dirLabel.toUpperCase(), LABEL_W - 6, GH + DIRECTOR_H / 2, rotated)
 
   if (trajectoryConfig) {
     drawTrajectoryOverlay(ctx, trajectoryConfig, mode, dims, members)
-    if (directorAbsX != null) drawDirectorToken(ctx, directorAbsX, GH + DIRECTOR_H / 2)
+    if (directorAbsX != null) drawDirectorToken(ctx, directorAbsX, GH + DIRECTOR_H / 2, false, rotated, directorMember, false)
     return
   }
 
@@ -187,7 +188,7 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
     const pos = placements[m.id]
     if (!pos || skipIds.has(m.id)) continue
     const { x, y } = getMemberPixelPos(pos, mode, dims)
-    drawToken(ctx, x, y, m, highlightId === m.id, selectedIds?.has(m.id) ?? false, hasHighlight)
+    drawToken(ctx, x, y, m, highlightId === m.id, selectedIds?.has(m.id) ?? false, hasHighlight, rotated)
   }
 
   if (drag?.type === 'group' && drag.originalPositions) {
@@ -195,14 +196,14 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
     ctx.globalAlpha = 0.6
     for (const id of drag.members) {
       const orig = drag.originalPositions[id], m = members.find(m => m.id === id)
-      if (orig && m) drawToken(ctx, orig.x + dx, orig.y + dy, m, false, false, false)
+      if (orig && m) drawToken(ctx, orig.x + dx, orig.y + dy, m, false, false, false, rotated)
     }
     ctx.globalAlpha = 1
   }
   if (drag?.type === 'member') {
     const m = members.find(m => m.id === drag.memberId)
     if (m) {
-      ctx.globalAlpha = 0.6; drawToken(ctx, drag.x, drag.y, m, false, false, false); ctx.globalAlpha = 1
+      ctx.globalAlpha = 0.6; drawToken(ctx, drag.x, drag.y, m, false, false, false, rotated); ctx.globalAlpha = 1
       if (mode !== 'free') {
         const cell = pixelToCell(drag.x, drag.y, mode, dims)
         if (cell) {
@@ -220,10 +221,11 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
     ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 1; ctx.setLineDash([4, 3])
     ctx.strokeRect(rx, ry, rw, rh); ctx.setLineDash([])
   }
-  if (directorAbsX != null) drawDirectorToken(ctx, directorAbsX, GH + DIRECTOR_H / 2)
+  const directorHighlighted = hasHighlight && !!directorMember && highlightId === directorMember.id
+  if (directorAbsX != null) drawDirectorToken(ctx, directorAbsX, GH + DIRECTOR_H / 2, directorHighlighted, rotated, directorMember, hasHighlight)
 }
 
-function drawToken(ctx, x, y, member, highlighted, selected, hasHighlight) {
+function drawToken(ctx, x, y, member, highlighted, selected, hasHighlight, rotated) {
   const c = VOICE_COLORS[member.voice] ?? VOICE_COLORS.extra
   const initials = (member.initials || member.name.slice(0, 2)).toUpperCase()
   if (selected) {
@@ -232,26 +234,49 @@ function drawToken(ctx, x, y, member, highlighted, selected, hasHighlight) {
   if (hasHighlight && !highlighted) {
     roundedHexPath(ctx, x, y, TOKEN_R); ctx.strokeStyle = c.bg + 'aa'; ctx.lineWidth = 1.5; ctx.stroke()
     ctx.fillStyle = c.bg + '88'; ctx.font = 'bold 10px system-ui'
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(initials, x, y)
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    fillTextFlipped(ctx, initials, x, y, rotated)
   } else if (highlighted) {
-    ctx.save(); ctx.shadowColor = c.bg; ctx.shadowBlur = 14
-    roundedHexPath(ctx, x, y, TOKEN_R); ctx.fillStyle = c.bg; ctx.fill(); ctx.restore()
+    // "soc jo": color bg + neutral text — same as normal but stands out among dimmed others
+    roundedHexPath(ctx, x, y, TOKEN_R); ctx.fillStyle = c.bg; ctx.fill()
     ctx.fillStyle = c.fg; ctx.font = 'bold 10px system-ui'
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(initials, x, y)
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    fillTextFlipped(ctx, initials, x, y, rotated)
   } else {
     roundedHexPath(ctx, x, y, TOKEN_R); ctx.fillStyle = c.bg; ctx.fill()
     ctx.fillStyle = c.fg; ctx.font = 'bold 10px system-ui'
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(initials, x, y)
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    fillTextFlipped(ctx, initials, x, y, rotated)
   }
 }
 
-// Director is now also a hexagon (larger, amber)
-function drawDirectorToken(ctx, x, y) {
+// Director hexagon
+// highlighted=true  → "soc jo" is me: dark bg + amber border + amber text
+// hasHighlight=true, highlighted=false → someone else is "soc jo": outline only, dimmed
+// normal → amber fill + dark text
+function drawDirectorToken(ctx, x, y, highlighted, rotated, directorMember, hasHighlight) {
   const c = VOICE_COLORS.director
-  roundedHexPath(ctx, x, y, TOKEN_R * 1.15)
-  ctx.fillStyle = c.bg; ctx.fill()
-  ctx.fillStyle = c.fg; ctx.font = 'bold 9px system-ui'
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('DIR', x, y)
+  const label = directorMember
+    ? (directorMember.initials || ((directorMember.first_name ?? '').slice(0,1) + (directorMember.last_name ?? '').slice(0,1))).toUpperCase()
+    : 'DIR'
+  const r = TOKEN_R * 1.15
+  if (highlighted) {
+    // "soc jo" = me: inverted
+    roundedHexPath(ctx, x, y, r); ctx.fillStyle = '#0f172a'; ctx.fill()
+    ctx.strokeStyle = c.bg; ctx.lineWidth = 1.5; ctx.stroke()
+    ctx.fillStyle = c.bg
+  } else if (hasHighlight) {
+    // "soc jo" active but I'm not it: stroke + dimmed, like choir members
+    roundedHexPath(ctx, x, y, r); ctx.strokeStyle = c.bg + 'aa'; ctx.lineWidth = 1.5; ctx.stroke()
+    ctx.fillStyle = c.bg + '55'
+  } else {
+    // normal
+    roundedHexPath(ctx, x, y, r); ctx.fillStyle = c.bg; ctx.fill()
+    ctx.fillStyle = c.fg
+  }
+  ctx.font = 'bold 9px system-ui'
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  fillTextFlipped(ctx, label, x, y, rotated)
 }
 
 function drawTrajectoryOverlay(ctx, { allMoments, allPositions, memberId, currentMomentId }, mode, dims, members) {
@@ -288,8 +313,208 @@ function drawTrajectoryOverlay(ctx, { allMoments, allPositions, memberId, curren
   }
 }
 
+// ─── Height profile ───────────────────────────────────────────
+function fillRoundRect(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2)
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r)
+  ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+  ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r)
+  ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r)
+  ctx.closePath(); ctx.fill()
+}
+
+function drawHeightProfile(canvas, { placements, members, mode, dims, rowElevations, hoverMemberId, highlightId, hoverRow }) {
+  if (!canvas) return
+  const dpr = window.devicePixelRatio || 1
+  const W = canvas.offsetWidth || 800
+  const H = 200
+  canvas.width  = Math.round(W * dpr)
+  canvas.height = Math.round(H * dpr)
+  canvas.style.width  = W + 'px'
+  canvas.style.height = H + 'px'
+  const ctx = canvas.getContext('2d')
+  ctx.scale(dpr, dpr)
+
+  ctx.fillStyle = '#0f172a'
+  ctx.fillRect(0, 0, W, H)
+
+  const placed = members.filter(m => m.role !== 'director' && placements[m.id])
+  if (!placed.length) return {}
+
+  const { ROWS, CW, GW } = dims
+  const scaleX = W / CW
+  const AXIS_X = LABEL_W * scaleX
+  const PAD_R  = 2
+  const PAD_T  = 8
+  const PAD_B  = 20   // room for tooltip below feet
+  const drawH  = H - PAD_T - PAD_B
+
+  let maxH = 0
+  for (const m of placed) {
+    const pos = placements[m.id]
+    const row = pos.free ? Math.min(ROWS - 1, Math.floor(pos.y * ROWS)) : pos.row
+    maxH = Math.max(maxH, (rowElevations?.[row] ?? 0) + (m.height ?? 170))
+  }
+  maxH = Math.ceil(maxH / 50) * 50 || 250
+
+  function toY(cm) { return PAD_T + drawH * (1 - cm / maxH) }
+
+  // floor line
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1
+  ctx.beginPath(); ctx.moveTo(AXIS_X, toY(0)); ctx.lineTo(W - PAD_R, toY(0)); ctx.stroke()
+
+  // dashed platform / ground-level lines + clickable labels
+  const uniqueElevs = [...new Set((rowElevations ?? []).filter(e => e > 0))].sort((a, b) => a - b)
+  // also include 0 (terra) in the label set
+  const allLevels = [0, ...uniqueElevs]
+  // find which rows share each elevation
+  const elevToRows = {}
+  ;(rowElevations ?? []).forEach((e, i) => { (elevToRows[e] ??= []).push(i) })
+
+  const labelHitAreas = {}   // elev → { x, y, w, h } for mouse hit testing
+  ctx.font = '8px system-ui'; ctx.textBaseline = 'middle'
+
+  ctx.setLineDash([4, 4]); ctx.lineWidth = 0.8
+  for (const elev of uniqueElevs) {
+    ctx.strokeStyle = '#2d3f55'
+    ctx.beginPath(); ctx.moveTo(AXIS_X, toY(elev)); ctx.lineTo(W - PAD_R, toY(elev)); ctx.stroke()
+  }
+  ctx.setLineDash([])
+
+  // labels left of AXIS_X, one per elevation level
+  for (const elev of allLevels) {
+    const y = toY(elev)
+    const rowsAtLevel = elevToRows[elev] ?? []
+    const rowName = rowsAtLevel.length && dims.rowLabels
+      ? dims.rowLabels[rowsAtLevel[rowsAtLevel.length - 1]] ?? `Fila ${rowsAtLevel[0] + 1}`
+      : elev === 0 ? 'Terra' : `${elev} cm`
+    const isActive = hoverRow != null && rowsAtLevel.includes(hoverRow)
+    ctx.fillStyle = isActive ? '#e2e8f0' : '#475569'
+    ctx.textAlign = 'right'
+    ctx.fillText(rowName, AXIS_X - 3, y)
+    // hit area
+    const tw = ctx.measureText(rowName).width
+    labelHitAreas[elev] = { x: AXIS_X - 3 - tw, y: y - 6, w: tw + 3, h: 12, rows: rowsAtLevel, elev }
+  }
+
+  // sort back-to-front so front rows paint over back rows
+  const sorted = [...placed].sort((a, b) => {
+    const ra = placements[a.id].free ? Math.min(ROWS-1, Math.floor(placements[a.id].y * ROWS)) : placements[a.id].row
+    const rb = placements[b.id].free ? Math.min(ROWS-1, Math.floor(placements[b.id].y * ROWS)) : placements[b.id].row
+    return ra - rb  // row 0 = back, drawn first
+  })
+
+  const scaledCell = CELL * scaleX
+  const FIG_W = Math.max(7, scaledCell * 0.38)
+  const hitAreas = {}
+  let hoverDraw = null  // draw hover tooltip last (on top)
+
+  for (const m of sorted) {
+    const pos = placements[m.id]
+    const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
+
+    const px = pos.free
+      ? (LABEL_W + pos.x * GW) * scaleX
+      : tokenXY(pos.row, pos.col, mode).x * scaleX
+
+    const row  = pos.free ? Math.min(ROWS - 1, Math.floor(pos.y * ROWS)) : pos.row
+    const elev = rowElevations?.[row] ?? 0
+    const ph   = m.height ?? 170
+
+    const yFloor   = toY(elev)
+    const yTop     = toY(elev + ph)
+    const totalPx  = yFloor - yTop
+
+    const headR    = Math.max(3, totalPx * 0.13)
+    const headCy   = yTop + headR
+    const bodyTop  = headCy + headR * 1.1
+    const bodyW    = FIG_W
+
+    hitAreas[m.id] = { px, yTop: yTop - headR, yBot: yFloor, m, row }
+
+    const isHover     = m.id === hoverMemberId
+    const isHighlight = highlightId && m.id === highlightId
+    const rowDimmed   = hoverRow != null && row !== hoverRow
+
+    // depth: row 0 (back) = 50% opacity, row ROWS-1 (front) = 100%
+    const depth    = ROWS <= 1 ? 1 : 0.50 + 0.50 * (row / (ROWS - 1))
+    // row-hover dims others gently (30%), not aggressively
+    const baseVis  = rowDimmed ? 0.28 : (isHover || isHighlight ? 1 : depth)
+    const fadeVis  = rowDimmed ? 0.18 : (isHover || isHighlight ? 0.55 : depth * 0.55)
+    const fullAlpha = Math.round(baseVis * 255).toString(16).padStart(2, '0')
+    const fadeAlpha = Math.round(fadeVis * 255).toString(16).padStart(2, '0')
+
+    if (isHighlight) {
+      // "soc jo": same as zenital — full color fill, no dimming (color head + color gradient body)
+      const grad = ctx.createLinearGradient(0, bodyTop, 0, yFloor)
+      grad.addColorStop(0, c.bg + 'ff')
+      grad.addColorStop(1, c.bg + '88')
+      ctx.fillStyle = c.bg
+      ctx.beginPath(); ctx.arc(px, headCy, headR, 0, Math.PI * 2); ctx.fill()
+      ctx.fillStyle = grad
+      fillRoundRect(ctx, px - bodyW / 2, bodyTop, bodyW, yFloor - bodyTop, 2)
+    } else if (highlightId && !isHighlight) {
+      // "soc jo" mode, others: stroke outline + neutral fill (dark bg with color ring)
+      const strokeAlpha = rowDimmed ? '44' : fullAlpha
+      ctx.strokeStyle = c.bg + strokeAlpha; ctx.lineWidth = 1
+      ctx.fillStyle = '#0f172a'
+      ctx.beginPath(); ctx.arc(px, headCy, headR, 0, Math.PI * 2); ctx.fill()
+      ctx.stroke()
+      // body: dark fill + color stroke outline
+      ctx.fillStyle = '#0f172a'
+      fillRoundRect(ctx, px - bodyW / 2, bodyTop, bodyW, yFloor - bodyTop, 2)
+      ctx.strokeStyle = c.bg + strokeAlpha; ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.rect(px - bodyW / 2, bodyTop, bodyW, yFloor - bodyTop)
+      ctx.stroke()
+      // row-hover: white head
+      if (hoverRow != null && row === hoverRow) {
+        ctx.fillStyle = '#ffffffdd'
+        ctx.beginPath(); ctx.arc(px, headCy, headR, 0, Math.PI * 2); ctx.fill()
+      }
+    } else {
+      // normal mode: color gradient fill
+      const grad = ctx.createLinearGradient(0, bodyTop, 0, yFloor)
+      grad.addColorStop(0, c.bg + fullAlpha)
+      grad.addColorStop(1, c.bg + fadeAlpha)
+      ctx.fillStyle = c.bg + fullAlpha
+      ctx.beginPath(); ctx.arc(px, headCy, headR, 0, Math.PI * 2); ctx.fill()
+      ctx.fillStyle = grad
+      fillRoundRect(ctx, px - bodyW / 2, bodyTop, bodyW, yFloor - bodyTop, 2)
+      // row-hover: white head
+      if (hoverRow != null && row === hoverRow) {
+        ctx.fillStyle = '#ffffffdd'
+        ctx.beginPath(); ctx.arc(px, headCy, headR, 0, Math.PI * 2); ctx.fill()
+      }
+    }
+
+    if (isHover) hoverDraw = { px, yFloor, m, c }
+  }
+
+  // hover tooltip — drawn after all figures, anchored below the feet
+  if (hoverDraw) {
+    const { px, yFloor, m, c } = hoverDraw
+    const label = [m.first_name, m.last_name].filter(Boolean).join(' ') || m.name || m.initials || ''
+    ctx.font = 'bold 10px system-ui'
+    const tw = ctx.measureText(label).width
+    const bw = tw + 10, bh = 15
+    const bx = Math.min(Math.max(px - bw / 2, AXIS_X + 2), W - PAD_R - bw - 2)
+    const by = Math.min(yFloor + 3, H - bh - 2)
+    ctx.fillStyle = '#1e293b'
+    fillRoundRect(ctx, bx, by, bw, bh, 3)
+    ctx.strokeStyle = c.bg + '77'; ctx.lineWidth = 1; ctx.stroke()
+    ctx.fillStyle = c.bg
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillText(label, bx + bw / 2, by + bh / 2)
+  }
+
+  return { hitAreas, labelHitAreas }
+}
+
 // ─── Sortable row item ────────────────────────────────────────
-function SortableRow({ id, label, onEdit, onRemove }) {
+function SortableRow({ id, label, elevation, onEdit, onEditElevation, onRemove }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
   return (
     <div ref={setNodeRef}
@@ -301,6 +526,11 @@ function SortableRow({ id, label, onEdit, onRemove }) {
       </button>
       <input value={label} onChange={e => onEdit(e.target.value)}
         className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-[10px] text-white focus:outline-none focus:border-blue-500" />
+      <input value={elevation ?? 0} onChange={e => onEditElevation(e.target.value)}
+        type="number" min="0" max="300" step="5"
+        className="w-12 bg-gray-800 border border-gray-700 rounded px-1 py-0.5 text-[10px] text-gray-300 focus:outline-none focus:border-blue-500 tabular-nums"
+        title="Alçada de la tarima (cm)" />
+      <span className="text-[9px] text-gray-700 shrink-0">cm</span>
       <button onClick={onRemove} className="text-gray-600 hover:text-red-500 shrink-0">
         <X size={10} />
       </button>
@@ -371,7 +601,14 @@ export default function Editor() {
   const [selectedOtherSongId, setSelectedOtherSongId] = useState('')
   const [selectedOtherMomentId, setSelectedOtherMomentId] = useState('')
 
+  const [showHeightProfile, setShowHeightProfile] = useState(true)
+  const [hoverProfileId, setHoverProfileId] = useState(null)
+  const [hoverProfileRow, setHoverProfileRow] = useState(null)
+  const [hoverZenithInfo, setHoverZenithInfo] = useState(null) // { member, x, y } relative to canvas element
+
   const canvasRef = useRef(null)
+  const heightCanvasRef = useRef(null)
+  const profileHitRef = useRef({})
   const dragRef = useRef(null)
   const dirDragRef = useRef(null)
   const placementsRef = useRef(placements)
@@ -399,7 +636,8 @@ export default function Editor() {
   useEffect(() => { allSongPositionsRef.current = allSongPositions }, [allSongPositions])
 
   // ─── Derived dims ────────────────────────────────────────
-  const rowLabels = show?.grid_rows ?? DEFAULT_ROW_LABELS
+  const rowLabels    = show?.grid_rows      ?? DEFAULT_ROW_LABELS
+  const rowElevations = show?.row_elevations ?? rowLabels.map((_, i, a) => (a.length - 1 - i) * 40)
   const ROWS = rowLabels.length
   const COLS = show?.grid_cols ?? DEFAULT_COLS
   const GW = COLS * CELL
@@ -465,15 +703,59 @@ export default function Editor() {
     const tConfig = trajectoryMode && trajectoryMemberId
       ? { allMoments: moments, allPositions: allSongPositions, memberId: trajectoryMemberId, currentMomentId: momentId }
       : null
-    drawAll(canvasRef.current, { placements, members, mode, highlightId, directorAbsX,
+    const directorMember = members.find(m => m.role === 'director') ?? null
+    drawAll(canvasRef.current, { placements, members, mode, highlightId, directorAbsX, directorMember,
       drag: null, selectedIds, rotated, dims, trajectoryConfig: tConfig })
   }, [placements, members, mode, highlightId, directorAbsX, selectedIds, rotated,
     dims, trajectoryMode, trajectoryMemberId, allSongPositions, momentId, moments])
 
+  // ─── Height profile draw ─────────────────────────────────
+  useEffect(() => {
+    if (!showHeightProfile) return
+    const canvas = heightCanvasRef.current
+    if (!canvas) return
+    const result = drawHeightProfile(canvas, { placements, members, mode, dims, rowElevations, hoverMemberId: hoverProfileId, highlightId, hoverRow: hoverProfileRow })
+    if (result) profileHitRef.current = result
+  }, [placements, members, mode, dims, rowElevations, showHeightProfile, hoverProfileId, highlightId, hoverProfileRow])
+
+  function handleProfileMouseMove(e) {
+    const canvas = heightCanvasRef.current
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    const { hitAreas = {}, labelHitAreas = {} } = profileHitRef.current ?? {}
+
+    // Check label hit areas first — these activate row highlight mode
+    for (const { x, y, w, h, rows } of Object.values(labelHitAreas)) {
+      if (mx >= x && mx <= x + w && my >= y && my <= y + h) {
+        setHoverProfileId(null)
+        setHoverProfileRow(rows[0] ?? null)
+        return
+      }
+    }
+
+    // Hit-test individual figures
+    let foundId = null
+    let foundRow = null
+    let bestDist = Infinity
+    for (const [id, { px, yTop, yBot, row }] of Object.entries(hitAreas)) {
+      if (my >= yTop - 2 && my <= yBot + 2) {
+        const d = Math.abs(mx - px)
+        if (d < bestDist && d < 20) { bestDist = d; foundId = id; foundRow = row }
+      }
+    }
+    setHoverProfileId(foundId)
+    setHoverProfileRow(foundId ? null : null)
+  }
+
+  function handleProfileMouseLeave() { setHoverProfileId(null); setHoverProfileRow(null) }
+
   function redrawWithDrag(drag) {
+    const dm = membersRef.current.find(m => m.role === 'director') ?? null
     drawAll(canvasRef.current, {
       placements: placementsRef.current, members: membersRef.current, mode: modeRef.current,
-      highlightId: highlightRef.current, directorAbsX: currentDirAbsX(),
+      highlightId: highlightRef.current, directorAbsX: currentDirAbsX(), directorMember: dm,
       drag, selectedIds: selectedIdsRef.current, rotated: rotatedRef.current,
       dims: dimsRef.current, trajectoryConfig: null,
     })
@@ -498,22 +780,39 @@ export default function Editor() {
   }
 
   // ─── Grid config ─────────────────────────────────────────
-  function scheduleGridSave(gridRows, gridCols) {
+  function scheduleGridSave(gridRows, gridCols, gridElevations) {
     clearTimeout(gridSaveTimerRef.current)
     gridSaveTimerRef.current = setTimeout(() => {
-      supabase.from('shows').update({ grid_rows: gridRows, grid_cols: gridCols }).eq('id', showId)
+      supabase.from('shows').update({ grid_rows: gridRows, grid_cols: gridCols, row_elevations: gridElevations }).eq('id', showId)
     }, 600)
   }
-  function setRowLabels(labels) {
-    setShow(prev => ({ ...prev, grid_rows: labels })); scheduleGridSave(labels, COLS)
+  function setRowLabels(labels, elevs) {
+    const e = elevs ?? rowElevations
+    setShow(prev => ({ ...prev, grid_rows: labels, row_elevations: e }))
+    scheduleGridSave(labels, COLS, e)
   }
-  function addRow() { setRowLabels([...rowLabels, `Fila ${ROWS + 1}`]) }
-  function removeRow(i) { if (ROWS > 1) setRowLabels(rowLabels.filter((_, idx) => idx !== i)) }
+  function addRow() {
+    setRowLabels([`Fila ${ROWS + 1}`, ...rowLabels], [0, ...rowElevations])
+  }
+  function removeRow(i) {
+    if (ROWS > 1) setRowLabels(rowLabels.filter((_, idx) => idx !== i), rowElevations.filter((_, idx) => idx !== i))
+  }
   function updateRowLabel(i, val) { setRowLabels(rowLabels.map((l, idx) => idx === i ? val : l)) }
-  function reorderRows(newLabels) { setRowLabels(newLabels) }
+  function updateRowElevation(i, val) {
+    const e = rowElevations.map((v, idx) => idx === i ? Math.max(0, parseInt(val) || 0) : v)
+    setShow(prev => ({ ...prev, row_elevations: e })); scheduleGridSave(rowLabels, COLS, e)
+  }
+  function reorderRows(newLabels) {
+    // reorder elevations the same way
+    const newElevs = newLabels.map(label => {
+      const i = rowLabels.indexOf(label)
+      return i >= 0 ? rowElevations[i] : 0
+    })
+    setRowLabels(newLabels, newElevs)
+  }
   function updateCols(n) {
     const c = Math.max(4, Math.min(30, n))
-    setShow(prev => ({ ...prev, grid_cols: c })); scheduleGridSave(rowLabels, c)
+    setShow(prev => ({ ...prev, grid_cols: c })); scheduleGridSave(rowLabels, c, rowElevations)
   }
 
   // ─── Compact / pinya ─────────────────────────────────────
@@ -687,7 +986,7 @@ export default function Editor() {
 
   // ─── Grid drag-sort ──────────────────────────────────────
   const rowSensors = useSensors(useSensor(PointerSensor))
-  const rowItems = rowLabels.map((label, i) => ({ id: String(i), label }))
+  const rowItems = rowLabels.map((label, i) => ({ id: String(i), label, elevation: rowElevations[i] ?? 0 }))
   function handleRowDragEnd({ active, over }) {
     if (!over || active.id === over.id) return
     const oldIdx = rowItems.findIndex(r => r.id === active.id)
@@ -759,7 +1058,25 @@ export default function Editor() {
       const relX = Math.max(0, Math.min(dimsRef.current.GW, x - LABEL_W))
       dirManualXRef.current = relX; setDirectorManualX(relX); return
     }
-    if (!dragRef.current) return
+    if (!dragRef.current) {
+      // Hit-test for zenith tooltip
+      const d = dimsRef.current
+      let found = null
+      for (const m of membersRef.current) {
+        if (m.role === 'director') continue
+        const pos = placementsRef.current[m.id]
+        if (!pos) continue
+        const pt = getMemberPixelPos(pos, modeRef.current, d)
+        if (pt && Math.hypot(x - pt.x, y - pt.y) <= TOKEN_R + 3) { found = m; break }
+      }
+      if (found) {
+        const rect = canvasRef.current?.getBoundingClientRect()
+        if (rect) setHoverZenithInfo({ member: found, x: e.clientX - rect.left, y: e.clientY - rect.top })
+      } else {
+        setHoverZenithInfo(null)
+      }
+      return
+    }
     const drag = dragRef.current
     if (drag.type === 'member') { drag.x = x; drag.y = y }
     else if (drag.type === 'group') { drag.currentX = x; drag.currentY = y }
@@ -777,7 +1094,7 @@ export default function Editor() {
     else if (drag.type === 'group') finalizeGroupDrag(drag, x, y)
     else if (drag.type === 'select-rect') finalizeRectSelect(drag)
   }
-  function handleMouseLeave(e) { handleMouseUp(e) }
+  function handleMouseLeave(e) { handleMouseUp(e); setHoverZenithInfo(null) }
 
   // ─── Finalize drags ───────────────────────────────────────
   function finalizeSingleDrag(memberId, x, y) {
@@ -940,6 +1257,7 @@ export default function Editor() {
                 onChange={e => { setHighlightId(e.target.value); localStorage.setItem('highlightMemberId', e.target.value) }}
                 className="bg-gray-800 border border-gray-700 rounded-lg text-xs text-gray-300 px-2 py-1 focus:outline-none max-w-[120px]">
                 <option value="">Jo soc…</option>
+                {members.filter(m => m.role === 'director').map(m => <option key={m.id} value={m.id}>{m.name} (dir.)</option>)}
                 {choirMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             )}
@@ -1028,9 +1346,10 @@ export default function Editor() {
                 <div className="space-y-0.5">
                   <DndContext sensors={rowSensors} collisionDetection={closestCenter} onDragEnd={handleRowDragEnd}>
                     <SortableContext items={rowItems.map(r => r.id)} strategy={verticalListSortingStrategy}>
-                      {rowItems.map(({ id, label }, i) => (
-                        <SortableRow key={id} id={id} label={label}
+                      {rowItems.map(({ id, label, elevation }, i) => (
+                        <SortableRow key={id} id={id} label={label} elevation={elevation}
                           onEdit={val => updateRowLabel(i, val)}
+                          onEditElevation={val => updateRowElevation(i, val)}
                           onRemove={() => removeRow(i)} />
                       ))}
                     </SortableContext>
@@ -1089,17 +1408,45 @@ export default function Editor() {
 
           {/* Canvas */}
           <div className="flex-1 overflow-auto bg-[#0f172a] flex flex-col pr-8">
-            <canvas ref={canvasRef}
-              style={{ width: '100%', aspectRatio: `${CW} / ${CH}`, transform: rotated ? 'rotate(180deg)' : undefined, display: 'block', cursor: trajectoryMode ? 'pointer' : 'default' }}
-              onMouseDown={handleMouseDown} onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp} onMouseLeave={handleMouseLeave}
-              onDoubleClick={handleDoubleClick}
-              onDragOver={handleDragOver} onDrop={handleDrop} />
+            <div className="relative w-full">
+              <canvas ref={canvasRef}
+                style={{ width: '100%', aspectRatio: `${CW} / ${CH}`, transform: rotated ? 'rotate(180deg)' : undefined, display: 'block', cursor: trajectoryMode ? 'pointer' : 'default' }}
+                onMouseDown={handleMouseDown} onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp} onMouseLeave={handleMouseLeave}
+                onDoubleClick={handleDoubleClick}
+                onDragOver={handleDragOver} onDrop={handleDrop} />
+              {hoverZenithInfo && (() => {
+                const m = hoverZenithInfo.member
+                const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
+                const label = [m.first_name, m.last_name].filter(Boolean).join(' ') || m.name || ''
+                return (
+                  <div style={{ position: 'absolute', left: hoverZenithInfo.x + 10, top: hoverZenithInfo.y - 24, pointerEvents: 'none', color: c.bg, borderColor: c.bg + '55', borderWidth: 1, borderStyle: 'solid', backgroundColor: '#1e293b', borderRadius: 4, padding: '2px 7px', fontSize: 10, whiteSpace: 'nowrap', zIndex: 10 }}>
+                    {label}
+                  </div>
+                )
+              })()}
+            </div>
             <p className="text-[10px] text-gray-700 text-center select-none py-1">
               {trajectoryMode
                 ? 'Clica qualsevol punt per anar a aquell moment · Esc per sortir'
                 : 'Arrossega · Shift+clic o quadre per seleccionar · flechas mouen selecció · Doble clic per treure'}
             </p>
+
+            {/* Height profile accordion */}
+            <div className="shrink-0 border-t border-gray-800">
+              <button
+                onClick={() => setShowHeightProfile(v => !v)}
+                className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] text-gray-500 hover:text-gray-300 hover:bg-gray-800/40 transition-colors select-none">
+                <span className="uppercase tracking-wider font-medium">Perfil d'alçades</span>
+                <span className="text-gray-600">{showHeightProfile ? '▲' : '▼'}</span>
+              </button>
+              {showHeightProfile && (
+                <canvas ref={heightCanvasRef}
+                  style={{ width: '100%', display: 'block', cursor: 'crosshair' }}
+                  onMouseMove={handleProfileMouseMove}
+                  onMouseLeave={handleProfileMouseLeave} />
+              )}
+            </div>
           </div>
         </div>
 

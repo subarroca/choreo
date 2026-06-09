@@ -24,6 +24,7 @@ function save(table, rows) {
 
 // ─── Seed initialization ──────────────────────────────────────
 const SEED_MEMBERS = [
+  { id: 'dev-m-dir-1', first_name: 'Arnau',   last_name: 'Casals',  name: 'Arnau Casals',  initials: 'AC', voice: 'director', role: 'director', height: 177, birth_date: '1979-05-20', joined_at: '2008-09-01', instagram: '', google_account: 'arnau.casals@gmail.com' },
   { id: 'dev-m-s1-1', first_name: 'Anna',    last_name: 'Soler',   name: 'Anna Soler',    initials: 'AS', voice: 'soprano1', role: 'choir', height: 162, birth_date: '1998-03-14', joined_at: '2020-09-01', instagram: 'annasoler', google_account: 'anna.soler@gmail.com' },
   { id: 'dev-m-s1-2', first_name: 'Clara',   last_name: 'Puig',    name: 'Clara Puig',    initials: 'CP', voice: 'soprano1', role: 'choir', height: 165, birth_date: '2001-07-22', joined_at: '2022-01-10', instagram: '', google_account: '' },
   { id: 'dev-m-s2-1', first_name: 'Marta',   last_name: 'Blau',    name: 'Marta Blau',    initials: 'MB', voice: 'soprano2', role: 'choir', height: 158, birth_date: '1995-11-05', joined_at: '2018-09-01', instagram: 'martablau', google_account: '' },
@@ -46,11 +47,16 @@ function ensureSeedData() {
   // Ensure show has grid config
   const shows = load('shows')
   const DEFAULT_ROWS = ['Tarima 4', 'Tarima 3', 'Tarima 2', 'Tarima 1', 'Terra']
-  const updatedShows = shows.map(s => ({
-    ...s,
-    grid_rows: s.grid_rows ?? DEFAULT_ROWS,
-    grid_cols: s.grid_cols ?? 14,
-  }))
+  const defaultElevations = rows => rows.map((_, i, a) => (a.length - 1 - i) * 40)
+  const updatedShows = shows.map(s => {
+    const rows = s.grid_rows ?? DEFAULT_ROWS
+    return {
+      ...s,
+      grid_rows: rows,
+      grid_cols: s.grid_cols ?? 14,
+      row_elevations: s.row_elevations ?? defaultElevations(rows),
+    }
+  })
   if (JSON.stringify(updatedShows) !== JSON.stringify(shows)) save('shows', updatedShows)
 
   // Add any missing seed members (by id), and migrate existing ones with new fields
