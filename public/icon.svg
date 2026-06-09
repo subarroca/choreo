@@ -1,0 +1,19 @@
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" rx="32" fill="#1f2937"/>
+  <g fill="white">
+    <!-- Musical notes -->
+    <circle cx="60" cy="100" r="8"/>
+    <rect x="67" y="60" width="6" height="40"/>
+    <circle cx="90" cy="110" r="8"/>
+    <rect x="97" y="70" width="6" height="40"/>
+    <circle cx="120" cy="95" r="8"/>
+    <rect x="127" y="55" width="6" height="40"/>
+    <!-- Staff lines -->
+    <rect x="40" y="80" width="112" height="2" opacity="0.3"/>
+    <rect x="40" y="90" width="112" height="2" opacity="0.3"/>
+    <rect x="40" y="100" width="112" height="2" opacity="0.3"/>
+    <rect x="40" y="110" width="112" height="2" opacity="0.3"/>
+    <rect x="40" y="120" width="112" height="2" opacity="0.3"/>
+  </g>
+  <text x="96" y="160" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="white" text-anchor="middle">CHOIR</text>
+</svg>

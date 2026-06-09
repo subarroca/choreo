@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Icon Generator</title>
+</head>
+<body>
+  <h1>Generador d'Icones PWA</h1>
+  <button onclick="generateIcons()">Generar Icones</button>
+  <div id="output"></div>
+
+  <script>
+    function generateIcons() {
+      const sizes = [192, 512];
+      const output = document.getElementById('output');
+      output.innerHTML = '';
+
+      sizes.forEach(size => {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        // Fons
+        ctx.fillStyle = '#1f2937';
+        ctx.beginPath();
+        ctx.roundRect(0, 0, size, size, size / 6);
+        ctx.fill();
+
+        // Notes musicals
+        ctx.fillStyle = 'white';
+        const scale = size / 192;
+        
+        // Primera nota
+        ctx.beginPath();
+        ctx.arc(60 * scale, 100 * scale, 8 * scale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(67 * scale, 60 * scale, 6 * scale, 40 * scale);
+
+        // Segona nota
+        ctx.beginPath();
+        ctx.arc(90 * scale, 110 * scale, 8 * scale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(97 * scale, 70 * scale, 6 * scale, 40 * scale);
+
+        // Tercera nota
+        ctx.beginPath();
+        ctx.arc(120 * scale, 95 * scale, 8 * scale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(127 * scale, 55 * scale, 6 * scale, 40 * scale);
+
+        // Línies del pentagrama
+        ctx.globalAlpha = 0.3;
+        [80, 90, 100, 110, 120].forEach(y => {
+          ctx.fillRect(40 * scale, y * scale, 112 * scale, 2 * scale);
+        });
+
+        // Text
+        ctx.globalAlpha = 1;
+        ctx.font = `bold ${20 * scale}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText('CHOIR', size / 2, 160 * scale);
+
+        // Descarregar
+        canvas.toBlob(blob => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `icon-${size}.png`;
+          a.textContent = `Descarregar icon-${size}.png`;
+          a.style.display = 'block';
+          a.style.margin = '10px';
+          output.appendChild(a);
+          
+          const img = document.createElement('img');
+          img.src = url;
+          img.width = 100;
+          img.style.margin = '10px';
+          output.appendChild(img);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
