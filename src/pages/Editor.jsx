@@ -49,72 +49,53 @@ function roundedHexPath(ctx, cx, cy, r, cr = 4) {
 }
 
 // ─── Geometry helpers ─────────────────────────────────────────
-const SEMI_ALPHA = 75 * Math.PI / 180  // 75°
+// Semi-oval: all rows become concentric elliptic arcs spanning full GW × GH.
+// Row 0 = outer/back arc, Row ROWS-1 = inner/front arc.
+// Token formula: phi = -PI/2 (left) … +PI/2 (right)
+//   x = cx + a_row * sin(phi)
+//   y = cy - b_row * cos(phi)
+// where cy = GH (base at bottom of grid), a/b scale outward per row.
 
 function semiGeometry(dims) {
-  const { GW, GH, COLS, rowElevations = [] } = dims
+  const { GW, GH, ROWS } = dims
   const cx = LABEL_W + GW / 2
-  const cy = GH  // centre at bottom of grid area
-  const R_max = Math.min(GH * 0.88, GW * 0.46)
-  const terraRows = rowElevations.reduce((acc, e, i) => e === 0 ? [...acc, i] : acc, [])
-  const nArcs = terraRows.length
-  const arcRadii = terraRows.map((_, i) =>
-    nArcs === 1 ? R_max * 0.78 : R_max - i * (R_max - R_max * 0.55) / (nArcs - 1)
-  )
-  return { cx, cy, terraRows, arcRadii, nArcs }
+  const cy = GH
+  const a_max = (GW / 2) * 0.93
+  const b_max = GH * 0.90
+  const a_min = ROWS > 1 ? a_max * 0.42 : a_max * 0.75
+  const b_min = ROWS > 1 ? b_max * 0.42 : b_max * 0.75
+  const arcParams = Array.from({ length: ROWS }, (_, i) => ({
+    a: ROWS === 1 ? a_max : a_max - i * (a_max - a_min) / (ROWS - 1),
+    b: ROWS === 1 ? b_max : b_max - i * (b_max - b_min) / (ROWS - 1),
+  }))
+  return { cx, cy, arcParams }
 }
 
 function tokenXY(row, col, mode, dims) {
   if (mode === 'semicircle' && dims) {
-    const { rowElevations = [] } = dims
-    const elev = rowElevations[row] ?? 0
-    if (elev === 0) {
-      const { cx, cy, terraRows, arcRadii } = semiGeometry(dims)
-      const arcIdx = terraRows.indexOf(row)
-      if (arcIdx === -1) { /* fallback */ }
-      else {
-        const R = arcRadii[arcIdx]
-        const phi = -SEMI_ALPHA + col * (2 * SEMI_ALPHA / Math.max(1, dims.COLS - 1))
-        return { x: cx + R * Math.sin(phi), y: cy - R * Math.cos(phi) }
-      }
-    }
-    // elevated rows: normal rectangular grid (band at top portion)
-    const elevatedRows = (dims.rowElevations ?? []).filter(e => e > 0).length
-    const bandRowIdx = row  // row index as-is
-    const bandH = dims.GH * 0.4 / Math.max(1, elevatedRows)
-    return { x: LABEL_W + col * CELL + CELL / 2, y: bandRowIdx * bandH + bandH / 2 }
+    const { cx, cy, arcParams } = semiGeometry(dims)
+    const ap = arcParams[row] ?? arcParams[0]
+    const phi = -Math.PI / 2 + col * Math.PI / Math.max(1, dims.COLS - 1)
+    return { x: cx + ap.a * Math.sin(phi), y: cy - ap.b * Math.cos(phi) }
   }
   const shift = mode === 'alternate' && row % 2 === 1 ? CELL / 2 : 0
   return { x: LABEL_W + col * CELL + CELL / 2 + shift, y: row * CELL + CELL / 2 }
 }
 function pixelToCell(px, py, mode, dims) {
   if (mode === 'semicircle' && dims) {
-    const { rowElevations = [] } = dims
-    const { cx, cy, terraRows, arcRadii } = semiGeometry(dims)
-    // Try elevated bands first
-    const elevatedRows = rowElevations.map((e, i) => ({ e, i })).filter(r => r.e > 0)
-    const elevCount = elevatedRows.length
-    if (elevCount > 0) {
-      const bandH = dims.GH * 0.4 / elevCount
-      const bandRow = Math.floor(py / bandH)
-      if (bandRow >= 0 && bandRow < elevCount) {
-        const col = Math.floor((px - LABEL_W) / CELL)
-        if (col >= 0 && col < dims.COLS) return { row: elevatedRows[bandRow].i, col }
-      }
-    }
-    // Try arc rows
-    const r = Math.hypot(px - cx, cy - py)
-    const phi = Math.atan2(px - cx, cy - py) // atan2(x, y) for our coordinate system
-    if (Math.abs(phi) <= SEMI_ALPHA) {
-      let bestArc = -1, bestDist = Infinity
-      arcRadii.forEach((R, i) => { const d = Math.abs(r - R); if (d < bestDist) { bestDist = d; bestArc = i } })
-      if (bestArc !== -1 && bestDist < CELL * 0.8) {
-        const row = terraRows[bestArc]
-        const col = Math.round((phi + SEMI_ALPHA) / (2 * SEMI_ALPHA) * (dims.COLS - 1))
-        if (col >= 0 && col < dims.COLS) return { row, col }
-      }
-    }
-    return null
+    const { cx, cy, arcParams } = semiGeometry(dims)
+    let bestRow = 0, bestDist = Infinity, bestPhi = 0
+    arcParams.forEach(({ a, b }, i) => {
+      if (!a || !b) return
+      const nx = (px - cx) / a, ny = (cy - py) / b
+      const d = Math.abs(Math.sqrt(nx * nx + ny * ny) - 1)
+      if (d < bestDist) { bestDist = d; bestRow = i; bestPhi = Math.atan2(nx, ny) }
+    })
+    if (bestDist > 0.45) return null
+    if (bestPhi < -Math.PI / 2 || bestPhi > Math.PI / 2) return null
+    const col = Math.round((bestPhi + Math.PI / 2) / Math.PI * (dims.COLS - 1))
+    if (col < 0 || col >= dims.COLS) return null
+    return { row: bestRow, col }
   }
   const row = Math.floor(py / CELL)
   if (row < 0 || row >= dims.ROWS) return null
@@ -192,57 +173,49 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
   ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, CW, CH)
 
   if (mode === 'semicircle') {
-    // Semicircle mode: elevated rows = grey bands at top; terra rows = arcs
-    const rowElevations = dims.rowElevations ?? []
-    const elevatedRows = rowElevations.map((e, i) => ({ e, i })).filter(r => r.e > 0)
-    const elevCount = elevatedRows.length
-    const bandH = elevCount > 0 ? GH * 0.4 / elevCount : 0
+    ctx.fillStyle = '#1e293b'; ctx.fillRect(LABEL_W, 0, GW, GH)
+    const { cx, cy, arcParams } = semiGeometry(dims)
+    const NSEG = 80
 
-    // Draw elevated row bands (reserved, no placement)
-    for (let bi = 0; bi < elevCount; bi++) {
-      const { i: ri } = elevatedRows[bi]
-      const y = bi * bandH
-      ctx.fillStyle = '#1a2535'
-      ctx.fillRect(LABEL_W, y, GW, bandH)
-      ctx.strokeStyle = '#334155'; ctx.lineWidth = 0.5
-      ctx.strokeRect(LABEL_W, y, GW, bandH)
-      ctx.fillStyle = '#475569'; ctx.font = '10px system-ui'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
-      fillTextFlipped(ctx, rowLabels[ri] ?? `Fila ${ri + 1}`, LABEL_W - 6, y + bandH / 2, rotated)
+    // Fill interior of outermost arc
+    const ap0 = arcParams[0]
+    if (ap0) {
+      ctx.fillStyle = '#162032'
+      ctx.beginPath()
+      for (let j = 0; j <= NSEG; j++) {
+        const phi = -Math.PI / 2 + j * Math.PI / NSEG
+        const px2 = cx + ap0.a * Math.sin(phi), py2 = cy - ap0.b * Math.cos(phi)
+        j === 0 ? ctx.moveTo(px2, py2) : ctx.lineTo(px2, py2)
+      }
+      ctx.lineTo(cx + ap0.a, cy); ctx.lineTo(cx - ap0.a, cy); ctx.closePath(); ctx.fill()
     }
 
-    // Draw arcs for terra rows
-    const { cx, cy, terraRows, arcRadii } = semiGeometry(dims)
-    // Background arc area
-    ctx.fillStyle = '#1e293b'
-    ctx.beginPath()
-    ctx.arc(cx, cy, (arcRadii[0] ?? 0) + CELL * 0.6, -Math.PI / 2 - SEMI_ALPHA, -Math.PI / 2 + SEMI_ALPHA)
-    ctx.lineTo(cx, cy); ctx.closePath(); ctx.fill()
-
-    // Draw each arc lane
-    arcRadii.forEach((R, i) => {
-      const row = terraRows[i]
+    // Draw arc lane for each row
+    arcParams.forEach(({ a, b }, i) => {
       ctx.strokeStyle = '#334155'; ctx.lineWidth = 1
       ctx.beginPath()
-      ctx.arc(cx, cy, R, -Math.PI / 2 - SEMI_ALPHA, -Math.PI / 2 + SEMI_ALPHA)
+      for (let j = 0; j <= NSEG; j++) {
+        const phi = -Math.PI / 2 + j * Math.PI / NSEG
+        const px2 = cx + a * Math.sin(phi), py2 = cy - b * Math.cos(phi)
+        j === 0 ? ctx.moveTo(px2, py2) : ctx.lineTo(px2, py2)
+      }
       ctx.stroke()
-      // Row label at left end of arc
-      const phi = -SEMI_ALPHA
-      const lx = cx + R * Math.sin(phi) - 6
-      const ly = cy - R * Math.cos(phi)
-      ctx.fillStyle = '#475569'; ctx.font = '10px system-ui'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
-      ctx.fillText(rowLabels[row] ?? `Fila ${row + 1}`, lx, ly)
+      // Row label above arc top
+      ctx.fillStyle = '#475569'; ctx.font = '9px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'
+      ctx.fillText(rowLabels[i] ?? `Fila ${i + 1}`, cx, cy - b - 2)
     })
-    // Radial edge lines
-    if (arcRadii.length > 0) {
-      const Rmin = arcRadii[arcRadii.length - 1] - CELL * 0.4
-      const Rmax = arcRadii[0] + CELL * 0.4
-      ctx.strokeStyle = '#334155'; ctx.lineWidth = 1
-      ;[-SEMI_ALPHA, SEMI_ALPHA].forEach(phi => {
+
+    // Light radial dividers at each column
+    const innerAp = arcParams[arcParams.length - 1] ?? ap0
+    if (innerAp && ap0) {
+      ctx.strokeStyle = '#1e3050'; ctx.lineWidth = 0.5
+      for (let c = 0; c < COLS; c++) {
+        const phi = -Math.PI / 2 + c * Math.PI / Math.max(1, COLS - 1)
         ctx.beginPath()
-        ctx.moveTo(cx + Rmin * Math.sin(phi), cy - Rmin * Math.cos(phi))
-        ctx.lineTo(cx + Rmax * Math.sin(phi), cy - Rmax * Math.cos(phi))
+        ctx.moveTo(cx + innerAp.a * Math.sin(phi), cy - innerAp.b * Math.cos(phi))
+        ctx.lineTo(cx + ap0.a * Math.sin(phi), cy - ap0.b * Math.cos(phi))
         ctx.stroke()
-      })
+      }
     }
   } else if (mode === 'free') {
     ctx.fillStyle = '#1e293b'; ctx.fillRect(LABEL_W, 0, GW, GH)
@@ -727,6 +700,9 @@ export default function Editor() {
   const [arrangeAxis, setArrangeAxis] = useState('cols')
   const [arrangeReplaceAll, setArrangeReplaceAll] = useState(false)
 
+  // Context menu
+  const [contextMenu, setContextMenu] = useState(null) // { x, y, member }
+
   // Add moment panel
   const [addingMoment, setAddingMoment] = useState(false)
   const [newMomentTitle, setNewMomentTitle] = useState('')
@@ -769,6 +745,7 @@ export default function Editor() {
   useEffect(() => { rotatedRef.current = rotated }, [rotated])
   useEffect(() => { momentsRef.current = moments }, [moments])
   useEffect(() => { allSongPositionsRef.current = allSongPositions }, [allSongPositions])
+  // contextMenu closes via backdrop (see JSX)
 
   // ─── Derived dims ────────────────────────────────────────
   const rowLabels    = show?.grid_rows      ?? DEFAULT_ROW_LABELS
@@ -1019,38 +996,49 @@ export default function Editor() {
 
     const next = { ...base }
 
-    if (axis === 'cols') {
-      // Each group gets a proportional column slice. Fill front rows first within slice.
-      let colCursor = 0
-      const totalCols = d.COLS
-      groups.forEach((g, gi) => {
-        const sliceWidth = gi === groups.length - 1
-          ? totalCols - colCursor
-          : Math.round(totalCols * g.members.length / totalMembers)
-        const startCol = colCursor
-        colCursor += sliceWidth
+    // Aim for compact square-ish blocks per group.
+    // optimalRows: how many rows each group should use (2-3 typically).
+    const maxGroupSize = Math.max(...groups.map(g => g.members.length))
+    const optimalRows = Math.min(d.ROWS, Math.max(2, Math.round(Math.sqrt(maxGroupSize))))
 
-        // Place members in this slice, filling from front row (ROWS-1) upward
+    if (axis === 'cols') {
+      // Each group gets a narrow column slice (cols = ceil(members / optimalRows)).
+      // The whole block is centered in the grid.
+      const groupSlices = groups.map(g => ({
+        ...g,
+        sliceWidth: Math.max(1, Math.ceil(g.members.length / optimalRows)),
+      }))
+      const totalWidth = groupSlices.reduce((s, g) => s + g.sliceWidth, 0)
+      let colCursor = Math.max(0, Math.floor((d.COLS - totalWidth) / 2))
+
+      groupSlices.forEach(g => {
+        const startCol = colCursor
+        colCursor += g.sliceWidth
+
         g.members.forEach((m, i) => {
           if (!replaceAll && placementsRef.current[m.id]) return
-          const row = Math.max(0, d.ROWS - 1 - Math.floor(i / sliceWidth))
-          const col = startCol + (i % sliceWidth)
+          const row = Math.max(0, d.ROWS - 1 - Math.floor(i / g.sliceWidth))
+          const col = startCol + (i % g.sliceWidth)
           next[m.id] = { row, col }
         })
       })
     } else {
-      // axis === 'rows': each group gets a band of rows (front→back). Members spread horizontally.
+      // axis === 'rows': each group gets a band of rows, members centered horizontally.
+      // colsPerRow: ceil(maxGroupSize / optimalRows), then centered.
+      const colsPerRow = Math.min(d.COLS, Math.max(1, Math.ceil(maxGroupSize / optimalRows)))
+      const startCol = Math.max(0, Math.floor((d.COLS - colsPerRow) / 2))
       let rowCursor = d.ROWS - 1
+
       groups.forEach(g => {
-        const rowsNeeded = Math.max(1, Math.ceil(g.members.length / d.COLS))
+        const rowsNeeded = Math.max(1, Math.ceil(g.members.length / colsPerRow))
         g.members.forEach((m, i) => {
           if (!replaceAll && placementsRef.current[m.id]) return
-          const rowOffset = Math.floor(i / d.COLS)
+          const rowOffset = Math.floor(i / colsPerRow)
           const row = Math.max(0, rowCursor - rowOffset)
-          const totalInRow = Math.min(g.members.length - rowOffset * d.COLS, d.COLS)
-          const posInRow = i % d.COLS
-          const startCol = Math.max(0, Math.floor((d.COLS - totalInRow) / 2))
-          next[m.id] = { row, col: startCol + posInRow }
+          // center each row within the block if it's the last partial row
+          const inThisRow = Math.min(colsPerRow, g.members.length - rowOffset * colsPerRow)
+          const rowStart = startCol + Math.floor((colsPerRow - inThisRow) / 2)
+          next[m.id] = { row, col: rowStart + (i % colsPerRow) }
         })
         rowCursor = Math.max(0, rowCursor - rowsNeeded)
       })
@@ -1088,6 +1076,79 @@ export default function Editor() {
 
   function updateSoloistMic(memberId, mic) {
     saveSoloists(momentSoloists.map(s => s.member_id === memberId ? { ...s, mic_number: mic } : s))
+  }
+
+  function setSoloistMic(memberId, mic) {
+    // mic = '' removes soloist, otherwise sets/updates mic number
+    if (!mic) {
+      saveSoloists(momentSoloists.filter(s => s.member_id !== memberId))
+    } else {
+      const existing = momentSoloists.find(s => s.member_id === memberId)
+      if (existing) saveSoloists(momentSoloists.map(s => s.member_id === memberId ? { ...s, mic_number: mic } : s))
+      else saveSoloists([...momentSoloists, { member_id: memberId, mic_number: mic }])
+    }
+  }
+
+  function toggleSoloist(memberId) {
+    const existing = momentSoloists.find(s => s.member_id === memberId)
+    if (existing) saveSoloists(momentSoloists.filter(s => s.member_id !== memberId))
+    else saveSoloists([...momentSoloists, { member_id: memberId, mic_number: '' }])
+  }
+
+  function removePlacement(memberId) {
+    const next = { ...placementsRef.current }
+    delete next[memberId]
+    applyPlacements(next)
+  }
+
+  function memberAtPixel(px, py) {
+    const d = dimsRef.current
+    const mems = membersRef.current
+    const pl = placementsRef.current
+    const m2 = modeRef.current
+    let best = null, bestDist = TOKEN_R * 1.8
+    for (const m of mems) {
+      if (m.role === 'director') continue
+      const pos = pl[m.id]; if (!pos) continue
+      const { x, y } = getMemberPixelPos(pos, m2, d)
+      const dist = Math.hypot(px - x, py - y)
+      if (dist < bestDist) { bestDist = dist; best = m }
+    }
+    return best
+  }
+
+  function openContextMenu(e, member) {
+    e.preventDefault()
+    setContextMenu({ x: e.clientX, y: e.clientY, member })
+  }
+
+  function handleCanvasContextMenu(e) {
+    e.preventDefault()
+    const { x, y } = eventToCanvas(e, rotatedRef.current, dimsRef.current)
+    // Check director
+    const d = dimsRef.current
+    const dirMember = membersRef.current.find(m => m.role === 'director')
+    const dax = currentDirAbsX()
+    if (dirMember && dax != null && Math.hypot(x - dax, y - (d.GH + DIRECTOR_H / 2)) < TOKEN_R * 1.8) {
+      setContextMenu({ x: e.clientX, y: e.clientY, member: dirMember }); return
+    }
+    const member = memberAtPixel(x, y)
+    if (member) setContextMenu({ x: e.clientX, y: e.clientY, member })
+  }
+
+  function handleProfileContextMenu(e) {
+    e.preventDefault()
+    const canvas = heightCanvasRef.current
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
+    const px = e.clientX - rect.left, py = e.clientY - rect.top
+    const { hitAreas = {} } = profileHitRef.current ?? {}
+    for (const [id, ha] of Object.entries(hitAreas)) {
+      if (px >= ha.px - TOKEN_R && px <= ha.px + TOKEN_R && py >= ha.yTop && py <= ha.yBot) {
+        const member = membersRef.current.find(m => m.id === id)
+        if (member) { setContextMenu({ x: e.clientX, y: e.clientY, member }); return }
+      }
+    }
   }
 
   async function handleDeleteMoment(mId) {
@@ -1659,12 +1720,28 @@ export default function Editor() {
                             return (
                               <div key={m.id} draggable={!placed}
                                 onDragStart={e => e.dataTransfer.setData('memberId', m.id)}
-                                className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded text-xs select-none ml-3 ${placed ? 'opacity-25' : 'cursor-grab active:cursor-grabbing hover:bg-gray-800'}`}>
+                                onContextMenu={e => openContextMenu(e, m)}
+                                className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded text-xs select-none ml-3 ${placed ? 'opacity-40 hover:opacity-100' : 'cursor-grab active:cursor-grabbing hover:bg-gray-800'}`}>
                                 <span className="w-5 h-5 rounded flex items-center justify-center font-bold shrink-0 text-[9px]"
                                   style={{ backgroundColor: c.bg, color: c.fg }}>
                                   {(m.initials || m.name.slice(0, 2)).toUpperCase()}
                                 </span>
-                                <span className="text-gray-300 truncate text-[11px]">{m.name}</span>
+                                <span className="text-gray-300 truncate text-[11px] flex-1">{m.name}</span>
+                                {(() => {
+                                  const sol = momentSoloists.find(s => s.member_id === m.id)
+                                  if (!sol) return null
+                                  return (
+                                    <select value={sol.mic_number ?? ''}
+                                      onChange={e => setSoloistMic(m.id, e.target.value)}
+                                      onClick={e => e.stopPropagation()}
+                                      onMouseDown={e => e.stopPropagation()}
+                                      className="bg-amber-900/40 border border-amber-700/60 rounded px-1 text-[9px] text-amber-300 w-8 focus:outline-none shrink-0 cursor-pointer"
+                                      title="Micro (solista)">
+                                      <option value="">—</option>
+                                      {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={String(n)}>{n}</option>)}
+                                    </select>
+                                  )
+                                })()}
                               </div>
                             )
                           })}
@@ -1675,34 +1752,6 @@ export default function Editor() {
                 </SidebarSection>
               )}
 
-              <SidebarSection title="Solistes" open={isPanelOpen('soloists', false)} onToggle={() => togglePanel('soloists', false)}>
-                <div className="space-y-1.5">
-                  {momentSoloists.map(s => {
-                    const mem = members.find(m => m.id === s.member_id)
-                    const c = mem ? (VOICE_COLORS[mem.voice] ?? VOICE_COLORS.extra) : null
-                    return (
-                      <div key={s.member_id} className="flex items-center gap-1.5">
-                        {c && <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: c.bg }} />}
-                        <select value={s.member_id}
-                          onChange={e => saveSoloists(momentSoloists.map(x => x.member_id === s.member_id ? { ...x, member_id: e.target.value } : x))}
-                          className="flex-1 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none focus:border-blue-500 min-w-0">
-                          {members.filter(m => m.role !== 'director').map(m => (
-                            <option key={m.id} value={m.id}>{m.name}</option>
-                          ))}
-                        </select>
-                        <input value={s.mic_number} onChange={e => updateSoloistMic(s.member_id, e.target.value)}
-                          placeholder="M1" className="bg-gray-800 border border-gray-700 rounded px-1 text-xs text-white w-10 focus:outline-none focus:border-blue-500" />
-                        <button onClick={() => removeSoloist(s.member_id)} className="text-gray-600 hover:text-red-400 transition-colors shrink-0"><X size={10} /></button>
-                      </div>
-                    )
-                  })}
-                  {momentSoloists.length === 0 && <p className="text-[10px] text-gray-600 italic">Cap solista.</p>}
-                  <button onClick={addSoloist}
-                    className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 border border-blue-800 px-2 py-0.5 rounded transition-colors mt-0.5">
-                    <Plus size={9} /> Afegir solista
-                  </button>
-                </div>
-              </SidebarSection>
             </div>
           </div>
 
@@ -1711,7 +1760,7 @@ export default function Editor() {
             <div className="relative w-full">
               <canvas ref={canvasRef}
                 style={{ width: '100%', aspectRatio: `${CW} / ${CH}`, transform: rotated ? 'rotate(180deg)' : undefined, display: 'block', cursor: trajectoryMode ? 'pointer' : 'default' }}
-                onMouseDown={handleMouseDown} onMouseMove={handleMouseMove}
+                onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onContextMenu={handleCanvasContextMenu}
                 onMouseUp={handleMouseUp} onMouseLeave={handleMouseLeave}
                 onDoubleClick={handleDoubleClick}
                 onDragOver={handleDragOver} onDrop={handleDrop} />
@@ -1744,7 +1793,8 @@ export default function Editor() {
                 <canvas ref={heightCanvasRef}
                   style={{ width: '100%', display: 'block', cursor: 'crosshair' }}
                   onMouseMove={handleProfileMouseMove}
-                  onMouseLeave={handleProfileMouseLeave} />
+                  onMouseLeave={handleProfileMouseLeave}
+                  onContextMenu={handleProfileContextMenu} />
               )}
             </div>
           </div>
@@ -1837,6 +1887,84 @@ export default function Editor() {
         )}
 
       </div>
+
+      {/* ── Context menu backdrop + panel ── */}
+      {contextMenu && (
+        <>
+          {/* Invisible backdrop — closes the menu on any click outside */}
+          <div className="fixed inset-0 z-40"
+            onClick={() => setContextMenu(null)}
+            onContextMenu={e => { e.preventDefault(); setContextMenu(null) }} />
+
+          {/* Menu panel */}
+          <div className="fixed z-50 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl py-1.5 min-w-[190px]"
+            style={{ left: Math.min(contextMenu.x, window.innerWidth - 210), top: Math.min(contextMenu.y, window.innerHeight - 270) }}
+            onContextMenu={e => e.preventDefault()}>
+
+            {/* Member header */}
+            {(() => {
+              const m = contextMenu.member
+              const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
+              const isMe = highlightId === m.id
+              const isSoloist = !!momentSoloists.find(s => s.member_id === m.id)
+              const soloistEntry = momentSoloists.find(s => s.member_id === m.id)
+              const isPlaced = !!placements[m.id]
+              const itemCls = 'w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-gray-800 transition-colors text-left'
+              return (
+                <>
+                  <div className="flex items-center gap-2 px-3 py-1.5 border-b border-gray-800 mb-1">
+                    <span className="w-3.5 h-3.5 rounded-sm shrink-0" style={{ background: c.bg }} />
+                    <span className="text-xs text-white font-medium truncate">{m.name}</span>
+                  </div>
+
+                  {/* Soc jo */}
+                  <button className={itemCls + (isMe ? ' text-blue-400' : ' text-gray-300')}
+                    onClick={() => { const v = isMe ? '' : m.id; setHighlightId(v); localStorage.setItem('highlightMemberId', v); setContextMenu(null) }}>
+                    <Target size={11} /> {isMe ? '✓ Soc jo' : 'Soc jo'}
+                  </button>
+
+                  {/* Solista */}
+                  <button className={itemCls + (isSoloist ? ' text-amber-400' : ' text-gray-300')}
+                    onClick={() => toggleSoloist(m.id)}>
+                    <Mic size={11} /> {isSoloist ? '✓ Solista' : 'Marcar com solista'}
+                  </button>
+
+                  {/* Mic select — only when soloist */}
+                  {isSoloist && (
+                    <div className="flex items-center gap-2 px-3 py-1 text-xs text-gray-400">
+                      <span className="w-2.5" />
+                      <span>Micro:</span>
+                      <select value={soloistEntry?.mic_number ?? ''}
+                        onChange={e => updateSoloistMic(m.id, e.target.value)}
+                        className="bg-gray-800 border border-gray-700 rounded px-1 text-xs text-white flex-1 focus:outline-none focus:border-amber-500">
+                        <option value="">—</option>
+                        {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={String(n)}>{n}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Trajectòria */}
+                  {m.role !== 'director' && (
+                    <button className={itemCls + ' text-gray-300'}
+                      onClick={() => { enterTrajectoryMode(m.id); setContextMenu(null) }}>
+                      <Waypoints size={11} /> Trajectòria
+                    </button>
+                  )}
+
+                  {/* Eliminar posició */}
+                  {isPlaced && <>
+                    <div className="border-t border-gray-800 my-1" />
+                    <button className={itemCls + ' text-red-400'}
+                      onClick={() => { removePlacement(m.id); setContextMenu(null) }}>
+                      <X size={11} /> Eliminar posició
+                    </button>
+                  </>}
+                </>
+              )
+            })()}
+          </div>
+        </>
+      )}
     </Layout>
   )
 }
