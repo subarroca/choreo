@@ -379,6 +379,10 @@ export default function Setlist() {
               title={allExpanded ? 'Replegar tot' : 'Expandir tot'}>
               {allExpanded ? <ChevronsUp size={14} /> : <ChevronsDown size={14} />}
             </button>
+            <Link to={`/show/${showId}/mics`}
+              className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+              <Mic size={14} /> Micros
+            </Link>
             <button onClick={() => setShowCast(v => !v)}
               className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border transition-colors ${showCast ? 'border-blue-600 text-blue-400 bg-blue-900/20' : 'border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800'}`}>
               <Mic size={14} /> Membres {exclusions.size > 0 && <span className="ml-1 text-xs text-yellow-500">({allMembers.length - exclusions.size}/{allMembers.length})</span>}

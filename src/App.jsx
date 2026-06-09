@@ -5,6 +5,7 @@ import Shows from './pages/Shows'
 import Setlist from './pages/Setlist'
 import Members from './pages/Members'
 import Editor from './pages/Editor'
+import Mics from './pages/Mics'
 
 
 function RequireAuth({ children }) {
@@ -26,6 +27,7 @@ function AppRoutes() {
       <Route path="/show/:id" element={<RequireAuth><Setlist /></RequireAuth>} />
       <Route path="/members" element={<RequireAuth><Members /></RequireAuth>} />
       <Route path="/show/:id/song/:sid/moment/:mid" element={<RequireAuth><Editor /></RequireAuth>} />
+      <Route path="/show/:id/mics" element={<RequireAuth><Mics /></RequireAuth>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

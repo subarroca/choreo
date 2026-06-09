@@ -5,7 +5,7 @@ import {
   RotateCcw, Waypoints, GripVertical, Pencil, X,
   ChevronUp, ChevronDown,
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
-  Plus, AlignCenter, AlignVerticalJustifyEnd, Target,
+  Plus, AlignCenter, AlignVerticalJustifyEnd, Target, Mic, LayoutTemplate, Disc,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { VOICE_COLORS, VOICE_LABELS, VOICE_SHORT } from '../lib/constants' // VOICE_SHORT used in members sidebar
@@ -22,6 +22,9 @@ const TOKEN_R = Math.floor(CELL * 0.38)
 const DEFAULT_ROW_LABELS = ['Tarima 4', 'Tarima 3', 'Tarima 2', 'Tarima 1', 'Terra']
 const DEFAULT_COLS = 20
 const VOICE_ORDER = ['soprano1','soprano2','alto1','alto2','tenor1','tenor2','baritone','bass']
+
+const VOICE_GROUPS = { S: ['soprano1','soprano2'], A: ['alto1','alto2'], T: ['tenor1','tenor2'], B: ['baritone','bass'] }
+const ARRANGEMENT_PATTERNS = ['SATB','ABTS','STBA','SBTA','TASB','TSAB','BAST','BSAT','ATBS','BTAS']
 
 // ─── Rounded hexagon ──────────────────────────────────────────
 function roundedHexPath(ctx, cx, cy, r, cr = 4) {
@@ -46,11 +49,73 @@ function roundedHexPath(ctx, cx, cy, r, cr = 4) {
 }
 
 // ─── Geometry helpers ─────────────────────────────────────────
-function tokenXY(row, col, mode) {
+const SEMI_ALPHA = 75 * Math.PI / 180  // 75°
+
+function semiGeometry(dims) {
+  const { GW, GH, COLS, rowElevations = [] } = dims
+  const cx = LABEL_W + GW / 2
+  const cy = GH  // centre at bottom of grid area
+  const R_max = Math.min(GH * 0.88, GW * 0.46)
+  const terraRows = rowElevations.reduce((acc, e, i) => e === 0 ? [...acc, i] : acc, [])
+  const nArcs = terraRows.length
+  const arcRadii = terraRows.map((_, i) =>
+    nArcs === 1 ? R_max * 0.78 : R_max - i * (R_max - R_max * 0.55) / (nArcs - 1)
+  )
+  return { cx, cy, terraRows, arcRadii, nArcs }
+}
+
+function tokenXY(row, col, mode, dims) {
+  if (mode === 'semicircle' && dims) {
+    const { rowElevations = [] } = dims
+    const elev = rowElevations[row] ?? 0
+    if (elev === 0) {
+      const { cx, cy, terraRows, arcRadii } = semiGeometry(dims)
+      const arcIdx = terraRows.indexOf(row)
+      if (arcIdx === -1) { /* fallback */ }
+      else {
+        const R = arcRadii[arcIdx]
+        const phi = -SEMI_ALPHA + col * (2 * SEMI_ALPHA / Math.max(1, dims.COLS - 1))
+        return { x: cx + R * Math.sin(phi), y: cy - R * Math.cos(phi) }
+      }
+    }
+    // elevated rows: normal rectangular grid (band at top portion)
+    const elevatedRows = (dims.rowElevations ?? []).filter(e => e > 0).length
+    const bandRowIdx = row  // row index as-is
+    const bandH = dims.GH * 0.4 / Math.max(1, elevatedRows)
+    return { x: LABEL_W + col * CELL + CELL / 2, y: bandRowIdx * bandH + bandH / 2 }
+  }
   const shift = mode === 'alternate' && row % 2 === 1 ? CELL / 2 : 0
   return { x: LABEL_W + col * CELL + CELL / 2 + shift, y: row * CELL + CELL / 2 }
 }
 function pixelToCell(px, py, mode, dims) {
+  if (mode === 'semicircle' && dims) {
+    const { rowElevations = [] } = dims
+    const { cx, cy, terraRows, arcRadii } = semiGeometry(dims)
+    // Try elevated bands first
+    const elevatedRows = rowElevations.map((e, i) => ({ e, i })).filter(r => r.e > 0)
+    const elevCount = elevatedRows.length
+    if (elevCount > 0) {
+      const bandH = dims.GH * 0.4 / elevCount
+      const bandRow = Math.floor(py / bandH)
+      if (bandRow >= 0 && bandRow < elevCount) {
+        const col = Math.floor((px - LABEL_W) / CELL)
+        if (col >= 0 && col < dims.COLS) return { row: elevatedRows[bandRow].i, col }
+      }
+    }
+    // Try arc rows
+    const r = Math.hypot(px - cx, cy - py)
+    const phi = Math.atan2(px - cx, cy - py) // atan2(x, y) for our coordinate system
+    if (Math.abs(phi) <= SEMI_ALPHA) {
+      let bestArc = -1, bestDist = Infinity
+      arcRadii.forEach((R, i) => { const d = Math.abs(r - R); if (d < bestDist) { bestDist = d; bestArc = i } })
+      if (bestArc !== -1 && bestDist < CELL * 0.8) {
+        const row = terraRows[bestArc]
+        const col = Math.round((phi + SEMI_ALPHA) / (2 * SEMI_ALPHA) * (dims.COLS - 1))
+        if (col >= 0 && col < dims.COLS) return { row, col }
+      }
+    }
+    return null
+  }
   const row = Math.floor(py / CELL)
   if (row < 0 || row >= dims.ROWS) return null
   const shift = mode === 'alternate' && row % 2 === 1 ? CELL / 2 : 0
@@ -72,7 +137,7 @@ function computeRelCenterX(placements, members, mode, dims) {
   const sum = longest.reduce((s, m) => {
     const pos = placements[m.id]
     if (pos.free) return s + pos.x * dims.GW
-    const { x } = tokenXY(pos.row, pos.col, mode)
+    const { x } = tokenXY(pos.row, pos.col, mode, dims)
     return s + (x - LABEL_W)
   }, 0)
   return sum / longest.length
@@ -87,7 +152,7 @@ function eventToCanvas(e, rotated, dims) {
 function getMemberPixelPos(pos, mode, dims) {
   if (!pos) return null
   if (pos.free) return { x: LABEL_W + pos.x * dims.GW, y: pos.y * dims.GH }
-  return tokenXY(pos.row, pos.col, mode)
+  return tokenXY(pos.row, pos.col, mode, dims)
 }
 function fillTextFlipped(ctx, text, x, y, rotated) {
   if (rotated) {
@@ -115,7 +180,7 @@ function drawArrow(ctx, x1, y1, x2, y2, color) {
 
 // ─── Canvas draw ──────────────────────────────────────────────
 function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX, directorMember,
-  drag, selectedIds, rotated, dims, trajectoryConfig }) {
+  drag, selectedIds, rotated, dims, trajectoryConfig, soloistMicMap = {} }) {
   if (!canvas) return
   const { ROWS, COLS, rowLabels, GW, GH, CW, CH } = dims
   const dpr = window.devicePixelRatio || 1
@@ -126,7 +191,60 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
 
   ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, CW, CH)
 
-  if (mode === 'free') {
+  if (mode === 'semicircle') {
+    // Semicircle mode: elevated rows = grey bands at top; terra rows = arcs
+    const rowElevations = dims.rowElevations ?? []
+    const elevatedRows = rowElevations.map((e, i) => ({ e, i })).filter(r => r.e > 0)
+    const elevCount = elevatedRows.length
+    const bandH = elevCount > 0 ? GH * 0.4 / elevCount : 0
+
+    // Draw elevated row bands (reserved, no placement)
+    for (let bi = 0; bi < elevCount; bi++) {
+      const { i: ri } = elevatedRows[bi]
+      const y = bi * bandH
+      ctx.fillStyle = '#1a2535'
+      ctx.fillRect(LABEL_W, y, GW, bandH)
+      ctx.strokeStyle = '#334155'; ctx.lineWidth = 0.5
+      ctx.strokeRect(LABEL_W, y, GW, bandH)
+      ctx.fillStyle = '#475569'; ctx.font = '10px system-ui'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
+      fillTextFlipped(ctx, rowLabels[ri] ?? `Fila ${ri + 1}`, LABEL_W - 6, y + bandH / 2, rotated)
+    }
+
+    // Draw arcs for terra rows
+    const { cx, cy, terraRows, arcRadii } = semiGeometry(dims)
+    // Background arc area
+    ctx.fillStyle = '#1e293b'
+    ctx.beginPath()
+    ctx.arc(cx, cy, (arcRadii[0] ?? 0) + CELL * 0.6, -Math.PI / 2 - SEMI_ALPHA, -Math.PI / 2 + SEMI_ALPHA)
+    ctx.lineTo(cx, cy); ctx.closePath(); ctx.fill()
+
+    // Draw each arc lane
+    arcRadii.forEach((R, i) => {
+      const row = terraRows[i]
+      ctx.strokeStyle = '#334155'; ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.arc(cx, cy, R, -Math.PI / 2 - SEMI_ALPHA, -Math.PI / 2 + SEMI_ALPHA)
+      ctx.stroke()
+      // Row label at left end of arc
+      const phi = -SEMI_ALPHA
+      const lx = cx + R * Math.sin(phi) - 6
+      const ly = cy - R * Math.cos(phi)
+      ctx.fillStyle = '#475569'; ctx.font = '10px system-ui'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
+      ctx.fillText(rowLabels[row] ?? `Fila ${row + 1}`, lx, ly)
+    })
+    // Radial edge lines
+    if (arcRadii.length > 0) {
+      const Rmin = arcRadii[arcRadii.length - 1] - CELL * 0.4
+      const Rmax = arcRadii[0] + CELL * 0.4
+      ctx.strokeStyle = '#334155'; ctx.lineWidth = 1
+      ;[-SEMI_ALPHA, SEMI_ALPHA].forEach(phi => {
+        ctx.beginPath()
+        ctx.moveTo(cx + Rmin * Math.sin(phi), cy - Rmin * Math.cos(phi))
+        ctx.lineTo(cx + Rmax * Math.sin(phi), cy - Rmax * Math.cos(phi))
+        ctx.stroke()
+      })
+    }
+  } else if (mode === 'free') {
     ctx.fillStyle = '#1e293b'; ctx.fillRect(LABEL_W, 0, GW, GH)
     ctx.fillStyle = '#334155'
     for (let r = 0; r <= ROWS; r++)
@@ -155,9 +273,11 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
       fillTextFlipped(ctx, c + 1, LABEL_W + c * CELL + CELL / 2, 3, rotated)
   }
 
-  ctx.fillStyle = '#94a3b8'; ctx.font = '10px system-ui'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
-  for (let r = 0; r < ROWS; r++)
-    fillTextFlipped(ctx, rowLabels[r] ?? `Fila ${r + 1}`, LABEL_W - 6, r * CELL + CELL / 2, rotated)
+  if (mode !== 'semicircle') {
+    ctx.fillStyle = '#94a3b8'; ctx.font = '10px system-ui'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
+    for (let r = 0; r < ROWS; r++)
+      fillTextFlipped(ctx, rowLabels[r] ?? `Fila ${r + 1}`, LABEL_W - 6, r * CELL + CELL / 2, rotated)
+  }
 
   if (mode !== 'free') {
     const relCX = computeRelCenterX(placements, members, mode, dims)
@@ -188,7 +308,7 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
     const pos = placements[m.id]
     if (!pos || skipIds.has(m.id)) continue
     const { x, y } = getMemberPixelPos(pos, mode, dims)
-    drawToken(ctx, x, y, m, highlightId === m.id, selectedIds?.has(m.id) ?? false, hasHighlight, rotated)
+    drawToken(ctx, x, y, m, highlightId === m.id, selectedIds?.has(m.id) ?? false, hasHighlight, rotated, soloistMicMap[m.id])
   }
 
   if (drag?.type === 'group' && drag.originalPositions) {
@@ -207,7 +327,7 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
       if (mode !== 'free') {
         const cell = pixelToCell(drag.x, drag.y, mode, dims)
         if (cell) {
-          const { x, y } = tokenXY(cell.row, cell.col, mode)
+          const { x, y } = tokenXY(cell.row, cell.col, mode, dims)
           ctx.strokeStyle = '#ffffff44'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3])
           roundedHexPath(ctx, x, y, TOKEN_R + 3); ctx.stroke(); ctx.setLineDash([])
         }
@@ -225,7 +345,7 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
   if (directorAbsX != null) drawDirectorToken(ctx, directorAbsX, GH + DIRECTOR_H / 2, directorHighlighted, rotated, directorMember, hasHighlight)
 }
 
-function drawToken(ctx, x, y, member, highlighted, selected, hasHighlight, rotated) {
+function drawToken(ctx, x, y, member, highlighted, selected, hasHighlight, rotated, soloistMic) {
   const c = VOICE_COLORS[member.voice] ?? VOICE_COLORS.extra
   const initials = (member.initials || member.name.slice(0, 2)).toUpperCase()
   if (selected) {
@@ -247,6 +367,15 @@ function drawToken(ctx, x, y, member, highlighted, selected, hasHighlight, rotat
     ctx.fillStyle = c.fg; ctx.font = 'bold 10px system-ui'
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
     fillTextFlipped(ctx, initials, x, y, rotated)
+  }
+  // Soloist badge: white circle top-right with mic label
+  if (soloistMic != null) {
+    const bx = x + TOKEN_R * 0.65, by = y - TOKEN_R * 0.65
+    ctx.beginPath(); ctx.arc(bx, by, 5.5, 0, Math.PI * 2)
+    ctx.fillStyle = '#fff'; ctx.fill()
+    ctx.fillStyle = '#111'; ctx.font = 'bold 7px system-ui'
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillText(soloistMic === true ? '●' : String(soloistMic), bx, by)
   }
 }
 
@@ -417,7 +546,7 @@ function drawHeightProfile(canvas, { placements, members, mode, dims, rowElevati
 
     const px = pos.free
       ? (LABEL_W + pos.x * GW) * scaleX
-      : tokenXY(pos.row, pos.col, mode).x * scaleX
+      : tokenXY(pos.row, pos.col, mode, dims).x * scaleX
 
     const row  = pos.free ? Math.min(ROWS - 1, Math.floor(pos.y * ROWS)) : pos.row
     const elev = rowElevations?.[row] ?? 0
@@ -591,6 +720,12 @@ export default function Editor() {
   const [editingMoment, setEditingMoment] = useState(false)
   const [editMomentTitle, setEditMomentTitle] = useState('')
   const [editMomentSubtitle, setEditMomentSubtitle] = useState('')
+  const [momentSoloists, setMomentSoloists] = useState([]) // [{member_id, mic_number}]
+
+  // Arrangement prefill
+  const [showArrange, setShowArrange] = useState(false)
+  const [arrangeAxis, setArrangeAxis] = useState('cols')
+  const [arrangeReplaceAll, setArrangeReplaceAll] = useState(false)
 
   // Add moment panel
   const [addingMoment, setAddingMoment] = useState(false)
@@ -644,7 +779,7 @@ export default function Editor() {
   const GH = ROWS * CELL
   const CW = LABEL_W + GW
   const CH = GH + DIRECTOR_H
-  const dims = { ROWS, COLS, rowLabels, GW, GH, CW, CH }
+  const dims = { ROWS, COLS, rowLabels, GW, GH, CW, CH, rowElevations }
   dimsRef.current = dims
 
   // ─── Load ────────────────────────────────────────────────
@@ -664,6 +799,7 @@ export default function Editor() {
       const m = momentRes.data
       setMoment(m); setMode(m?.grid_mode ?? 'alternate')
       setEditMomentTitle(m?.title ?? ''); setEditMomentSubtitle(m?.subtitle ?? '')
+      setMomentSoloists(Array.isArray(m?.soloists) ? m.soloists : (m?.soloists ? JSON.parse(m.soloists) : []))
       setMoments(momentsRes.data ?? [])
       const excludedIds = new Set((exclusionsRes.data ?? []).map(e => e.member_id))
       const mems = (membersRes.data ?? []).filter(m => m.active !== false && !excludedIds.has(m.id))
@@ -704,10 +840,11 @@ export default function Editor() {
       ? { allMoments: moments, allPositions: allSongPositions, memberId: trajectoryMemberId, currentMomentId: momentId }
       : null
     const directorMember = members.find(m => m.role === 'director') ?? null
+    const soloistMicMap = Object.fromEntries((momentSoloists ?? []).map(s => [s.member_id, s.mic_number || true]))
     drawAll(canvasRef.current, { placements, members, mode, highlightId, directorAbsX, directorMember,
-      drag: null, selectedIds, rotated, dims, trajectoryConfig: tConfig })
+      drag: null, selectedIds, rotated, dims, trajectoryConfig: tConfig, soloistMicMap })
   }, [placements, members, mode, highlightId, directorAbsX, selectedIds, rotated,
-    dims, trajectoryMode, trajectoryMemberId, allSongPositions, momentId, moments])
+    dims, trajectoryMode, trajectoryMemberId, allSongPositions, momentId, moments, momentSoloists])
 
   // ─── Height profile draw ─────────────────────────────────
   useEffect(() => {
@@ -860,6 +997,68 @@ export default function Editor() {
     applyPlacements(next)
   }
 
+  // ─── Auto-place by arrangement ───────────────────────────
+  function autoPlaceByArrangement(pattern, axis, replaceAll) {
+    const d = dimsRef.current
+    const mems = membersRef.current.filter(m => m.role !== 'director')
+    const base = replaceAll ? {} : { ...placementsRef.current }
+
+    // Build groups: letter → members of those voices (sorted by VOICE_ORDER within group)
+    const groups = pattern.split('').map(letter => {
+      const voices = VOICE_GROUPS[letter] ?? []
+      return {
+        letter,
+        voices,
+        members: mems.filter(m => voices.includes(m.voice))
+          .sort((a, b) => VOICE_ORDER.indexOf(a.voice) - VOICE_ORDER.indexOf(b.voice)),
+      }
+    }).filter(g => g.members.length > 0)
+
+    const totalMembers = groups.reduce((s, g) => s + g.members.length, 0)
+    if (totalMembers === 0) return
+
+    const next = { ...base }
+
+    if (axis === 'cols') {
+      // Each group gets a proportional column slice. Fill front rows first within slice.
+      let colCursor = 0
+      const totalCols = d.COLS
+      groups.forEach((g, gi) => {
+        const sliceWidth = gi === groups.length - 1
+          ? totalCols - colCursor
+          : Math.round(totalCols * g.members.length / totalMembers)
+        const startCol = colCursor
+        colCursor += sliceWidth
+
+        // Place members in this slice, filling from front row (ROWS-1) upward
+        g.members.forEach((m, i) => {
+          if (!replaceAll && placementsRef.current[m.id]) return
+          const row = Math.max(0, d.ROWS - 1 - Math.floor(i / sliceWidth))
+          const col = startCol + (i % sliceWidth)
+          next[m.id] = { row, col }
+        })
+      })
+    } else {
+      // axis === 'rows': each group gets a band of rows (front→back). Members spread horizontally.
+      let rowCursor = d.ROWS - 1
+      groups.forEach(g => {
+        const rowsNeeded = Math.max(1, Math.ceil(g.members.length / d.COLS))
+        g.members.forEach((m, i) => {
+          if (!replaceAll && placementsRef.current[m.id]) return
+          const rowOffset = Math.floor(i / d.COLS)
+          const row = Math.max(0, rowCursor - rowOffset)
+          const totalInRow = Math.min(g.members.length - rowOffset * d.COLS, d.COLS)
+          const posInRow = i % d.COLS
+          const startCol = Math.max(0, Math.floor((d.COLS - totalInRow) / 2))
+          next[m.id] = { row, col: startCol + posInRow }
+        })
+        rowCursor = Math.max(0, rowCursor - rowsNeeded)
+      })
+    }
+
+    applyPlacements(next)
+  }
+
   // ─── Moment meta ─────────────────────────────────────────
   async function saveMomentMeta() {
     const title = editMomentTitle.trim(); if (!title) return
@@ -868,6 +1067,27 @@ export default function Editor() {
     setMoment(prev => ({ ...prev, title, subtitle }))
     setMoments(prev => prev.map(m => m.id === momentId ? { ...m, title, subtitle } : m))
     setEditingMoment(false)
+  }
+
+  async function saveSoloists(soloists) {
+    setMomentSoloists(soloists)
+    await supabase.from('moments').update({ soloists: JSON.stringify(soloists) }).eq('id', momentId)
+  }
+
+  function addSoloist() {
+    // Pick first placed member not yet a soloist
+    const solIds = new Set(momentSoloists.map(s => s.member_id))
+    const candidate = members.find(m => m.role !== 'director' && placements[m.id] && !solIds.has(m.id))
+    if (!candidate) return
+    saveSoloists([...momentSoloists, { member_id: candidate.id, mic_number: '' }])
+  }
+
+  function removeSoloist(memberId) {
+    saveSoloists(momentSoloists.filter(s => s.member_id !== memberId))
+  }
+
+  function updateSoloistMic(memberId, mic) {
+    saveSoloists(momentSoloists.map(s => s.member_id === memberId ? { ...s, mic_number: mic } : s))
   }
 
   async function handleDeleteMoment(mId) {
@@ -1208,9 +1428,10 @@ export default function Editor() {
   })).filter(g => g.members.length > 0)
 
   const MODES = [
-    { id: 'square',    Icon: LayoutGrid, label: 'Quadrat'  },
-    { id: 'alternate', Icon: Hexagon,    label: 'Alternat' },
-    { id: 'free',      Icon: Move,       label: 'Lliure'   },
+    { id: 'square',     Icon: LayoutGrid, label: 'Quadrat'    },
+    { id: 'alternate',  Icon: Hexagon,    label: 'Alternat'   },
+    { id: 'free',       Icon: Move,       label: 'Lliure'     },
+    { id: 'semicircle', Icon: Disc,       label: 'Semicercle' },
   ]
 
   const inputCls = 'bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500'
@@ -1274,7 +1495,7 @@ export default function Editor() {
               </select>
             )}
 
-            {!trajectoryMode && (
+            {!trajectoryMode && mode !== 'semicircle' && (
               <div className="flex rounded-lg border border-gray-700 overflow-hidden">
                 <button onClick={() => compactPositions('h')} title="Pinya horitzontal (compactar dins cada fila)"
                   className="flex items-center gap-1 px-2 py-1 text-gray-400 hover:text-white hover:bg-gray-700 text-xs transition-colors border-r border-gray-700">
@@ -1284,6 +1505,56 @@ export default function Editor() {
                   className="flex items-center gap-1 px-2 py-1 text-gray-400 hover:text-white hover:bg-gray-700 text-xs transition-colors">
                   <AlignVerticalJustifyEnd size={11} />H+V
                 </button>
+              </div>
+            )}
+
+            {!trajectoryMode && (
+              <div className="relative">
+                <button onClick={() => setShowArrange(v => !v)}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs border transition-colors ${showArrange ? 'border-violet-600 text-violet-400 bg-violet-900/20' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
+                  <LayoutTemplate size={11} /> Disposar…
+                </button>
+                {showArrange && (
+                  <div className="absolute top-full right-0 mt-1 z-50 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-3 w-72"
+                    onMouseLeave={() => {}}>
+                    <div className="flex gap-1 mb-3">
+                      {['cols','rows'].map(ax => (
+                        <button key={ax} onClick={() => setArrangeAxis(ax)}
+                          className={`flex-1 py-1 rounded-lg text-xs border transition-colors ${arrangeAxis === ax ? 'border-violet-600 text-violet-300 bg-violet-900/30' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
+                          {ax === 'cols' ? '← Columnes (E→D)' : '↑ Files (D→F)'}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-5 gap-1.5 mb-3">
+                      {ARRANGEMENT_PATTERNS.map(pat => {
+                        const letters = pat.split('')
+                        const groupSizes = letters.map(l => (VOICE_GROUPS[l] ?? []).length)
+                        const total = groupSizes.reduce((a, b) => a + b, 0)
+                        return (
+                          <button key={pat}
+                            onClick={() => { autoPlaceByArrangement(pat, arrangeAxis, arrangeReplaceAll); setShowArrange(false) }}
+                            className="flex flex-col items-center gap-1 p-1.5 rounded-lg border border-gray-700 hover:border-violet-600 hover:bg-violet-900/20 transition-colors">
+                            <div className="flex w-full h-5 rounded overflow-hidden gap-px">
+                              {letters.map((l, i) => {
+                                const voices = VOICE_GROUPS[l] ?? []
+                                const pct = total > 0 ? groupSizes[i] / total * 100 : 25
+                                const sampleVoice = voices[0]
+                                const c = sampleVoice ? (VOICE_COLORS[sampleVoice] ?? VOICE_COLORS.extra) : VOICE_COLORS.extra
+                                return <div key={i} style={{ width: pct + '%', background: c.bg }} />
+                              })}
+                            </div>
+                            <span className="text-[9px] text-gray-400 font-mono">{pat}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none">
+                      <input type="checkbox" checked={arrangeReplaceAll} onChange={e => setArrangeReplaceAll(e.target.checked)}
+                        className="accent-violet-500" />
+                      Substituir tot (esborra posicions actuals)
+                    </label>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1403,6 +1674,35 @@ export default function Editor() {
                   </div>
                 </SidebarSection>
               )}
+
+              <SidebarSection title="Solistes" open={isPanelOpen('soloists', false)} onToggle={() => togglePanel('soloists', false)}>
+                <div className="space-y-1.5">
+                  {momentSoloists.map(s => {
+                    const mem = members.find(m => m.id === s.member_id)
+                    const c = mem ? (VOICE_COLORS[mem.voice] ?? VOICE_COLORS.extra) : null
+                    return (
+                      <div key={s.member_id} className="flex items-center gap-1.5">
+                        {c && <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: c.bg }} />}
+                        <select value={s.member_id}
+                          onChange={e => saveSoloists(momentSoloists.map(x => x.member_id === s.member_id ? { ...x, member_id: e.target.value } : x))}
+                          className="flex-1 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none focus:border-blue-500 min-w-0">
+                          {members.filter(m => m.role !== 'director').map(m => (
+                            <option key={m.id} value={m.id}>{m.name}</option>
+                          ))}
+                        </select>
+                        <input value={s.mic_number} onChange={e => updateSoloistMic(s.member_id, e.target.value)}
+                          placeholder="M1" className="bg-gray-800 border border-gray-700 rounded px-1 text-xs text-white w-10 focus:outline-none focus:border-blue-500" />
+                        <button onClick={() => removeSoloist(s.member_id)} className="text-gray-600 hover:text-red-400 transition-colors shrink-0"><X size={10} /></button>
+                      </div>
+                    )
+                  })}
+                  {momentSoloists.length === 0 && <p className="text-[10px] text-gray-600 italic">Cap solista.</p>}
+                  <button onClick={addSoloist}
+                    className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 border border-blue-800 px-2 py-0.5 rounded transition-colors mt-0.5">
+                    <Plus size={9} /> Afegir solista
+                  </button>
+                </div>
+              </SidebarSection>
             </div>
           </div>
 

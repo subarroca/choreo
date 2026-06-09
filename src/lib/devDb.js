@@ -55,9 +55,16 @@ function ensureSeedData() {
       grid_rows: rows,
       grid_cols: s.grid_cols ?? 14,
       row_elevations: s.row_elevations ?? defaultElevations(rows),
+      mics: s.mics ?? '["M1","M2","M3"]',
+      mic_assignments: s.mic_assignments ?? '{}',
     }
   })
   if (JSON.stringify(updatedShows) !== JSON.stringify(shows)) save('shows', updatedShows)
+
+  // Migrate moments: ensure soloists field exists
+  const moments = load('moments')
+  const updatedMoments = moments.map(m => m.soloists !== undefined ? m : { ...m, soloists: '[]' })
+  if (JSON.stringify(updatedMoments) !== JSON.stringify(moments)) save('moments', updatedMoments)
 
   // Add any missing seed members (by id), and migrate existing ones with new fields
   const existing = load('members')
