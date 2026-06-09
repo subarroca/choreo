@@ -5,11 +5,12 @@ import {
   RotateCcw, Waypoints, GripVertical, Pencil, X,
   ChevronUp, ChevronDown,
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
-  Plus, AlignCenter, AlignVerticalJustifyEnd, Target, Mic, LayoutTemplate, Disc,
+  Plus, AlignCenter, AlignVerticalJustifyEnd, Target, Mic, LayoutTemplate, Disc, UserRound,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { VOICE_COLORS, VOICE_LABELS, VOICE_SHORT } from '../lib/constants' // VOICE_SHORT used in members sidebar
 import Layout from '../components/Layout'
+import PersonProfileOverlay from '../components/PersonProfileOverlay'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -702,6 +703,7 @@ export default function Editor() {
 
   // Context menu
   const [contextMenu, setContextMenu] = useState(null) // { x, y, member }
+  const [profileMember, setProfileMember] = useState(null)
 
   // Add moment panel
   const [addingMoment, setAddingMoment] = useState(false)
@@ -795,6 +797,29 @@ export default function Editor() {
     }
     load()
   }, [momentId])
+
+  // ─── Member edit handlers ────────────────────────────────
+  async function handleMemberUpdate(id, fields) {
+    const { data, error } = await supabase.from('members').update(fields).eq('id', id).select().single()
+    if (!error) {
+      setMembers(prev => prev.map(m => m.id === id ? data : m))
+      setProfileMember(data)
+    }
+  }
+  async function handleMemberSetActive(id, active) {
+    const { data, error } = await supabase.from('members').update({ active }).eq('id', id).select().single()
+    if (!error) {
+      setMembers(prev => active ? prev.map(m => m.id === id ? data : m) : prev.filter(m => m.id !== id))
+      if (!active) setProfileMember(null)
+      else setProfileMember(data)
+    }
+  }
+  async function handleMemberDelete(id) {
+    if (!confirm('Eliminar definitivament aquesta persona?')) return
+    await supabase.from('members').delete().eq('id', id)
+    setMembers(prev => prev.filter(m => m.id !== id))
+    setProfileMember(null)
+  }
 
   // ─── Director X ──────────────────────────────────────────
   const relCX = mode === 'free' ? null : computeRelCenterX(placements, members, mode, dims)
@@ -1888,6 +1913,16 @@ export default function Editor() {
 
       </div>
 
+      {/* ── Person profile overlay ── */}
+      {profileMember && (
+        <PersonProfileOverlay
+          member={profileMember}
+          onClose={() => setProfileMember(null)}
+          onSave={fields => handleMemberUpdate(profileMember.id, fields)}
+          onSetActive={handleMemberSetActive}
+          onDelete={handleMemberDelete} />
+      )}
+
       {/* ── Context menu backdrop + panel ── */}
       {contextMenu && (
         <>
@@ -1942,6 +1977,12 @@ export default function Editor() {
                       </select>
                     </div>
                   )}
+
+                  {/* Veure perfil */}
+                  <button className={itemCls + ' text-gray-300'}
+                    onClick={() => { setProfileMember(m); setContextMenu(null) }}>
+                    <UserRound size={11} /> Veure perfil
+                  </button>
 
                   {/* Trajectòria */}
                   {m.role !== 'director' && (
