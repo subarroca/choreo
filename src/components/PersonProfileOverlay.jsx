@@ -60,7 +60,7 @@ function VoiceSelect({ value, onChange }) {
                   className={isSelected ? 'font-medium' : 'text-gray-300'}>
                   {VOICE_LABELS[v]}
                 </span>
-                {isSelected && <span className="ml-auto text-[10px]" style={{ color: vc.bg }}>✓</span>}
+                {isSelected && <span className="ml-auto text-xs" style={{ color: vc.bg }}>✓</span>}
               </button>
             )
           })}
@@ -230,7 +230,7 @@ function EditForm({ member, isNew, onSave, onBack, onSetActive, onDelete }) {
         )}
 
         <div className="border-t border-gray-800 pt-4 space-y-3">
-          <p className="text-[10px] text-gray-600 uppercase tracking-wider">Contacte</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wider">Contacte</p>
           <div className="space-y-1">
             <label className={labelCls}>Google</label>
             <input value={google} onChange={e => setGoogle(e.target.value)} type="email"
@@ -244,7 +244,7 @@ function EditForm({ member, isNew, onSave, onBack, onSetActive, onDelete }) {
         </div>
 
         <div className="border-t border-gray-800 pt-4 space-y-3">
-          <p className="text-[10px] text-gray-600 uppercase tracking-wider">Dades personals</p>
+          <p className="text-xs text-gray-600 uppercase tracking-wider">Dades personals</p>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className={labelCls}>Alçada (cm)</label>

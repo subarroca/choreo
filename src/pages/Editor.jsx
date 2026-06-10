@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   LayoutGrid, Hexagon, Move,
   RotateCcw, Waypoints, GripVertical, Pencil, X,
-  ChevronUp, ChevronDown,
+  ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
   Plus, AlignCenter, AlignVerticalJustifyEnd, Target, Mic, LayoutTemplate, Disc, UserRound,
   Menu, MousePointer2,
@@ -629,12 +629,12 @@ function SortableRow({ id, label, elevation, onEdit, onEditElevation, onRemove }
         <GripVertical size={10} />
       </button>
       <input value={label} onChange={e => onEdit(e.target.value)}
-        className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-[10px] text-white focus:outline-none focus:border-blue-500" />
+        className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none focus:border-blue-500" />
       <input value={elevation ?? 0} onChange={e => onEditElevation(e.target.value)}
         type="number" min="0" max="300" step="5"
-        className="w-12 bg-gray-800 border border-gray-700 rounded px-1 py-0.5 text-[10px] text-gray-300 focus:outline-none focus:border-blue-500 tabular-nums"
+        className="w-12 bg-gray-800 border border-gray-700 rounded px-1 py-0.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500 tabular-nums"
         title="Alçada de la tarima (cm)" />
-      <span className="text-[9px] text-gray-700 shrink-0">cm</span>
+      <span className="text-xs text-gray-700 shrink-0">cm</span>
       <button onClick={onRemove} className="text-gray-600 hover:text-red-500 shrink-0">
         <X size={10} />
       </button>
@@ -647,7 +647,7 @@ function SidebarSection({ title, open, onToggle, children, badge }) {
   return (
     <div>
       <button onClick={onToggle}
-        className="flex items-center justify-between w-full text-[10px] text-gray-600 uppercase tracking-wider font-medium hover:text-gray-400 py-0.5 select-none">
+        className="flex items-center justify-between w-full text-xs text-gray-600 uppercase tracking-wider font-medium hover:text-gray-400 py-0.5 select-none">
         <span className="flex items-center gap-1">{title}{badge && <span className="text-gray-700 font-normal normal-case">{badge}</span>}</span>
         {open ? <ChevronUp size={9} className="text-gray-700" /> : <ChevronDown size={9} className="text-gray-700" />}
       </button>
@@ -665,6 +665,7 @@ export default function Editor() {
   const [song, setSong] = useState(null)
   const [moment, setMoment] = useState(null)
   const [moments, setMoments] = useState([])
+  const [allShowSongs, setAllShowSongs] = useState([])
   const [members, setMembers] = useState([])
   const [placements, setPlacements] = useState({})
   const [mode, setMode] = useState('alternate')
@@ -778,7 +779,7 @@ export default function Editor() {
   // ─── Load ────────────────────────────────────────────────
   useEffect(() => {
     async function load() {
-      const [showRes, songRes, momentRes, momentsRes, membersRes, exclusionsRes, posRes] = await Promise.all([
+      const [showRes, songRes, momentRes, momentsRes, membersRes, exclusionsRes, posRes, allSongsRes] = await Promise.all([
         supabase.from('shows').select('*').eq('id', showId).single(),
         supabase.from('songs').select('*').eq('id', songId).single(),
         supabase.from('moments').select('*').eq('id', momentId).single(),
@@ -786,9 +787,11 @@ export default function Editor() {
         supabase.from('members').select('*').order('name'),
         supabase.from('show_exclusions').select('member_id').eq('show_id', showId),
         supabase.from('positions').select('*').eq('moment_id', momentId),
+        supabase.from('songs').select('id,title,order_index').eq('show_id', showId).order('order_index'),
       ])
       setShow(showRes.data)
       setSong(songRes.data)
+      setAllShowSongs(allSongsRes.data ?? [])
       const m = momentRes.data
       setMoment(m); setMode(m?.grid_mode ?? 'alternate')
       setEditMomentTitle(m?.title ?? ''); setEditMomentSubtitle(m?.subtitle ?? '')
@@ -1265,6 +1268,12 @@ export default function Editor() {
     setMoments(prev => [...prev, newMom])
     setAddingMoment(false)
     navigate(`/show/${showId}/song/${songId}/moment/${newMom.id}`)
+  }
+
+  // ─── Song navigation ─────────────────────────────────────
+  async function navigateToSong(targetSongId) {
+    const { data } = await supabase.from('moments').select('id').eq('song_id', targetSongId).order('order_index').limit(1)
+    if (data?.length) navigate(`/show/${showId}/song/${targetSongId}/moment/${data[0].id}`)
   }
 
   // ─── Shift selection ──────────────────────────────────────
@@ -1798,7 +1807,7 @@ export default function Editor() {
                                 return <div key={i} style={{ width: pct + '%', background: c.bg }} />
                               })}
                             </div>
-                            <span className="text-[9px] text-gray-400 font-mono">{pat}</span>
+                            <span className="text-xs text-gray-400 font-mono">{pat}</span>
                           </button>
                         )
                       })}
@@ -1822,33 +1831,73 @@ export default function Editor() {
           </div>
         </div>
 
-        {/* ── Moment bar (top) ── */}
-        <div className="border-b border-gray-800 bg-gray-900 px-3 py-1.5 shrink-0">
-          <div className="flex items-center gap-1.5 overflow-x-auto">
-            {moments.map((m, i) => {
-              const isCurrent = m.id === momentId
-              return (
-                <div key={m.id} className={`shrink-0 flex items-center gap-0.5 rounded-full text-xs transition-colors ${isCurrent ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400'}`}>
-                  <button onClick={() => navigate(`/show/${showId}/song/${songId}/moment/${m.id}`)}
-                    className="px-3 py-1 font-medium hover:opacity-90">
-                    {i + 1}. {m.title}
-                    {m.subtitle && <span className="ml-1 font-normal opacity-70 text-[10px]">{m.subtitle}</span>}
-                  </button>
-                  {isCurrent && (
-                    <button onClick={() => { setEditMomentTitle(m.title); setEditMomentSubtitle(m.subtitle ?? ''); setEditingMoment(v => !v); setAddingMoment(false) }}
-                      className="pr-2 pl-0.5 hover:opacity-70" title="Editar moment">
-                      <Pencil size={10} />
-                    </button>
-                  )}
-                </div>
-              )
-            })}
-            <button onClick={openAddMoment}
-              className="shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-gray-800 text-gray-500 hover:text-white hover:bg-gray-700 transition-colors">
-              <Plus size={10} /> Moment
-            </button>
-          </div>
-        </div>
+        {/* ── Moment nav bar ── */}
+        {(() => {
+          const mIdx = moments.findIndex(m => m.id === momentId)
+          const curMoment = moments[mIdx]
+          const prevMoment = moments[mIdx - 1]
+          const nextMoment = moments[mIdx + 1]
+          const sIdx = allShowSongs.findIndex(s => s.id === songId)
+          const prevSong = allShowSongs[sIdx - 1]
+          const nextSong = allShowSongs[sIdx + 1]
+          return (
+            <div className="border-b border-gray-800 bg-gray-900 px-2 py-1.5 shrink-0 flex items-center gap-1">
+              {/* Prev song */}
+              <button onClick={() => prevSong && navigateToSong(prevSong.id)}
+                disabled={!prevSong}
+                className="flex items-center gap-0.5 px-2 py-1.5 rounded-lg text-xs text-gray-500 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
+                title={prevSong ? `Cançó anterior: ${prevSong.title}` : ''}>
+                <ChevronLeft size={13} /><ChevronLeft size={13} className="-ml-2" />
+              </button>
+              {/* Prev moment */}
+              <button onClick={() => prevMoment && navigate(`/show/${showId}/song/${songId}/moment/${prevMoment.id}`)}
+                disabled={!prevMoment}
+                className="flex items-center px-2 py-1.5 rounded-lg text-xs text-gray-500 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
+                title={prevMoment?.title}>
+                <ChevronLeft size={13} />
+              </button>
+              {/* Dropdown centre */}
+              <div className="flex-1 min-w-0">
+                <select
+                  value={momentId}
+                  onChange={e => navigate(`/show/${showId}/song/${songId}/moment/${e.target.value}`)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 truncate">
+                  {moments.map((m, i) => (
+                    <option key={m.id} value={m.id}>
+                      {i + 1}/{moments.length} · {m.title}{m.subtitle ? ` · ${m.subtitle}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {/* Next moment */}
+              <button onClick={() => nextMoment && navigate(`/show/${showId}/song/${songId}/moment/${nextMoment.id}`)}
+                disabled={!nextMoment}
+                className="flex items-center px-2 py-1.5 rounded-lg text-xs text-gray-500 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
+                title={nextMoment?.title}>
+                <ChevronRight size={13} />
+              </button>
+              {/* Next song */}
+              <button onClick={() => nextSong && navigateToSong(nextSong.id)}
+                disabled={!nextSong}
+                className="flex items-center gap-0.5 px-2 py-1.5 rounded-lg text-xs text-gray-500 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
+                title={nextSong ? `Cançó següent: ${nextSong.title}` : ''}>
+                <ChevronRight size={13} /><ChevronRight size={13} className="-ml-2" />
+              </button>
+              {/* Edit moment */}
+              <button onClick={() => { if (curMoment) { setEditMomentTitle(curMoment.title); setEditMomentSubtitle(curMoment.subtitle ?? ''); setEditingMoment(v => !v); setAddingMoment(false) } }}
+                className={`p-1.5 rounded-lg transition-colors shrink-0 ${editingMoment ? 'text-blue-400 bg-blue-900/30' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}
+                title="Editar moment">
+                <Pencil size={13} />
+              </button>
+              {/* Add moment */}
+              <button onClick={openAddMoment}
+                className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors shrink-0"
+                title="Afegir moment">
+                <Plus size={13} />
+              </button>
+            </div>
+          )
+        })()}
 
         {/* ── Body ── */}
         <div className="flex flex-1 min-h-0 relative overflow-hidden">
@@ -1867,7 +1916,7 @@ export default function Editor() {
                   {MODES.map(({ id, Icon, label }) => (
                     <button key={id} onClick={() => changeMode(id)} title={label}
                       className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 text-xs transition-colors ${mode === id ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
-                      <Icon size={12} /><span className="text-[9px] leading-none">{label}</span>
+                      <Icon size={12} /><span className="text-xs leading-none">{label}</span>
                     </button>
                   ))}
                 </div>
@@ -1885,14 +1934,14 @@ export default function Editor() {
                       ))}
                     </SortableContext>
                   </DndContext>
-                  <button onClick={addRow} className="flex items-center gap-1 text-[10px] text-blue-500 hover:text-blue-400 transition-colors mt-0.5">
+                  <button onClick={addRow} className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-400 transition-colors mt-0.5">
                     <Plus size={9} /> Fila
                   </button>
                 </div>
                 <div className="flex items-center gap-1.5 mt-1.5">
-                  <span className="text-[10px] text-gray-500">Col.</span>
+                  <span className="text-xs text-gray-500">Col.</span>
                   <button onClick={() => updateCols(COLS - 1)} className="w-5 h-5 text-gray-400 hover:text-white bg-gray-800 rounded text-xs">−</button>
-                  <span className="text-[10px] text-gray-300 w-5 text-center tabular-nums">{COLS}</span>
+                  <span className="text-xs text-gray-300 w-5 text-center tabular-nums">{COLS}</span>
                   <button onClick={() => updateCols(COLS + 1)} className="w-5 h-5 text-gray-400 hover:text-white bg-gray-800 rounded text-xs">+</button>
                 </div>
               </SidebarSection>
@@ -1910,8 +1959,8 @@ export default function Editor() {
                             onClick={() => setCollapsedVoices(prev => { const n = new Set(prev); n.has(voice) ? n.delete(voice) : n.add(voice); return n })}
                             className="flex items-center gap-1.5 w-full py-0.5 hover:opacity-80 select-none">
                             <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: c.bg }} />
-                            <span className="text-[10px] text-gray-400 font-medium flex-1 text-left">{VOICE_LABELS[voice]}</span>
-                            {unplacedInGroup > 0 && <span className="text-[9px] text-gray-600">{unplacedInGroup}</span>}
+                            <span className="text-xs text-gray-400 font-medium flex-1 text-left">{VOICE_LABELS[voice]}</span>
+                            {unplacedInGroup > 0 && <span className="text-xs text-gray-600">{unplacedInGroup}</span>}
                             {collapsed ? <ChevronDown size={8} className="text-gray-700" /> : <ChevronUp size={8} className="text-gray-700" />}
                           </button>
                           {!collapsed && grpMembers.map(m => {
@@ -1923,11 +1972,11 @@ export default function Editor() {
                                 onContextMenu={e => openContextMenu(e, m)}
                                 onClick={!placed ? () => setPendingMemberId(prev => prev === m.id ? null : m.id) : undefined}
                                 className={`flex items-center gap-1.5 px-1.5 py-1 rounded text-xs select-none ml-3 transition-colors ${isPending ? 'bg-blue-900/40 ring-1 ring-blue-500' : placed ? 'opacity-40 hover:opacity-100' : 'cursor-pointer hover:bg-gray-800'}`}>
-                                <span className="w-5 h-5 rounded flex items-center justify-center font-bold shrink-0 text-[9px]"
+                                <span className="w-5 h-5 rounded flex items-center justify-center font-bold shrink-0 text-xs"
                                   style={{ backgroundColor: c.bg, color: c.fg }}>
                                   {(m.initials || m.name.slice(0, 2)).toUpperCase()}
                                 </span>
-                                <span className="text-gray-300 truncate text-[11px] flex-1">{m.name}</span>
+                                <span className="text-gray-300 truncate text-xs flex-1">{m.name}</span>
                                 {(() => {
                                   const sol = momentSoloists.find(s => s.member_id === m.id)
                                   if (!sol) return null
@@ -1936,7 +1985,7 @@ export default function Editor() {
                                       onChange={e => setSoloistMic(m.id, e.target.value)}
                                       onClick={e => e.stopPropagation()}
                                       onMouseDown={e => e.stopPropagation()}
-                                      className="bg-amber-900/40 border border-amber-700/60 rounded px-1 text-[9px] text-amber-300 w-8 focus:outline-none shrink-0 cursor-pointer"
+                                      className="bg-amber-900/40 border border-amber-700/60 rounded px-1 text-xs text-amber-300 w-8 focus:outline-none shrink-0 cursor-pointer"
                                       title="Micro (solista)">
                                       <option value="">—</option>
                                       {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={String(n)}>{n}</option>)}
@@ -1991,7 +2040,7 @@ export default function Editor() {
               <div className="border-t border-gray-800">
                 <button
                   onClick={() => setShowHeightProfile(v => !v)}
-                  className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] text-gray-500 hover:text-gray-300 hover:bg-gray-800/40 transition-colors select-none">
+                  className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-800/40 transition-colors select-none">
                   <span className="uppercase tracking-wider font-medium">Perfil d'alçades</span>
                   <span className="text-gray-600">{showHeightProfile ? '▲' : '▼'}</span>
                 </button>
@@ -2005,14 +2054,14 @@ export default function Editor() {
               </div>
             </div>
             <div className="flex items-center justify-center gap-3 py-1 shrink-0">
-              <p className="text-[10px] text-gray-700 text-center select-none">
+              <p className="text-xs text-gray-700 text-center select-none">
                 {trajectoryMode
                   ? 'Toca/clica qualsevol punt per anar a aquell moment · Esc per sortir'
                   : 'Arrossega · Shift+clic o botó Sel. per seleccionar · fletxes mouen selecció · Doble tap per treure · Mantén premut per menú'}
               </p>
               {canvasScale !== 1 && (
                 <button onClick={() => { canvasScaleRef.current = 1; setCanvasScale(1) }}
-                  className="shrink-0 text-[10px] text-blue-400 border border-blue-800 px-2 py-0.5 rounded-full hover:bg-blue-900/30 transition-colors">
+                  className="shrink-0 text-xs text-blue-400 border border-blue-800 px-2 py-0.5 rounded-full hover:bg-blue-900/30 transition-colors">
                   {Math.round(canvasScale * 100)}% · Reset
                 </button>
               )}
@@ -2025,13 +2074,13 @@ export default function Editor() {
           <div className="border-t border-gray-700 bg-gray-900 px-3 py-2 shrink-0">
             <div className="flex flex-wrap gap-2 items-end">
               <div className="space-y-0.5">
-                <label className="text-[10px] text-gray-500">Títol</label>
+                <label className="text-xs text-gray-500">Títol</label>
                 <input value={editMomentTitle} onChange={e => setEditMomentTitle(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') saveMomentMeta(); if (e.key === 'Escape') setEditingMoment(false) }}
                   autoFocus className={inputCls + ' w-36'} />
               </div>
               <div className="space-y-0.5">
-                <label className="text-[10px] text-gray-500">Subtítol / referència</label>
+                <label className="text-xs text-gray-500">Subtítol / referència</label>
                 <input value={editMomentSubtitle} onChange={e => setEditMomentSubtitle(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') saveMomentMeta(); if (e.key === 'Escape') setEditingMoment(false) }}
                   placeholder="ex. Entrada, pont…" className={inputCls + ' w-52'} />
@@ -2053,13 +2102,13 @@ export default function Editor() {
           <div className="border-t border-gray-700 bg-gray-900 px-3 py-2 shrink-0">
             <div className="flex flex-wrap gap-2 items-end">
               <div className="space-y-0.5">
-                <label className="text-[10px] text-gray-500">Títol</label>
+                <label className="text-xs text-gray-500">Títol</label>
                 <input value={newMomentTitle} onChange={e => setNewMomentTitle(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') createMoment(); if (e.key === 'Escape') setAddingMoment(false) }}
                   autoFocus className={inputCls + ' w-36'} />
               </div>
               <div className="space-y-0.5">
-                <label className="text-[10px] text-gray-500">Font</label>
+                <label className="text-xs text-gray-500">Font</label>
                 <select value={cloneFrom} onChange={e => handleCloneFromChange(e.target.value)}
                   className={inputCls}>
                   <option value="">Des de 0</option>
@@ -2072,7 +2121,7 @@ export default function Editor() {
               </div>
               {cloneFrom === 'other' && otherSongs !== null && (
                 <div className="space-y-0.5">
-                  <label className="text-[10px] text-gray-500">Cançó</label>
+                  <label className="text-xs text-gray-500">Cançó</label>
                   <select value={selectedOtherSongId}
                     onChange={e => { setSelectedOtherSongId(e.target.value); setSelectedOtherMomentId('') }}
                     className={inputCls}>
@@ -2083,7 +2132,7 @@ export default function Editor() {
               )}
               {cloneFrom === 'other' && selectedOtherSongId && (
                 <div className="space-y-0.5">
-                  <label className="text-[10px] text-gray-500">Moment</label>
+                  <label className="text-xs text-gray-500">Moment</label>
                   <select value={selectedOtherMomentId} onChange={e => setSelectedOtherMomentId(e.target.value)}
                     className={inputCls}>
                     <option value="">Tria…</option>
@@ -2119,88 +2168,92 @@ export default function Editor() {
       )}
 
       {/* ── Context menu backdrop + panel ── */}
-      {contextMenu && (
-        <>
-          {/* Invisible backdrop — closes the menu on any click outside */}
-          <div className="fixed inset-0 z-40"
-            onClick={() => setContextMenu(null)}
-            onContextMenu={e => { e.preventDefault(); setContextMenu(null) }} />
+      {contextMenu && (() => {
+        const m = contextMenu.member
+        const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
+        const isMe = highlightId === m.id
+        const isSoloist = !!momentSoloists.find(s => s.member_id === m.id)
+        const soloistEntry = momentSoloists.find(s => s.member_id === m.id)
+        const isPlaced = !!placements[m.id]
+        const isMobile = window.innerWidth < 768
 
-          {/* Menu panel */}
-          <div className="fixed z-50 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl py-1.5 min-w-[190px]"
-            style={{ left: Math.min(contextMenu.x, window.innerWidth - 210), top: Math.min(contextMenu.y, window.innerHeight - 270) }}
-            onContextMenu={e => e.preventDefault()}>
+        const menuItems = (itemCls) => (
+          <>
+            <button className={itemCls + (isMe ? ' text-blue-400' : ' text-gray-300')}
+              onClick={() => { const v = isMe ? '' : m.id; setHighlightId(v); localStorage.setItem('highlightMemberId', v); setContextMenu(null) }}>
+              <Target size={13} /> {isMe ? '✓ Soc jo' : 'Soc jo'}
+            </button>
+            <button className={itemCls + (isSoloist ? ' text-amber-400' : ' text-gray-300')}
+              onClick={() => toggleSoloist(m.id)}>
+              <Mic size={13} /> {isSoloist ? '✓ Solista' : 'Marcar com solista'}
+            </button>
+            {isSoloist && (
+              <div className="flex items-center gap-2 px-4 py-2 text-xs text-gray-400">
+                <span>Micro:</span>
+                <select value={soloistEntry?.mic_number ?? ''}
+                  onChange={e => updateSoloistMic(m.id, e.target.value)}
+                  className="bg-gray-800 border border-gray-700 rounded px-1 text-xs text-white flex-1 focus:outline-none focus:border-amber-500">
+                  <option value="">—</option>
+                  {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={String(n)}>{n}</option>)}
+                </select>
+              </div>
+            )}
+            <button className={itemCls + ' text-gray-300'}
+              onClick={() => { setProfileMember(m); setContextMenu(null) }}>
+              <UserRound size={13} /> Veure perfil
+            </button>
+            {m.role !== 'director' && (
+              <button className={itemCls + ' text-gray-300'}
+                onClick={() => { enterTrajectoryMode(m.id); setContextMenu(null) }}>
+                <Waypoints size={13} /> Trajectòria
+              </button>
+            )}
+            {isPlaced && <>
+              <div className="border-t border-gray-800 my-1" />
+              <button className={itemCls + ' text-red-400'}
+                onClick={() => { removePlacement(m.id); setContextMenu(null) }}>
+                <X size={13} /> Eliminar posició
+              </button>
+            </>}
+          </>
+        )
 
-            {/* Member header */}
-            {(() => {
-              const m = contextMenu.member
-              const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
-              const isMe = highlightId === m.id
-              const isSoloist = !!momentSoloists.find(s => s.member_id === m.id)
-              const soloistEntry = momentSoloists.find(s => s.member_id === m.id)
-              const isPlaced = !!placements[m.id]
-              const itemCls = 'w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-gray-800 transition-colors text-left'
-              return (
-                <>
-                  <div className="flex items-center gap-2 px-3 py-1.5 border-b border-gray-800 mb-1">
-                    <span className="w-3.5 h-3.5 rounded-sm shrink-0" style={{ background: c.bg }} />
-                    <span className="text-xs text-white font-medium truncate">{m.name}</span>
-                  </div>
+        return (
+          <>
+            <div className="fixed inset-0 z-40"
+              onClick={() => setContextMenu(null)}
+              onContextMenu={e => { e.preventDefault(); setContextMenu(null) }} />
 
-                  {/* Soc jo */}
-                  <button className={itemCls + (isMe ? ' text-blue-400' : ' text-gray-300')}
-                    onClick={() => { const v = isMe ? '' : m.id; setHighlightId(v); localStorage.setItem('highlightMemberId', v); setContextMenu(null) }}>
-                    <Target size={11} /> {isMe ? '✓ Soc jo' : 'Soc jo'}
-                  </button>
-
-                  {/* Solista */}
-                  <button className={itemCls + (isSoloist ? ' text-amber-400' : ' text-gray-300')}
-                    onClick={() => toggleSoloist(m.id)}>
-                    <Mic size={11} /> {isSoloist ? '✓ Solista' : 'Marcar com solista'}
-                  </button>
-
-                  {/* Mic select — only when soloist */}
-                  {isSoloist && (
-                    <div className="flex items-center gap-2 px-3 py-1 text-xs text-gray-400">
-                      <span className="w-2.5" />
-                      <span>Micro:</span>
-                      <select value={soloistEntry?.mic_number ?? ''}
-                        onChange={e => updateSoloistMic(m.id, e.target.value)}
-                        className="bg-gray-800 border border-gray-700 rounded px-1 text-xs text-white flex-1 focus:outline-none focus:border-amber-500">
-                        <option value="">—</option>
-                        {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={String(n)}>{n}</option>)}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Veure perfil */}
-                  <button className={itemCls + ' text-gray-300'}
-                    onClick={() => { setProfileMember(m); setContextMenu(null) }}>
-                    <UserRound size={11} /> Veure perfil
-                  </button>
-
-                  {/* Trajectòria */}
-                  {m.role !== 'director' && (
-                    <button className={itemCls + ' text-gray-300'}
-                      onClick={() => { enterTrajectoryMode(m.id); setContextMenu(null) }}>
-                      <Waypoints size={11} /> Trajectòria
-                    </button>
-                  )}
-
-                  {/* Eliminar posició */}
-                  {isPlaced && <>
-                    <div className="border-t border-gray-800 my-1" />
-                    <button className={itemCls + ' text-red-400'}
-                      onClick={() => { removePlacement(m.id); setContextMenu(null) }}>
-                      <X size={11} /> Eliminar posició
-                    </button>
-                  </>}
-                </>
-              )
-            })()}
-          </div>
-        </>
-      )}
+            {isMobile ? (
+              /* Bottom sheet — mobile only */
+              <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700 rounded-t-2xl shadow-2xl pb-safe"
+                onContextMenu={e => e.preventDefault()}>
+                <div className="flex justify-center pt-2 pb-1">
+                  <div className="w-10 h-1 rounded-full bg-gray-700" />
+                </div>
+                <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800">
+                  <span className="w-5 h-5 rounded shrink-0" style={{ background: c.bg }} />
+                  <span className="text-sm text-white font-semibold">{m.name}</span>
+                  <span className="text-xs text-gray-500 ml-auto">{VOICE_LABELS[m.voice] ?? m.voice}</span>
+                </div>
+                {menuItems('w-full flex items-center gap-3 px-4 py-3.5 text-sm hover:bg-gray-800 transition-colors text-left min-h-[52px]')}
+                <div className="h-4" />
+              </div>
+            ) : (
+              /* Floating menu — tablet and desktop */
+              <div className="fixed z-50 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl py-1.5 min-w-[190px]"
+                style={{ left: Math.min(contextMenu.x, window.innerWidth - 210), top: Math.min(contextMenu.y, window.innerHeight - 270) }}
+                onContextMenu={e => e.preventDefault()}>
+                <div className="flex items-center gap-2 px-3 py-1.5 border-b border-gray-800 mb-1">
+                  <span className="w-3.5 h-3.5 rounded-sm shrink-0" style={{ background: c.bg }} />
+                  <span className="text-xs text-white font-medium truncate">{m.name}</span>
+                </div>
+                {menuItems('w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-gray-800 transition-colors text-left')}
+              </div>
+            )}
+          </>
+        )
+      })()}
     </Layout>
   )
 }

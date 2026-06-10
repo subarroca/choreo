@@ -132,7 +132,7 @@ export default function Mics() {
             <span>/</span>
             <span className="text-gray-300 flex items-center gap-1"><Mic size={13} /> Micròfons</span>
           </nav>
-          {saving && <span className="text-[10px] text-gray-600 ml-auto">Guardant…</span>}
+          {saving && <span className="text-xs text-gray-600 ml-auto">Guardant…</span>}
         </div>
 
         <div className="flex flex-1 min-h-0 relative overflow-hidden">
@@ -144,7 +144,7 @@ export default function Mics() {
           {/* Sidebar: mic config */}
           <div className={`absolute lg:relative inset-y-0 left-0 z-30 lg:z-auto w-56 lg:w-44 shrink-0 border-r border-gray-800 bg-gray-950 flex flex-col p-3 gap-3 overflow-y-auto transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
             <div>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-2">Micròfons</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-2">Micròfons</p>
               <div className="space-y-1">
                 {mics.map(mic => (
                   <div key={mic} className="flex items-center gap-1.5">
@@ -165,8 +165,8 @@ export default function Mics() {
             </div>
 
             <div className="border-t border-gray-800 pt-3">
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-2">Llegenda handoff</p>
-              <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-2">Llegenda handoff</p>
+              <div className="flex items-center gap-1.5 text-xs text-gray-400">
                 <span className="w-3 h-3 rounded-sm bg-amber-500/30 border border-amber-500/60 shrink-0" />
                 Canvi de persona
               </div>
@@ -190,19 +190,19 @@ export default function Mics() {
                     {momentsBySong.map(({ song, moments }) => (
                       <th key={song.id}
                         colSpan={moments.length}
-                        className="px-2 py-1 text-left text-[10px] text-gray-500 font-medium border-b border-gray-800 border-l border-gray-800 bg-gray-900">
+                        className="px-2 py-1 text-left text-xs text-gray-500 font-medium border-b border-gray-800 border-l border-gray-800 bg-gray-900">
                         <Link to={`/show/${showId}`} className="hover:text-gray-300 truncate block max-w-[200px]">{song.title}</Link>
                       </th>
                     ))}
                   </tr>
                   {/* Moment header row */}
                   <tr>
-                    <th className="sticky left-0 bg-gray-950 z-10 border-b border-gray-800 text-[10px] text-gray-600 font-normal px-2 py-1 text-left">Micro</th>
+                    <th className="sticky left-0 bg-gray-950 z-10 border-b border-gray-800 text-xs text-gray-600 font-normal px-2 py-1 text-left">Micro</th>
                     {allMoments.map((m, idx) => (
                       <th key={m.id}
-                        className="px-2 py-1 text-[10px] text-gray-400 font-normal border-b border-gray-800 border-l border-gray-800 whitespace-nowrap max-w-[110px]">
+                        className="px-2 py-1 text-xs text-gray-400 font-normal border-b border-gray-800 border-l border-gray-800 whitespace-nowrap max-w-[110px]">
                         <div className="truncate">{m.title}</div>
-                        {m.subtitle && <div className="text-[9px] text-gray-600 truncate">{m.subtitle}</div>}
+                        {m.subtitle && <div className="text-xs text-gray-600 truncate">{m.subtitle}</div>}
                       </th>
                     ))}
                   </tr>
@@ -245,14 +245,14 @@ export default function Mics() {
                                 )}
                                 {member ? (
                                   <>
-                                    <span className="w-4 h-4 rounded-sm shrink-0 flex items-center justify-center text-[8px] font-bold"
+                                    <span className="w-4 h-4 rounded-sm shrink-0 flex items-center justify-center text-xs font-bold"
                                       style={{ background: c.bg, color: c.fg }}>
                                       {memberInitials(member)}
                                     </span>
-                                    <span className="text-gray-300 truncate text-[10px]">{member.name}</span>
+                                    <span className="text-gray-300 truncate text-xs">{member.name}</span>
                                   </>
                                 ) : (
-                                  <span className="text-gray-700 text-[10px]">—</span>
+                                  <span className="text-gray-700 text-xs">—</span>
                                 )}
                               </button>
                             )}

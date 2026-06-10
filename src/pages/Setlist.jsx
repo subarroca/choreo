@@ -2,64 +2,122 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
+  useDroppable,
 } from '@dnd-kit/core'
 import {
   arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Pencil, X, ChevronUp, ChevronDown, ChevronRight, ChevronsUp, ChevronsDown, Mic, Music, Plus } from 'lucide-react'
+import { GripVertical, Pencil, X, ChevronUp, ChevronDown, ChevronRight, ChevronsUp, ChevronsDown, Mic, Music, Plus, ArrowRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
+import { VOICE_COLORS } from '../lib/constants'
 import Layout from '../components/Layout'
 
+// ─── Sortable moment row ──────────────────────────────────────
+function SortableMomentRow({ moment, index, showId, songId, onDelete }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: moment.id })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }
+
+  return (
+    <div ref={setNodeRef} style={style}
+      className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-800/50 hover:bg-gray-900/60 group transition-colors">
+      <button {...attributes} {...listeners}
+        className="text-gray-700 hover:text-gray-500 cursor-grab active:cursor-grabbing p-1 -ml-1 touch-none shrink-0">
+        <GripVertical size={13} />
+      </button>
+      <span className="text-xs text-gray-600 w-5 text-center shrink-0 tabular-nums">{index + 1}</span>
+      <Link to={`/show/${showId}/song/${songId}/moment/${moment.id}`} className="flex-1 min-w-0 py-0.5">
+        <span className="text-sm text-gray-200 font-medium block truncate">{moment.title}</span>
+        {moment.subtitle && <span className="text-xs text-gray-500 block truncate">{moment.subtitle}</span>}
+      </Link>
+      <Link to={`/show/${showId}/song/${songId}/moment/${moment.id}`}
+        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-400 px-2 py-1.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+        <ArrowRight size={13} />
+      </Link>
+      <button onClick={() => onDelete(moment.id)}
+        className="text-gray-700 hover:text-red-500 p-1.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+        <X size={13} />
+      </button>
+    </div>
+  )
+}
+
+// ─── Droppable part zone ──────────────────────────────────────
+function DroppableSongZone({ id, children, isEmpty }) {
+  const { setNodeRef, isOver } = useDroppable({ id })
+  return (
+    <div ref={setNodeRef}
+      className={`space-y-2 rounded-xl transition-colors ${isOver ? 'bg-blue-950/30 ring-1 ring-blue-700/50' : ''} ${isEmpty && isOver ? 'min-h-[60px]' : ''}`}>
+      {children}
+    </div>
+  )
+}
+
 // ─── Sortable song row ────────────────────────────────────────
-function SortableSong({ song, moments, parts, expanded, onToggle, onEdit, onDelete, onGoToMoment, onAddMoment, onDeleteMoment, showId }) {
+function SortableSong({ song, moments, expanded, onToggle, onEdit, onDelete, onAddMoment, onDeleteMoment, onReorderMoments, showId }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: song.id })
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }
+
+  const momentSensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  function handleMomentDragEnd({ active, over }) {
+    if (!over || active.id === over.id) return
+    const oldIndex = moments.findIndex(m => m.id === active.id)
+    const newIndex = moments.findIndex(m => m.id === over.id)
+    onReorderMoments(song.id, arrayMove(moments, oldIndex, newIndex))
+  }
 
   return (
     <div ref={setNodeRef} style={style} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2.5">
+      {/* Song header */}
+      <div className="flex items-center gap-1.5 px-2 min-h-[52px]">
         <button {...attributes} {...listeners}
-          className="text-gray-600 hover:text-gray-400 cursor-grab active:cursor-grabbing p-1 -ml-1 touch-none">
-          <GripVertical size={14} />
+          className="text-gray-600 hover:text-gray-400 cursor-grab active:cursor-grabbing p-2 touch-none shrink-0">
+          <GripVertical size={15} />
         </button>
-        <button onClick={onToggle} className="text-gray-500 hover:text-white transition-colors shrink-0">
-          {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+        <button onClick={onToggle} className="text-gray-500 hover:text-white p-1.5 transition-colors shrink-0">
+          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
-        <button onClick={() => moments.length > 0 ? onGoToMoment(song.id, moments[0].id) : onAddMoment(song.id, true)}
-          className="flex-1 text-left text-white font-medium hover:text-blue-400 transition-colors text-sm truncate">
-          {song.title}
-          {song.notes && <span className="ml-2 text-xs text-gray-500 font-normal">{song.notes}</span>}
+        <button onClick={onToggle}
+          className="flex-1 text-left min-w-0 py-2">
+          <span className="text-sm font-medium text-white block truncate">{song.title}</span>
+          {song.notes && <span className="text-xs text-gray-500 block truncate">{song.notes}</span>}
         </button>
-        <span className="text-xs text-gray-600 shrink-0">{moments.length}m</span>
+        <span className="text-xs text-gray-500 bg-gray-800 px-2.5 py-1 rounded-full shrink-0 tabular-nums">
+          {moments.length}m
+        </span>
         <button onClick={() => onEdit(song)}
-          className="text-gray-500 hover:text-white p-1 rounded hover:bg-gray-800 transition-colors shrink-0"><Pencil size={12} /></button>
+          className="text-gray-500 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+          <Pencil size={13} />
+        </button>
         <button onClick={() => onDelete(song.id)}
-          className="text-gray-600 hover:text-red-500 p-1 rounded hover:bg-gray-800 transition-colors shrink-0"><X size={12} /></button>
+          className="text-gray-600 hover:text-red-500 p-2 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+          <X size={13} />
+        </button>
       </div>
+
+      {/* Moments list */}
       {expanded && (
-        <div className="border-t border-gray-800 px-3 py-2 bg-gray-950/50">
+        <div className="border-t border-gray-800">
           {moments.length === 0
-            ? <p className="text-xs text-gray-600 italic">Sense moments</p>
+            ? <p className="px-4 py-3 text-xs text-gray-600 italic">Sense moments</p>
             : (
-              <div className="flex flex-wrap gap-1.5">
-                {moments.map((m, i) => (
-                  <div key={m.id} className="flex items-center gap-0 rounded-lg overflow-hidden border border-gray-700 hover:border-gray-600">
-                    <button onClick={() => onGoToMoment(song.id, m.id)}
-                      className="bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs px-2.5 py-1 transition-colors leading-snug text-left">
-                      <span className="text-gray-500 mr-1">{i + 1}.</span>{m.title}
-                      {m.subtitle && <span className="ml-1.5 text-gray-500 text-[10px]">{m.subtitle}</span>}
-                    </button>
-                    <button onClick={() => onDeleteMoment(m.id)}
-                      className="bg-gray-800 hover:bg-red-900/40 text-gray-600 hover:text-red-400 px-1.5 py-1 border-l border-gray-700 transition-colors flex items-center"><X size={10} /></button>
-                  </div>
-                ))}
-              </div>
+              <DndContext sensors={momentSensors} collisionDetection={closestCenter} onDragEnd={handleMomentDragEnd}>
+                <SortableContext items={moments.map(m => m.id)} strategy={verticalListSortingStrategy}>
+                  {moments.map((m, i) => (
+                    <SortableMomentRow key={m.id} moment={m} index={i}
+                      showId={showId} songId={song.id}
+                      onDelete={onDeleteMoment} />
+                  ))}
+                </SortableContext>
+              </DndContext>
             )}
           <button onClick={() => onAddMoment(song.id, false)}
-            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-400 transition-colors mt-1.5">
-            <Plus size={10} /> Moment
+            className="flex items-center gap-1.5 w-full px-4 py-3 text-xs text-blue-600 hover:text-blue-400 hover:bg-gray-800 transition-colors border-t border-gray-800">
+            <Plus size={12} /> Afegir moment
           </button>
         </div>
       )}
@@ -67,6 +125,7 @@ function SortableSong({ song, moments, parts, expanded, onToggle, onEdit, onDele
   )
 }
 
+// ─── Song form ────────────────────────────────────────────────
 function SongForm({ initial, parts, onSave, onCancel }) {
   const [title, setTitle] = useState(initial?.title ?? '')
   const [notes, setNotes] = useState(initial?.notes ?? '')
@@ -96,72 +155,26 @@ function SongForm({ initial, parts, onSave, onCancel }) {
         )}
       </div>
       <div className="flex gap-2">
-        <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-1.5 rounded-lg transition-colors">Guardar</button>
-        <button type="button" onClick={onCancel} className="text-gray-400 hover:text-white text-sm px-4 py-1.5 rounded-lg transition-colors">Cancel·lar</button>
+        <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">Guardar</button>
+        <button type="button" onClick={onCancel} className="text-gray-400 hover:text-white text-sm px-4 py-2 rounded-lg transition-colors">Cancel·lar</button>
       </div>
     </form>
   )
 }
 
-// ─── Part section ─────────────────────────────────────────────
-function PartSection({ part, songs, moments, parts, allParts, expanded, expandedSongs, onTogglePart, onToggleSong,
-  onEditPart, onDeletePart, onEditSong, onDeleteSong, onGoToMoment, onAddMoment, onDeleteMoment, onReorderSongs, showId }) {
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  )
-
-  function handleDragEnd({ active, over }) {
-    if (!over || active.id === over.id) return
-    const oldIndex = songs.findIndex(s => s.id === active.id)
-    const newIndex = songs.findIndex(s => s.id === over.id)
-    onReorderSongs(arrayMove(songs, oldIndex, newIndex))
-  }
-
+// ─── Part form ────────────────────────────────────────────────
+function PartForm({ initial, onSave, onCancel }) {
+  const [title, setTitle] = useState(initial?.title ?? '')
   return (
-    <div className="space-y-2">
-      {/* Part header */}
-      <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-colors ${part ? 'bg-gray-900 border-gray-700' : 'bg-transparent border-transparent'}`}>
-        {part && (
-          <button onClick={onTogglePart} className="text-gray-500 hover:text-white">
-            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-        )}
-        <span className={`font-semibold text-sm ${part ? 'text-gray-200' : 'text-gray-500'}`}>
-          {part ? part.title : 'Sense part'}
-        </span>
-        <span className="text-xs text-gray-600">{songs.length} cançó{songs.length !== 1 ? 'ns' : ''}</span>
-        {part && (
-          <div className="ml-auto flex gap-1">
-            <button onClick={() => onEditPart(part)} className="text-gray-400 hover:text-white p-1 rounded hover:bg-gray-800 transition-colors"><Pencil size={12} /></button>
-            <button onClick={() => onDeletePart(part.id)} className="text-gray-600 hover:text-red-500 p-1 rounded hover:bg-gray-800 transition-colors"><X size={12} /></button>
-          </div>
-        )}
+    <form onSubmit={e => { e.preventDefault(); onSave({ title }) }} className="flex gap-3 items-end">
+      <div className="space-y-1 flex-1">
+        <label className="text-xs text-gray-400">Títol *</label>
+        <input value={title} onChange={e => setTitle(e.target.value)} required placeholder="Part 1, Acte 2…"
+          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500" />
       </div>
-
-      {/* Songs within part */}
-      {(!part || expanded) && (
-        <div className="space-y-2 pl-0">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={songs.map(s => s.id)} strategy={verticalListSortingStrategy}>
-              {songs.map(song => (
-                <SortableSong key={song.id} song={song}
-                  moments={moments[song.id] ?? []}
-                  parts={allParts}
-                  expanded={!!expandedSongs[song.id]}
-                  onToggle={() => onToggleSong(song.id)}
-                  onEdit={onEditSong}
-                  onDelete={onDeleteSong}
-                  onGoToMoment={onGoToMoment}
-                  onAddMoment={onAddMoment}
-                  onDeleteMoment={onDeleteMoment}
-                  showId={showId} />
-              ))}
-            </SortableContext>
-          </DndContext>
-        </div>
-      )}
-    </div>
+      <button type="submit" className="bg-purple-700 hover:bg-purple-600 text-white text-sm px-4 py-2 rounded-lg transition-colors">Guardar</button>
+      <button type="button" onClick={onCancel} className="text-gray-400 hover:text-white text-sm px-4 py-2 rounded-lg transition-colors">Cancel·lar</button>
+    </form>
   )
 }
 
@@ -218,6 +231,11 @@ export default function Setlist() {
   const [editingPart, setEditingPart] = useState(null)
   const [showCast, setShowCast] = useState(false)
 
+  const songSensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
   useEffect(() => {
     async function load() {
       const [showRes, partsRes, songsRes, membersRes, exclusionsRes] = await Promise.all([
@@ -233,7 +251,6 @@ export default function Setlist() {
       setSongs(songList)
       setAllMembers(membersRes.data ?? [])
       setExclusions(new Set((exclusionsRes.data ?? []).map(e => e.member_id)))
-      // Default all songs expanded
       const expInit = {}; for (const s of songList) expInit[s.id] = true
       setExpandedSongs(expInit)
       if (songList.length) {
@@ -287,20 +304,45 @@ export default function Setlist() {
     setMoments(prev => { const n = { ...prev }; delete n[songId]; return n })
   }
 
-  // ─── Reorder songs within a section ─────────────────────
-  async function handleReorderSongs(reordered) {
-    // Merge reordered section songs back into full songs list preserving other sections
-    const ids = new Set(reordered.map(s => s.id))
-    const others = songs.filter(s => !ids.has(s.id))
-    const updated = [
-      ...others,
-      ...reordered.map((s, i) => ({ ...s, order_index: others.length + i })),
-    ].map((s, i) => ({ ...s, order_index: i }))
+  // ─── Song drag-and-drop (cross-part + reorder) ───────────
+  async function handleSongDragEnd({ active, over }) {
+    if (!over) return
+    const activeSong = songs.find(s => s.id === active.id)
+    if (!activeSong) return
+
+    // Dropped onto a part drop zone → move to that part
+    if (String(over.id).startsWith('drop-part-')) {
+      const targetPartId = over.id === 'drop-part-none' ? null : over.id.replace('drop-part-', '')
+      if (targetPartId !== activeSong.part_id) {
+        const { data, error } = await supabase.from('songs').update({ part_id: targetPartId }).eq('id', activeSong.id).select().single()
+        if (!error) setSongs(prev => prev.map(s => s.id === activeSong.id ? data : s))
+      }
+      return
+    }
+
+    // Dropped onto another song → reorder within same part
+    const overSong = songs.find(s => s.id === over.id)
+    if (!overSong || activeSong.part_id !== overSong.part_id) return
+
+    const partSongs = songs.filter(s => s.part_id === activeSong.part_id)
+    const oldIndex = partSongs.findIndex(s => s.id === activeSong.id)
+    const newIndex = partSongs.findIndex(s => s.id === overSong.id)
+    if (oldIndex === newIndex) return
+
+    const reordered = arrayMove(partSongs, oldIndex, newIndex)
+    const otherSongs = songs.filter(s => s.part_id !== activeSong.part_id)
+    const updated = [...otherSongs, ...reordered].map((s, i) => ({ ...s, order_index: i }))
     setSongs(updated)
-    await Promise.all(updated.map(s => supabase.from('songs').update({ order_index: s.order_index }).eq('id', s.id)))
+    await Promise.all(reordered.map((s, i) => supabase.from('songs').update({ order_index: otherSongs.length + i }).eq('id', s.id)))
   }
 
-  // ─── Moments ─────────────────────────────────────────────
+  // ─── Moment reorder ──────────────────────────────────────
+  async function handleReorderMoments(songId, reordered) {
+    setMoments(prev => ({ ...prev, [songId]: reordered }))
+    await Promise.all(reordered.map((m, i) => supabase.from('moments').update({ order_index: i }).eq('id', m.id)))
+  }
+
+  // ─── Moments CRUD ────────────────────────────────────────
   async function handleAddMoment(songId, navigateAfter = false) {
     const existing = moments[songId] ?? []
     const { data, error } = await supabase.from('moments')
@@ -324,21 +366,6 @@ export default function Setlist() {
     })
   }
 
-  function goToMoment(songId, momentId) {
-    navigate(`/show/${showId}/song/${songId}/moment/${momentId}`)
-  }
-
-  // ─── Cast ────────────────────────────────────────────────
-  async function toggleExclusion(memberId, currentlyExcluded) {
-    if (currentlyExcluded) {
-      await supabase.from('show_exclusions').delete().eq('show_id', showId).eq('member_id', memberId)
-      setExclusions(prev => { const n = new Set(prev); n.delete(memberId); return n })
-    } else {
-      await supabase.from('show_exclusions').insert({ show_id: showId, member_id: memberId })
-      setExclusions(prev => new Set([...prev, memberId]))
-    }
-  }
-
   // ─── Group songs by part ─────────────────────────────────
   const songsByPart = {}
   for (const song of songs) {
@@ -346,7 +373,6 @@ export default function Setlist() {
     ;(songsByPart[key] ??= []).push(song)
   }
 
-  // Build sections: parts in order, then unassigned
   const sections = [
     ...parts.map(p => ({ key: p.id, part: p, songs: songsByPart[p.id] ?? [] })),
     ...(songsByPart['__none__']?.length ? [{ key: '__none__', part: null, songs: songsByPart['__none__'] }] : []),
@@ -359,7 +385,7 @@ export default function Setlist() {
     <Layout>
       <div className="space-y-5">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
               <Link to="/" className="hover:text-gray-300">Espectacles</Link>
@@ -375,7 +401,7 @@ export default function Setlist() {
               const expAll = {}; for (const s of songs) expAll[s.id] = next
               setExpandedSongs(expAll)
             }}
-              className="flex items-center gap-1 text-sm px-3 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
               title={allExpanded ? 'Replegar tot' : 'Expandir tot'}>
               {allExpanded ? <ChevronsUp size={14} /> : <ChevronsDown size={14} />}
             </button>
@@ -405,7 +431,7 @@ export default function Setlist() {
         {/* Cast panel */}
         {showCast && <CastPanel showId={showId} allMembers={allMembers} exclusions={exclusions} onToggle={toggleExclusion} />}
 
-        {/* New part form */}
+        {/* Part forms */}
         {creatingPart && (
           <div className="bg-gray-900 border border-purple-800/50 rounded-xl p-4">
             <h3 className="text-sm font-medium text-gray-300 mb-3">Nova part</h3>
@@ -419,7 +445,7 @@ export default function Setlist() {
           </div>
         )}
 
-        {/* New song form */}
+        {/* Song forms */}
         {creating && (
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
             <h3 className="text-sm font-medium text-gray-300 mb-3">Nova cançó</h3>
@@ -435,55 +461,86 @@ export default function Setlist() {
           </div>
         )}
 
-        {/* Sections */}
+        {/* Sections — single DndContext for cross-part song drag */}
         {loading ? <p className="text-gray-500">Carregant...</p> : (
-          <div className="space-y-4">
-            {sections.map(({ key, part, songs: sectionSongs }) => (
-              <PartSection key={key}
-                part={part}
-                songs={sectionSongs}
-                moments={moments}
-                parts={parts}
-                allParts={parts}
-                expanded={part ? expandedParts[part.id] !== false : true}
-                expandedSongs={expandedSongs}
-                onTogglePart={() => part && setExpandedParts(prev => ({ ...prev, [part.id]: !(prev[part.id] !== false) }))}
-                onToggleSong={id => setExpandedSongs(prev => ({ ...prev, [id]: !prev[id] }))}
-                onEditPart={setEditingPart}
-                onDeletePart={handleDeletePart}
-                onEditSong={setEditingSong}
-                onDeleteSong={handleDeleteSong}
-                onGoToMoment={goToMoment}
-                onAddMoment={handleAddMoment}
-                onDeleteMoment={handleDeleteMoment}
-                onReorderSongs={handleReorderSongs}
-                showId={showId} />
-            ))}
-            {songs.length === 0 && !creating && (
-              <div className="text-center py-16 text-gray-500">
-                <Music size={40} className="mx-auto mb-4 opacity-30" />
-                <p>Afegeix les cançons del setlist.</p>
-              </div>
-            )}
-          </div>
+          <DndContext sensors={songSensors} collisionDetection={closestCenter} onDragEnd={handleSongDragEnd}>
+            <div className="space-y-6">
+              {sections.map(({ key, part, songs: sectionSongs }) => {
+                const dropId = part ? `drop-part-${part.id}` : 'drop-part-none'
+                const isPartExpanded = part ? expandedParts[part.id] !== false : true
+
+                return (
+                  <div key={key} className="space-y-2">
+                    {/* Part header */}
+                    {part ? (
+                      <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border bg-gray-900 border-gray-700">
+                        <button onClick={() => setExpandedParts(prev => ({ ...prev, [part.id]: !(prev[part.id] !== false) }))}
+                          className="text-gray-500 hover:text-white p-0.5 transition-colors">
+                          {isPartExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                        </button>
+                        <span className="font-semibold text-sm text-gray-200 flex-1">{part.title}</span>
+                        <span className="text-xs text-gray-600">{sectionSongs.length} cançó{sectionSongs.length !== 1 ? 'ns' : ''}</span>
+                        <button onClick={() => setEditingPart(part)}
+                          className="text-gray-500 hover:text-white p-1.5 rounded-lg hover:bg-gray-800 transition-colors"><Pencil size={13} /></button>
+                        <button onClick={() => handleDeletePart(part.id)}
+                          className="text-gray-600 hover:text-red-500 p-1.5 rounded-lg hover:bg-gray-800 transition-colors"><X size={13} /></button>
+                      </div>
+                    ) : (
+                      sectionSongs.length > 0 && (
+                        <div className="px-1">
+                          <span className="text-sm text-gray-500 font-medium">Sense part</span>
+                        </div>
+                      )
+                    )}
+
+                    {/* Song list (droppable zone) */}
+                    {isPartExpanded && (
+                      <DroppableSongZone id={dropId} isEmpty={sectionSongs.length === 0}>
+                        <SortableContext items={sectionSongs.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                          {sectionSongs.map(song => (
+                            <SortableSong key={song.id} song={song}
+                              moments={moments[song.id] ?? []}
+                              expanded={!!expandedSongs[song.id]}
+                              onToggle={() => setExpandedSongs(prev => ({ ...prev, [song.id]: !prev[song.id] }))}
+                              onEdit={setEditingSong}
+                              onDelete={handleDeleteSong}
+                              onAddMoment={handleAddMoment}
+                              onDeleteMoment={handleDeleteMoment}
+                              onReorderMoments={handleReorderMoments}
+                              showId={showId} />
+                          ))}
+                        </SortableContext>
+                        {sectionSongs.length === 0 && (
+                          <div className="text-center py-6 text-gray-600 text-xs border-2 border-dashed border-gray-800 rounded-xl">
+                            Arrossega cançons aquí
+                          </div>
+                        )}
+                      </DroppableSongZone>
+                    )}
+                  </div>
+                )
+              })}
+
+              {songs.length === 0 && !creating && (
+                <div className="text-center py-16 text-gray-500">
+                  <Music size={40} className="mx-auto mb-4 opacity-30" />
+                  <p>Afegeix les cançons del setlist.</p>
+                </div>
+              )}
+            </div>
+          </DndContext>
         )}
       </div>
     </Layout>
   )
-}
 
-// ─── Part form ────────────────────────────────────────────────
-function PartForm({ initial, onSave, onCancel }) {
-  const [title, setTitle] = useState(initial?.title ?? '')
-  return (
-    <form onSubmit={e => { e.preventDefault(); onSave({ title }) }} className="flex gap-3 items-end">
-      <div className="space-y-1 flex-1">
-        <label className="text-xs text-gray-400">Títol *</label>
-        <input value={title} onChange={e => setTitle(e.target.value)} required placeholder="Part 1, Acte 2…"
-          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500" />
-      </div>
-      <button type="submit" className="bg-purple-700 hover:bg-purple-600 text-white text-sm px-4 py-2 rounded-lg transition-colors">Guardar</button>
-      <button type="button" onClick={onCancel} className="text-gray-400 hover:text-white text-sm px-4 py-2 rounded-lg transition-colors">Cancel·lar</button>
-    </form>
-  )
+  async function toggleExclusion(memberId, currentlyExcluded) {
+    if (currentlyExcluded) {
+      await supabase.from('show_exclusions').delete().eq('show_id', showId).eq('member_id', memberId)
+      setExclusions(prev => { const n = new Set(prev); n.delete(memberId); return n })
+    } else {
+      await supabase.from('show_exclusions').insert({ show_id: showId, member_id: memberId })
+      setExclusions(prev => new Set([...prev, memberId]))
+    }
+  }
 }
