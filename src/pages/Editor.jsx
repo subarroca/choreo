@@ -6,6 +6,7 @@ import {
   ChevronUp, ChevronDown,
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
   Plus, AlignCenter, AlignVerticalJustifyEnd, Target, Mic, LayoutTemplate, Disc, UserRound,
+  Menu, MousePointer2,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { VOICE_COLORS, VOICE_LABELS, VOICE_SHORT } from '../lib/constants' // VOICE_SHORT used in members sidebar
@@ -701,6 +702,11 @@ export default function Editor() {
   const [arrangeAxis, setArrangeAxis] = useState('cols')
   const [arrangeReplaceAll, setArrangeReplaceAll] = useState(false)
 
+  // Touch / sidebar UI
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [selectMode, setSelectMode] = useState(false)
+  const [pendingMemberId, setPendingMemberId] = useState(null)
+
   // Context menu
   const [contextMenu, setContextMenu] = useState(null) // { x, y, member }
   const [profileMember, setProfileMember] = useState(null)
@@ -718,12 +724,20 @@ export default function Editor() {
   const [hoverProfileId, setHoverProfileId] = useState(null)
   const [hoverProfileRow, setHoverProfileRow] = useState(null)
   const [hoverZenithInfo, setHoverZenithInfo] = useState(null) // { member, x, y } relative to canvas element
+  const [canvasScale, setCanvasScale] = useState(1)
 
   const canvasRef = useRef(null)
   const heightCanvasRef = useRef(null)
   const profileHitRef = useRef({})
   const dragRef = useRef(null)
   const dirDragRef = useRef(null)
+  const longPressTimerRef = useRef(null)
+  const longPressStartRef = useRef(null) // { x, y } screen coords for threshold check
+  const lastTapRef = useRef(null)
+  const activePointersRef = useRef(new Map()) // pointerId → {clientX, clientY}
+  const pinchStateRef = useRef(null)         // { dist, startScale }
+  const canvasScaleRef = useRef(1)
+  const canvasContainerRef = useRef(null)
   const placementsRef = useRef(placements)
   const modeRef = useRef(mode)
   const membersRef = useRef(members)
@@ -1321,15 +1335,83 @@ export default function Editor() {
     return null
   }
 
-  // ─── Mouse events ─────────────────────────────────────────
-  function handleMouseDown(e) {
-    if (e.button !== 0) return
+  // ─── Pointer events (mouse + touch + pen) ────────────────
+  function vibrate(pattern) { if ('vibrate' in navigator) navigator.vibrate(pattern) }
+
+  function placeMember(memberId, x, y) {
+    const next = { ...placementsRef.current }, d = dimsRef.current
+    if (modeRef.current === 'free') {
+      if (y >= 0 && y <= d.GH) {
+        next[memberId] = { free: true, x: Math.max(0, Math.min(1, (x - LABEL_W) / d.GW)), y: Math.max(0, Math.min(1, y / d.GH)) }
+        vibrate(30)
+      }
+    } else {
+      const cell = pixelToCell(x, y, modeRef.current, d)
+      if (cell) { next[memberId] = { row: cell.row, col: cell.col }; vibrate(30) }
+    }
+    applyPlacements(next)
+  }
+
+  function handlePointerDown(e) {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    activePointersRef.current.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY })
+
+    // ── Pinch-zoom: 2 fingers ──
+    if (activePointersRef.current.size === 2) {
+      dragRef.current = null; dirDragRef.current = null
+      if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; longPressStartRef.current = null }
+      const pts = [...activePointersRef.current.values()]
+      pinchStateRef.current = { dist: Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY), startScale: canvasScaleRef.current }
+      return
+    }
+
+    if (!e.isPrimary) return
+
     const { x, y } = eventToCanvas(e, rotated, dimsRef.current)
+
+    // ── Tap-to-place pending member ──
+    if (pendingMemberId) {
+      placeMember(pendingMemberId, x, y)
+      setPendingMemberId(null)
+      return
+    }
+
+    // ── Long-press → context menu (touch only, 500ms) ──
+    if (e.pointerType === 'touch') {
+      const startCX = e.clientX, startCY = e.clientY
+      longPressStartRef.current = { x: startCX, y: startCY }
+      longPressTimerRef.current = setTimeout(() => {
+        longPressTimerRef.current = null; longPressStartRef.current = null
+        dragRef.current = null
+        const d = dimsRef.current
+        const dirMember = membersRef.current.find(m => m.role === 'director')
+        const dax = currentDirAbsX()
+        let member = null
+        if (dirMember && dax != null && Math.hypot(x - dax, y - (d.GH + DIRECTOR_H / 2)) < TOKEN_R * 1.8) {
+          member = dirMember
+        } else {
+          member = memberAtPixel(x, y)
+        }
+        if (member) { vibrate(30); setContextMenu({ x: startCX, y: startCY, member }) }
+      }, 500)
+    }
+
     if (trajectoryMode) {
       const hitMomentId = hitTestTrajectory(x, y)
       if (hitMomentId) navigate(`/show/${showId}/song/${songId}/moment/${hitMomentId}`)
       return
     }
+
+    // ── Select mode: tap toggles selection ──
+    if (selectMode) {
+      const hit = hitTest(x, y)
+      if (hit?.type === 'member') {
+        const { memberId } = hit
+        setSelectedIds(prev => { const n = new Set(prev); n.has(memberId) ? n.delete(memberId) : n.add(memberId); return n })
+      }
+      return
+    }
+
     const hit = hitTest(x, y)
     if (hit?.type === 'director') { dirDragRef.current = { active: true }; return }
     if (hit?.type === 'member') {
@@ -1353,54 +1435,141 @@ export default function Editor() {
       }
       return
     }
+
+    // No member hit — pan if zoomed in (touch), else rect-select
     if (!e.shiftKey) { setSelectedIds(new Set()); selectedIdsRef.current = new Set() }
-    dragRef.current = { type: 'select-rect', startX: x, startY: y, currentX: x, currentY: y }
+    if (canvasScaleRef.current > 1.05 && e.pointerType === 'touch') {
+      dragRef.current = { type: 'pan', startClientX: e.clientX, startClientY: e.clientY }
+    } else {
+      dragRef.current = { type: 'select-rect', startX: x, startY: y, currentX: x, currentY: y }
+    }
   }
 
-  function handleMouseMove(e) {
+  function handlePointerMove(e) {
+    activePointersRef.current.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY })
+
+    // ── Pinch-zoom ──
+    if (activePointersRef.current.size === 2 && pinchStateRef.current) {
+      const pts = [...activePointersRef.current.values()]
+      const newDist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY)
+      const newScale = Math.max(0.8, Math.min(4, pinchStateRef.current.startScale * newDist / pinchStateRef.current.dist))
+      canvasScaleRef.current = newScale
+      setCanvasScale(newScale)
+      return
+    }
+
+    if (!e.isPrimary) return
+
+    // ── Long-press: cancel only if moved > 8px ──
+    if (longPressTimerRef.current && longPressStartRef.current) {
+      const moved = Math.hypot(e.clientX - longPressStartRef.current.x, e.clientY - longPressStartRef.current.y)
+      if (moved > 8) {
+        clearTimeout(longPressTimerRef.current)
+        longPressTimerRef.current = null; longPressStartRef.current = null
+      }
+    }
+
     if (trajectoryMode) return
     const { x, y } = eventToCanvas(e, rotated, dimsRef.current)
+
     if (dirDragRef.current?.active) {
       const relX = Math.max(0, Math.min(dimsRef.current.GW, x - LABEL_W))
       dirManualXRef.current = relX; setDirectorManualX(relX); return
     }
-    if (!dragRef.current) {
-      // Hit-test for zenith tooltip
-      const d = dimsRef.current
-      let found = null
-      for (const m of membersRef.current) {
-        if (m.role === 'director') continue
-        const pos = placementsRef.current[m.id]
-        if (!pos) continue
-        const pt = getMemberPixelPos(pos, modeRef.current, d)
-        if (pt && Math.hypot(x - pt.x, y - pt.y) <= TOKEN_R + 3) { found = m; break }
+
+    const drag = dragRef.current
+
+    // ── Pan (touch + zoomed) ──
+    if (drag?.type === 'pan') {
+      const dx = e.clientX - drag.startClientX
+      const dy = e.clientY - drag.startClientY
+      if (canvasContainerRef.current) {
+        canvasContainerRef.current.scrollLeft -= dx
+        canvasContainerRef.current.scrollTop -= dy
       }
-      if (found) {
-        const rect = canvasRef.current?.getBoundingClientRect()
-        if (rect) setHoverZenithInfo({ member: found, x: e.clientX - rect.left, y: e.clientY - rect.top })
-      } else {
-        setHoverZenithInfo(null)
+      drag.startClientX = e.clientX; drag.startClientY = e.clientY
+      return
+    }
+
+    if (!drag) {
+      // Hover tooltip only for mouse/pen (not touch)
+      if (e.pointerType !== 'touch') {
+        const d = dimsRef.current
+        let found = null
+        for (const m of membersRef.current) {
+          if (m.role === 'director') continue
+          const pos = placementsRef.current[m.id]
+          if (!pos) continue
+          const pt = getMemberPixelPos(pos, modeRef.current, d)
+          if (pt && Math.hypot(x - pt.x, y - pt.y) <= TOKEN_R + 3) { found = m; break }
+        }
+        if (found) {
+          const rect = canvasRef.current?.getBoundingClientRect()
+          if (rect) setHoverZenithInfo({ member: found, x: e.clientX - rect.left, y: e.clientY - rect.top })
+        } else {
+          setHoverZenithInfo(null)
+        }
       }
       return
     }
-    const drag = dragRef.current
     if (drag.type === 'member') { drag.x = x; drag.y = y }
     else if (drag.type === 'group') { drag.currentX = x; drag.currentY = y }
     else if (drag.type === 'select-rect') { drag.currentX = x; drag.currentY = y }
     redrawWithDrag(drag)
   }
 
-  function handleMouseUp(e) {
-    if (trajectoryMode) return
+  function handlePointerUp(e) {
+    activePointersRef.current.delete(e.pointerId)
+    if (activePointersRef.current.size < 2) pinchStateRef.current = null
+
+    if (!e.isPrimary) return
+    if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; longPressStartRef.current = null }
+
     const { x, y } = eventToCanvas(e, rotated, dimsRef.current)
+
+    // Double-tap detection (touch)
+    if (e.pointerType === 'touch' && !trajectoryMode) {
+      const now = Date.now()
+      const last = lastTapRef.current
+      if (last && now - last.time < 300 && Math.hypot(x - last.x, y - last.y) < 20) {
+        lastTapRef.current = null
+        const wasDragging = dragRef.current && dragRef.current.type !== 'pan'
+        dragRef.current = null; dirDragRef.current = null
+        if (!wasDragging) {
+          const hit = hitTest(x, y)
+          if (hit?.type === 'member') {
+            vibrate([30, 20, 30])
+            const next = { ...placementsRef.current }; delete next[hit.memberId]
+            setSelectedIds(prev => { const n = new Set(prev); n.delete(hit.memberId); return n })
+            applyPlacements(next)
+          } else {
+            // Double-tap empty space → reset zoom
+            canvasScaleRef.current = 1; setCanvasScale(1)
+          }
+          return
+        }
+      } else {
+        lastTapRef.current = { time: now, x, y }
+      }
+    }
+
+    if (trajectoryMode) return
     dirDragRef.current = null
     if (!dragRef.current) return
     const drag = dragRef.current; dragRef.current = null
-    if (drag.type === 'member') finalizeSingleDrag(drag.memberId, x, y)
-    else if (drag.type === 'group') finalizeGroupDrag(drag, x, y)
+    if (drag.type === 'pan') return
+    if (drag.type === 'member') { vibrate(30); finalizeSingleDrag(drag.memberId, x, y) }
+    else if (drag.type === 'group') { vibrate(30); finalizeGroupDrag(drag, x, y) }
     else if (drag.type === 'select-rect') finalizeRectSelect(drag)
   }
-  function handleMouseLeave(e) { handleMouseUp(e); setHoverZenithInfo(null) }
+
+  function handlePointerCancel(e) {
+    activePointersRef.current.delete(e.pointerId)
+    pinchStateRef.current = null
+    if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; longPressStartRef.current = null }
+    dragRef.current = null; dirDragRef.current = null
+    setHoverZenithInfo(null)
+  }
 
   // ─── Finalize drags ───────────────────────────────────────
   function finalizeSingleDrag(memberId, x, y) {
@@ -1480,15 +1649,7 @@ export default function Editor() {
     e.preventDefault()
     const memberId = e.dataTransfer.getData('memberId'); if (!memberId) return
     const { x, y } = eventToCanvas(e, rotated, dimsRef.current)
-    const next = { ...placementsRef.current }, d = dimsRef.current
-    if (modeRef.current === 'free') {
-      if (y >= 0 && y <= d.GH)
-        next[memberId] = { free: true, x: Math.max(0, Math.min(1, (x - LABEL_W) / d.GW)), y: Math.max(0, Math.min(1, y / d.GH)) }
-    } else {
-      const cell = pixelToCell(x, y, modeRef.current, d)
-      if (cell) next[memberId] = { row: cell.row, col: cell.col }
-    }
-    applyPlacements(next)
+    placeMember(memberId, x, y)
   }
 
   // ─── Mode ─────────────────────────────────────────────────
@@ -1529,6 +1690,10 @@ export default function Editor() {
 
         {/* ── Toolbar ── */}
         <div className="flex items-center gap-2 flex-wrap px-3 py-2 bg-gray-900 border-b border-gray-800 shrink-0">
+          <button onClick={() => setSidebarOpen(v => !v)}
+            className="lg:hidden p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors shrink-0">
+            <Menu size={18} />
+          </button>
           <nav className="flex items-center gap-1 text-sm text-gray-500 flex-1 min-w-0 truncate">
             <Link to="/" className="hover:text-gray-300 shrink-0">{show?.name ?? '…'}</Link>
             <span className="mx-0.5 shrink-0">/</span>
@@ -1541,11 +1706,15 @@ export default function Editor() {
               <div className="flex rounded-lg border border-gray-700 overflow-hidden">
                 {[[ArrowUp,-1,0],[ArrowDown,1,0],[ArrowLeft,0,-1],[ArrowRight,0,1]].map(([Icon,dr,dc]) => (
                   <button key={`${dr}${dc}`} onClick={() => shiftSelected(dr, dc)}
-                    className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-colors border-r border-gray-700 last:border-0">
-                    <Icon size={11} />
+                    className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-colors border-r border-gray-700 last:border-0">
+                    <Icon size={13} />
                   </button>
                 ))}
               </div>
+              <button onClick={() => setSelectMode(v => !v)} title="Mode selecció (alternativa al Shift+clic)"
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs border transition-colors ${selectMode ? 'border-blue-600 text-blue-400 bg-blue-900/20' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
+                <MousePointer2 size={11} />
+              </button>
               {selectedIds.size > 0 && (
                 <span className="flex items-center gap-1 text-xs text-blue-400 border border-blue-800 px-2 py-0.5 rounded-full">
                   {selectedIds.size} sel.
@@ -1682,10 +1851,15 @@ export default function Editor() {
         </div>
 
         {/* ── Body ── */}
-        <div className="flex flex-1 min-h-0">
+        <div className="flex flex-1 min-h-0 relative overflow-hidden">
+
+          {/* Sidebar backdrop (mobile) */}
+          {sidebarOpen && (
+            <div className="absolute inset-0 bg-black/60 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />
+          )}
 
           {/* Sidebar */}
-          <div className="w-44 shrink-0 border-r border-gray-800 bg-gray-950 flex flex-col overflow-y-auto">
+          <div className={`absolute lg:relative inset-y-0 left-0 z-30 lg:z-auto w-56 lg:w-44 shrink-0 border-r border-gray-800 bg-gray-950 flex flex-col overflow-y-auto transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
             <div className="p-2.5 space-y-3">
 
               <SidebarSection title="Mode" open={isPanelOpen('mode')} onToggle={() => togglePanel('mode')}>
@@ -1742,11 +1916,13 @@ export default function Editor() {
                           </button>
                           {!collapsed && grpMembers.map(m => {
                             const placed = !!placements[m.id]
+                            const isPending = pendingMemberId === m.id
                             return (
                               <div key={m.id} draggable={!placed}
                                 onDragStart={e => e.dataTransfer.setData('memberId', m.id)}
                                 onContextMenu={e => openContextMenu(e, m)}
-                                className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded text-xs select-none ml-3 ${placed ? 'opacity-40 hover:opacity-100' : 'cursor-grab active:cursor-grabbing hover:bg-gray-800'}`}>
+                                onClick={!placed ? () => setPendingMemberId(prev => prev === m.id ? null : m.id) : undefined}
+                                className={`flex items-center gap-1.5 px-1.5 py-1 rounded text-xs select-none ml-3 transition-colors ${isPending ? 'bg-blue-900/40 ring-1 ring-blue-500' : placed ? 'opacity-40 hover:opacity-100' : 'cursor-pointer hover:bg-gray-800'}`}>
                                 <span className="w-5 h-5 rounded flex items-center justify-center font-bold shrink-0 text-[9px]"
                                   style={{ backgroundColor: c.bg, color: c.fg }}>
                                   {(m.initials || m.name.slice(0, 2)).toUpperCase()}
@@ -1781,12 +1957,24 @@ export default function Editor() {
           </div>
 
           {/* Canvas */}
-          <div className="flex-1 overflow-auto bg-[#0f172a] flex flex-col pr-8">
-            <div className="relative w-full">
+          <div ref={canvasContainerRef} className="flex-1 overflow-auto bg-[#0f172a] flex flex-col pr-8">
+            <div className="relative" style={{ width: canvasScale !== 1 ? `${canvasScale * 100}%` : '100%' }}>
+              {pendingMemberId && (() => {
+                const pm = members.find(m => m.id === pendingMemberId)
+                return (
+                  <div className="absolute inset-x-0 top-2 flex justify-center z-10 pointer-events-none">
+                    <div className="pointer-events-auto flex items-center gap-2 bg-blue-950/90 border border-blue-700 text-blue-200 text-xs px-3 py-1.5 rounded-full shadow-lg">
+                      <span>Toca el canvas per col·locar <strong>{pm?.name}</strong></span>
+                      <button onClick={() => setPendingMemberId(null)} className="text-blue-400 hover:text-white ml-1"><X size={10} /></button>
+                    </div>
+                  </div>
+                )
+              })()}
               <canvas ref={canvasRef}
-                style={{ width: '100%', aspectRatio: `${CW} / ${CH}`, transform: rotated ? 'rotate(180deg)' : undefined, display: 'block', cursor: trajectoryMode ? 'pointer' : 'default' }}
-                onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onContextMenu={handleCanvasContextMenu}
-                onMouseUp={handleMouseUp} onMouseLeave={handleMouseLeave}
+                style={{ width: '100%', aspectRatio: `${CW} / ${CH}`, transform: rotated ? 'rotate(180deg)' : undefined, display: 'block', cursor: pendingMemberId ? 'crosshair' : trajectoryMode ? 'pointer' : 'default', touchAction: 'none' }}
+                onPointerDown={handlePointerDown} onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp} onPointerCancel={handlePointerCancel}
+                onContextMenu={handleCanvasContextMenu}
                 onDoubleClick={handleDoubleClick}
                 onDragOver={handleDragOver} onDrop={handleDrop} />
               {hoverZenithInfo && (() => {
@@ -1799,27 +1987,34 @@ export default function Editor() {
                   </div>
                 )
               })()}
+              {/* Height profile accordion — dins el div escalat perquè coincideixi horitzontalment */}
+              <div className="border-t border-gray-800">
+                <button
+                  onClick={() => setShowHeightProfile(v => !v)}
+                  className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] text-gray-500 hover:text-gray-300 hover:bg-gray-800/40 transition-colors select-none">
+                  <span className="uppercase tracking-wider font-medium">Perfil d'alçades</span>
+                  <span className="text-gray-600">{showHeightProfile ? '▲' : '▼'}</span>
+                </button>
+                {showHeightProfile && (
+                  <canvas ref={heightCanvasRef}
+                    style={{ width: '100%', display: 'block', cursor: 'crosshair' }}
+                    onMouseMove={handleProfileMouseMove}
+                    onMouseLeave={handleProfileMouseLeave}
+                    onContextMenu={handleProfileContextMenu} />
+                )}
+              </div>
             </div>
-            <p className="text-[10px] text-gray-700 text-center select-none py-1">
-              {trajectoryMode
-                ? 'Clica qualsevol punt per anar a aquell moment · Esc per sortir'
-                : 'Arrossega · Shift+clic o quadre per seleccionar · flechas mouen selecció · Doble clic per treure'}
-            </p>
-
-            {/* Height profile accordion */}
-            <div className="shrink-0 border-t border-gray-800">
-              <button
-                onClick={() => setShowHeightProfile(v => !v)}
-                className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] text-gray-500 hover:text-gray-300 hover:bg-gray-800/40 transition-colors select-none">
-                <span className="uppercase tracking-wider font-medium">Perfil d'alçades</span>
-                <span className="text-gray-600">{showHeightProfile ? '▲' : '▼'}</span>
-              </button>
-              {showHeightProfile && (
-                <canvas ref={heightCanvasRef}
-                  style={{ width: '100%', display: 'block', cursor: 'crosshair' }}
-                  onMouseMove={handleProfileMouseMove}
-                  onMouseLeave={handleProfileMouseLeave}
-                  onContextMenu={handleProfileContextMenu} />
+            <div className="flex items-center justify-center gap-3 py-1 shrink-0">
+              <p className="text-[10px] text-gray-700 text-center select-none">
+                {trajectoryMode
+                  ? 'Toca/clica qualsevol punt per anar a aquell moment · Esc per sortir'
+                  : 'Arrossega · Shift+clic o botó Sel. per seleccionar · fletxes mouen selecció · Doble tap per treure · Mantén premut per menú'}
+              </p>
+              {canvasScale !== 1 && (
+                <button onClick={() => { canvasScaleRef.current = 1; setCanvasScale(1) }}
+                  className="shrink-0 text-[10px] text-blue-400 border border-blue-800 px-2 py-0.5 rounded-full hover:bg-blue-900/30 transition-colors">
+                  {Math.round(canvasScale * 100)}% · Reset
+                </button>
               )}
             </div>
           </div>

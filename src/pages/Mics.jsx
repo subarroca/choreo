@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { X, Plus, Mic, ArrowRight } from 'lucide-react'
+import { X, Plus, Mic, ArrowRight, Menu } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { VOICE_COLORS } from '../lib/constants'
 import Layout from '../components/Layout'
@@ -23,6 +23,7 @@ export default function Mics() {
   const [activeCell, setActiveCell] = useState(null) // { momentId, mic }
   const [newMicLabel, setNewMicLabel] = useState('')
   const [saving, setSaving]     = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   // Load
   useEffect(() => {
@@ -120,6 +121,10 @@ export default function Mics() {
       <div className="flex flex-col h-[calc(100vh-57px)]">
         {/* Header */}
         <div className="flex items-center gap-3 flex-wrap px-4 py-3 bg-gray-900 border-b border-gray-800 shrink-0">
+          <button onClick={() => setSidebarOpen(v => !v)}
+            className="lg:hidden p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors shrink-0">
+            <Menu size={18} />
+          </button>
           <nav className="flex items-center gap-1.5 text-sm text-gray-500">
             <Link to="/" className="hover:text-gray-300">Espectacles</Link>
             <span>/</span>
@@ -130,9 +135,14 @@ export default function Mics() {
           {saving && <span className="text-[10px] text-gray-600 ml-auto">Guardant…</span>}
         </div>
 
-        <div className="flex flex-1 min-h-0">
+        <div className="flex flex-1 min-h-0 relative overflow-hidden">
+          {/* Sidebar backdrop (mobile) */}
+          {sidebarOpen && (
+            <div className="absolute inset-0 bg-black/60 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />
+          )}
+
           {/* Sidebar: mic config */}
-          <div className="w-44 shrink-0 border-r border-gray-800 bg-gray-950 flex flex-col p-3 gap-3 overflow-y-auto">
+          <div className={`absolute lg:relative inset-y-0 left-0 z-30 lg:z-auto w-56 lg:w-44 shrink-0 border-r border-gray-800 bg-gray-950 flex flex-col p-3 gap-3 overflow-y-auto transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
             <div>
               <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-2">Micròfons</p>
               <div className="space-y-1">
