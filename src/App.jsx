@@ -6,7 +6,8 @@ import Setlist from './pages/Setlist'
 import Members from './pages/Members'
 import Editor from './pages/Editor'
 import Mics from './pages/Mics'
-
+import Songs from './pages/Songs'
+import Admin from './pages/Admin'
 
 function RequireAuth({ children }) {
   const { session, loading } = useAuth()
@@ -28,6 +29,8 @@ function AppRoutes() {
       <Route path="/members" element={<RequireAuth><Members /></RequireAuth>} />
       <Route path="/show/:id/song/:sid/moment/:mid" element={<RequireAuth><Editor /></RequireAuth>} />
       <Route path="/show/:id/mics" element={<RequireAuth><Mics /></RequireAuth>} />
+      <Route path="/songs" element={<RequireAuth><Songs /></RequireAuth>} />
+      <Route path="/admin" element={<RequireAuth><Admin /></RequireAuth>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

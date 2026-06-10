@@ -418,15 +418,125 @@ function drawTrajectoryOverlay(ctx, { allMoments, allPositions, memberId, curren
 }
 
 // ─── Height profile ───────────────────────────────────────────
-function fillRoundRect(ctx, x, y, w, h, r) {
-  r = Math.min(r, w / 2, h / 2)
+
+// Draws a human-proportioned silhouette (head + body path) on a canvas.
+// Falls back to circle+rect when the figure is too small to detail.
+function drawSilhouette(ctx, px, yTop, yFloor, figW, headFill, bodyFill, outlineColor) {
+  const totalPx = yFloor - yTop
+  const headR   = Math.max(2.5, totalPx * 0.115)
+  const headCy  = yTop + headR
+
+  // ── Head ──
   ctx.beginPath()
-  ctx.moveTo(x + r, y)
-  ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r)
-  ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
-  ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r)
-  ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r)
-  ctx.closePath(); ctx.fill()
+  ctx.arc(px, headCy, headR, 0, Math.PI * 2)
+  ctx.fillStyle = headFill
+  ctx.fill()
+  if (outlineColor) { ctx.strokeStyle = outlineColor; ctx.lineWidth = 1; ctx.stroke() }
+
+  if (totalPx < 14) {
+    // Too small for detailed body — simple rounded rect
+    const bTop = headCy + headR * 0.9
+    const bH   = yFloor - bTop
+    const r    = Math.min(2, figW / 2)
+    ctx.beginPath()
+    ctx.moveTo(px - figW/2 + r, bTop)
+    ctx.lineTo(px + figW/2 - r, bTop); ctx.arcTo(px + figW/2, bTop, px + figW/2, bTop + r, r)
+    ctx.lineTo(px + figW/2, yFloor - r); ctx.arcTo(px + figW/2, yFloor, px + figW/2 - r, yFloor, r)
+    ctx.lineTo(px - figW/2 + r, yFloor); ctx.arcTo(px - figW/2, yFloor, px - figW/2, yFloor - r, r)
+    ctx.lineTo(px - figW/2, bTop + r); ctx.arcTo(px - figW/2, bTop, px - figW/2 + r, bTop, r)
+    ctx.closePath()
+    ctx.fillStyle = bodyFill
+    ctx.fill()
+    if (outlineColor) { ctx.strokeStyle = outlineColor; ctx.lineWidth = 1; ctx.stroke() }
+    return
+  }
+
+  // ── Body path — human proportions ──
+  const hw      = figW / 2
+
+  // Y landmarks (fractions of totalPx from yTop)
+  const neckY   = headCy + headR * 0.85
+  const shldrY  = yTop + totalPx * 0.22
+  const waistY  = yTop + totalPx * 0.50
+  const hipY    = yTop + totalPx * 0.60
+  const crotchY = yTop + totalPx * 0.65
+
+  // Half-widths
+  const neckHW  = hw * 0.22
+  const shldrHW = hw
+  const waistHW = hw * 0.58
+  const hipHW   = hw * 0.78
+  const legHW   = hw * 0.38
+  const legGap  = hw * 0.06
+
+  ctx.beginPath()
+
+  // Left neck top → expand to left shoulder (S-curve)
+  ctx.moveTo(px - neckHW, neckY)
+  ctx.bezierCurveTo(
+    px - neckHW,  neckY  + (shldrY - neckY) * 0.3,
+    px - shldrHW, shldrY - (shldrY - neckY) * 0.2,
+    px - shldrHW, shldrY
+  )
+
+  // Left shoulder → taper to waist
+  ctx.bezierCurveTo(
+    px - shldrHW, waistY - (waistY - shldrY) * 0.3,
+    px - waistHW, shldrY + (waistY - shldrY) * 0.6,
+    px - waistHW, waistY
+  )
+
+  // Left waist → flare to left hip
+  ctx.bezierCurveTo(
+    px - waistHW, waistY + (hipY - waistY) * 0.5,
+    px - hipHW,   hipY   - (hipY - waistY) * 0.1,
+    px - hipHW,   hipY
+  )
+
+  // Left hip → down outer left leg
+  ctx.lineTo(px - legGap - legHW, crotchY)
+  ctx.lineTo(px - legGap - legHW, yFloor)
+
+  // Inner left leg
+  ctx.lineTo(px - legGap, yFloor)
+  ctx.lineTo(px - legGap, crotchY + (yFloor - crotchY) * 0.08)
+
+  // Jump inner gap (crotch curve)
+  ctx.lineTo(px + legGap, crotchY + (yFloor - crotchY) * 0.08)
+
+  // Inner right leg
+  ctx.lineTo(px + legGap, yFloor)
+  ctx.lineTo(px + legGap + legHW, yFloor)
+
+  // Outer right leg up
+  ctx.lineTo(px + legGap + legHW, crotchY)
+  ctx.lineTo(px + hipHW, hipY)
+
+  // Right hip → waist (mirror)
+  ctx.bezierCurveTo(
+    px + hipHW,   hipY   - (hipY - waistY) * 0.1,
+    px + waistHW, waistY + (hipY - waistY) * 0.5,
+    px + waistHW, waistY
+  )
+
+  // Right waist → shoulder
+  ctx.bezierCurveTo(
+    px + waistHW, shldrY + (waistY - shldrY) * 0.6,
+    px + shldrHW, waistY - (waistY - shldrY) * 0.3,
+    px + shldrHW, shldrY
+  )
+
+  // Right shoulder → neck
+  ctx.bezierCurveTo(
+    px + shldrHW, shldrY - (shldrY - neckY) * 0.2,
+    px + neckHW,  neckY  + (shldrY - neckY) * 0.3,
+    px + neckHW,  neckY
+  )
+
+  ctx.closePath()
+  ctx.fillStyle = bodyFill
+  ctx.fill()
+  if (outlineColor) { ctx.strokeStyle = outlineColor; ctx.lineWidth = 1; ctx.stroke() }
 }
 
 function drawHeightProfile(canvas, { placements, members, mode, dims, rowElevations, hoverMemberId, highlightId, hoverRow }) {
@@ -527,70 +637,50 @@ function drawHeightProfile(canvas, { placements, members, mode, dims, rowElevati
     const elev = rowElevations?.[row] ?? 0
     const ph   = m.height ?? 170
 
-    const yFloor   = toY(elev)
-    const yTop     = toY(elev + ph)
-    const totalPx  = yFloor - yTop
+    const yFloor  = toY(elev)
+    const yTop    = toY(elev + ph)
+    const totalPx = yFloor - yTop
 
-    const headR    = Math.max(3, totalPx * 0.13)
-    const headCy   = yTop + headR
-    const bodyTop  = headCy + headR * 1.1
-    const bodyW    = FIG_W
-
-    hitAreas[m.id] = { px, yTop: yTop - headR, yBot: yFloor, m, row }
+    hitAreas[m.id] = { px, yTop, yBot: yFloor, m, row }
 
     const isHover     = m.id === hoverMemberId
     const isHighlight = highlightId && m.id === highlightId
     const rowDimmed   = hoverRow != null && row !== hoverRow
 
     // depth: row 0 (back) = 50% opacity, row ROWS-1 (front) = 100%
-    const depth    = ROWS <= 1 ? 1 : 0.50 + 0.50 * (row / (ROWS - 1))
-    // row-hover dims others gently (30%), not aggressively
-    const baseVis  = rowDimmed ? 0.28 : (isHover || isHighlight ? 1 : depth)
-    const fadeVis  = rowDimmed ? 0.18 : (isHover || isHighlight ? 0.55 : depth * 0.55)
+    const depth     = ROWS <= 1 ? 1 : 0.50 + 0.50 * (row / (ROWS - 1))
+    const baseVis   = rowDimmed ? 0.28 : (isHover || isHighlight ? 1 : depth)
+    const fadeVis   = rowDimmed ? 0.18 : (isHover || isHighlight ? 0.55 : depth * 0.55)
     const fullAlpha = Math.round(baseVis * 255).toString(16).padStart(2, '0')
     const fadeAlpha = Math.round(fadeVis * 255).toString(16).padStart(2, '0')
 
+    // body gradient uses the full body range for the new silhouette
+    const bodyY = yTop + totalPx * 0.22  // approx shoulder top for gradient start
+
     if (isHighlight) {
-      // "soc jo": same as zenital — full color fill, no dimming (color head + color gradient body)
-      const grad = ctx.createLinearGradient(0, bodyTop, 0, yFloor)
+      const grad = ctx.createLinearGradient(0, bodyY, 0, yFloor)
       grad.addColorStop(0, c.bg + 'ff')
       grad.addColorStop(1, c.bg + '88')
-      ctx.fillStyle = c.bg
-      ctx.beginPath(); ctx.arc(px, headCy, headR, 0, Math.PI * 2); ctx.fill()
-      ctx.fillStyle = grad
-      fillRoundRect(ctx, px - bodyW / 2, bodyTop, bodyW, yFloor - bodyTop, 2)
+      drawSilhouette(ctx, px, yTop, yFloor, FIG_W, c.bg, grad)
     } else if (highlightId && !isHighlight) {
-      // "soc jo" mode, others: stroke outline + neutral fill (dark bg with color ring)
       const strokeAlpha = rowDimmed ? '44' : fullAlpha
-      ctx.strokeStyle = c.bg + strokeAlpha; ctx.lineWidth = 1
-      ctx.fillStyle = '#0f172a'
-      ctx.beginPath(); ctx.arc(px, headCy, headR, 0, Math.PI * 2); ctx.fill()
-      ctx.stroke()
-      // body: dark fill + color stroke outline
-      ctx.fillStyle = '#0f172a'
-      fillRoundRect(ctx, px - bodyW / 2, bodyTop, bodyW, yFloor - bodyTop, 2)
-      ctx.strokeStyle = c.bg + strokeAlpha; ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.rect(px - bodyW / 2, bodyTop, bodyW, yFloor - bodyTop)
-      ctx.stroke()
-      // row-hover: white head
+      drawSilhouette(ctx, px, yTop, yFloor, FIG_W, '#0f172a', '#0f172a', c.bg + strokeAlpha)
+      // row-hover: white head override
       if (hoverRow != null && row === hoverRow) {
+        const headR = Math.max(2.5, totalPx * 0.115)
         ctx.fillStyle = '#ffffffdd'
-        ctx.beginPath(); ctx.arc(px, headCy, headR, 0, Math.PI * 2); ctx.fill()
+        ctx.beginPath(); ctx.arc(px, yTop + headR, headR, 0, Math.PI * 2); ctx.fill()
       }
     } else {
-      // normal mode: color gradient fill
-      const grad = ctx.createLinearGradient(0, bodyTop, 0, yFloor)
+      const grad = ctx.createLinearGradient(0, bodyY, 0, yFloor)
       grad.addColorStop(0, c.bg + fullAlpha)
       grad.addColorStop(1, c.bg + fadeAlpha)
-      ctx.fillStyle = c.bg + fullAlpha
-      ctx.beginPath(); ctx.arc(px, headCy, headR, 0, Math.PI * 2); ctx.fill()
-      ctx.fillStyle = grad
-      fillRoundRect(ctx, px - bodyW / 2, bodyTop, bodyW, yFloor - bodyTop, 2)
-      // row-hover: white head
+      drawSilhouette(ctx, px, yTop, yFloor, FIG_W, c.bg + fullAlpha, grad)
+      // row-hover: white head override
       if (hoverRow != null && row === hoverRow) {
+        const headR = Math.max(2.5, totalPx * 0.115)
         ctx.fillStyle = '#ffffffdd'
-        ctx.beginPath(); ctx.arc(px, headCy, headR, 0, Math.PI * 2); ctx.fill()
+        ctx.beginPath(); ctx.arc(px, yTop + headR, headR, 0, Math.PI * 2); ctx.fill()
       }
     }
 

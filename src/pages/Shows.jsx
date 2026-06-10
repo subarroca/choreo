@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { Clapperboard } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Clapperboard, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import Layout from '../components/Layout'
@@ -60,7 +60,9 @@ function ShowForm({ initial, onSave, onCancel }) {
 }
 
 export default function Shows() {
-  const { user } = useAuth()
+  const { user, permissions, role } = useAuth()
+  const canEdit = role === 'admin' || role === 'director' || permissions?.shows?.edit
+  const navigate = useNavigate()
   const [shows, setShows] = useState([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -109,11 +111,11 @@ export default function Shows() {
   }
 
   return (
-    <Layout>
+    <Layout narrow>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">Espectacles</h1>
-          {!creating && (
+          {!creating && canEdit && (
             <button
               onClick={() => setCreating(true)}
               className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-lg transition-colors"
@@ -141,7 +143,9 @@ export default function Shows() {
         ) : (
           <div className="space-y-3">
             {shows.map(show => (
-              <div key={show.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4 hover:border-gray-700 transition-colors">
+              <div key={show.id}
+                onClick={() => navigate(`/show/${show.id}`)}
+                className="bg-gray-900 border border-gray-800 rounded-xl p-4 hover:border-gray-700 hover:bg-gray-800/30 transition-colors cursor-pointer">
                 {editingId === show.id ? (
                   <ShowForm
                     initial={show}
@@ -151,34 +155,30 @@ export default function Shows() {
                 ) : (
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <Link to={`/show/${show.id}`} className="text-white font-semibold hover:text-blue-400 transition-colors">
-                        {show.name}
-                      </Link>
+                      <p className="text-white font-semibold">{show.name}</p>
                       <div className="flex gap-3 mt-1 text-xs text-gray-500">
                         {show.date && <span>{new Date(show.date).toLocaleDateString('ca-ES')}</span>}
                         {show.venue && <span>{show.venue}</span>}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Link
-                        to={`/show/${show.id}`}
-                        className="text-xs text-gray-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-gray-800 transition-colors"
-                      >
-                        Obrir
-                      </Link>
-                      <button
-                        onClick={() => setEditingId(show.id)}
-                        className="text-xs text-gray-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-gray-800 transition-colors"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => handleDelete(show.id)}
-                        className="text-xs text-red-500 hover:text-red-400 px-3 py-1.5 rounded-lg hover:bg-gray-800 transition-colors"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
+                    {canEdit && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={e => { e.stopPropagation(); setEditingId(show.id) }}
+                          className="text-gray-500 hover:text-white p-2 rounded-lg hover:bg-gray-700 transition-colors"
+                          title="Editar"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); handleDelete(show.id) }}
+                          className="text-gray-600 hover:text-red-500 p-2 rounded-lg hover:bg-gray-700 transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

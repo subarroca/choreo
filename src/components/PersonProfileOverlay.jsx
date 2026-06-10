@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, AtSign, Mail, Ruler, Calendar, UserPlus, Pencil, ChevronLeft, ChevronDown } from 'lucide-react'
+import { X, AtSign, Mail, Ruler, Calendar, UserPlus, Pencil, ChevronLeft, ChevronDown, MoreHorizontal, Phone } from 'lucide-react'
 import { VOICE_COLORS, VOICE_LABELS, ROLE_LABELS } from '../lib/constants'
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -82,6 +82,8 @@ function ProfileView({ member, onEdit }) {
     age != null      && { icon: Calendar, label: 'Edat',      value: `${age} anys` },
     member.height    && { icon: Ruler,    label: 'Alçada',    value: `${member.height} cm` },
     tenure           && { icon: UserPlus, label: 'Al cor',    value: tenure },
+    member.active === false && member.left_at && { icon: Calendar, label: 'De baixa des de', value: new Date(member.left_at).toLocaleDateString('ca-ES') },
+    member.phone    && { icon: Phone,    label: 'Telèfon',   value: member.phone },
     member.google_account && { icon: Mail,  label: 'Google',   value: member.google_account },
     member.instagram && { icon: AtSign,   label: 'Instagram', value: `@${member.instagram}` },
   ].filter(Boolean)
@@ -147,6 +149,7 @@ function EditForm({ member, isNew, onSave, onBack, onSetActive, onDelete }) {
   const [initials,  setInitials]  = useState(member?.initials ?? '')
   const [voice,     setVoice]     = useState(member?.voice ?? 'soprano1')
   const [role,      setRole]      = useState(member?.role ?? 'choir')
+  const [phone,     setPhone]     = useState(member?.phone ?? '')
   const [google,    setGoogle]    = useState(member?.google_account ?? '')
   const [instagram, setInstagram] = useState(member?.instagram ?? '')
   const [height,    setHeight]    = useState(member?.height ?? '')
@@ -164,6 +167,7 @@ function EditForm({ member, isNew, onSave, onBack, onSetActive, onDelete }) {
       name: deriveName(firstName, lastName),
       initials: (initials.trim().toUpperCase().slice(0, 3) || autoInitials),
       voice, role,
+      phone: phone.trim() || null,
       google_account: google.trim(),
       instagram: instagram.trim().replace(/^@/, ''),
       height: height ? parseInt(height) : null,
@@ -232,6 +236,11 @@ function EditForm({ member, isNew, onSave, onBack, onSetActive, onDelete }) {
         <div className="border-t border-gray-800 pt-4 space-y-3">
           <p className="text-xs text-gray-600 uppercase tracking-wider">Contacte</p>
           <div className="space-y-1">
+            <label className={labelCls}>Telèfon</label>
+            <input value={phone} onChange={e => setPhone(e.target.value)} type="tel"
+              placeholder="+34 600 000 000" className={inputCls} />
+          </div>
+          <div className="space-y-1">
             <label className={labelCls}>Google</label>
             <input value={google} onChange={e => setGoogle(e.target.value)} type="email"
               placeholder="nom@gmail.com" className={inputCls} />
@@ -264,41 +273,64 @@ function EditForm({ member, isNew, onSave, onBack, onSetActive, onDelete }) {
           </div>
         </div>
 
-        <div className="pt-1 pb-2">
-          <button type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium py-2 rounded-lg transition-colors">
-            {isNew ? 'Crear persona' : 'Guardar canvis'}
-          </button>
-        </div>
       </div>
 
-      {/* Danger zone */}
-      {onSetActive && onDelete && (
-        <div className="border-t border-gray-800 px-5 py-3 shrink-0 flex gap-2">
-          {isInactive ? (
-            <button type="button" onClick={() => onSetActive(member.id, true)}
-              className="flex-1 text-xs text-green-600 hover:text-green-400 py-1.5 rounded-lg hover:bg-gray-800 transition-colors">
-              Reactivar
-            </button>
-          ) : (
-            <button type="button" onClick={() => onSetActive(member.id, false)}
-              className="flex-1 text-xs text-yellow-600 hover:text-yellow-400 py-1.5 rounded-lg hover:bg-gray-800 transition-colors">
-              Donar de baixa
-            </button>
-          )}
-          <button type="button" onClick={() => onDelete(member.id)}
-            className="flex-1 text-xs text-red-800 hover:text-red-500 py-1.5 rounded-lg hover:bg-gray-800 transition-colors">
-            Eliminar
-          </button>
-        </div>
-      )}
+      {/* Fixed footer */}
+      <div className="shrink-0 border-t border-gray-800 px-4 py-3 flex items-center gap-2">
+        <button type="submit"
+          className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium py-2 rounded-lg transition-colors">
+          {isNew ? 'Crear persona' : 'Desar'}
+        </button>
+        {!isNew && onSetActive && onDelete && (
+          <MoreOptionsMenu
+            isInactive={isInactive}
+            onSetActive={() => onSetActive(member.id, !isInactive)}
+            onDelete={() => onDelete(member.id)} />
+        )}
+      </div>
     </form>
   )
 }
 
+// ─── More options dropdown ────────────────────────────────────
+function MoreOptionsMenu({ isInactive, onSetActive, onDelete }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    function onDown(e) { if (!ref.current?.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen(v => !v)}
+        className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors">
+        <MoreHorizontal size={16} />
+      </button>
+      {open && (
+        <div className="absolute bottom-full right-0 mb-1 w-44 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl py-1 z-20">
+          <button type="button"
+            onClick={() => { onSetActive(); setOpen(false) }}
+            className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-gray-700 ${isInactive ? 'text-green-400' : 'text-yellow-400'}`}>
+            {isInactive ? 'Reactivar' : 'Donar de baixa'}
+          </button>
+          <div className="border-t border-gray-700 my-1" />
+          <button type="button"
+            onClick={() => { onDelete(); setOpen(false) }}
+            className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-gray-700 transition-colors">
+            Eliminar
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Main overlay ─────────────────────────────────────────────
-export default function PersonProfileOverlay({ member, isNew, onClose, onSave, onSetActive, onDelete }) {
-  const [editing, setEditing] = useState(!!isNew)
+export default function PersonProfileOverlay({ member, isNew, readOnly = false, onClose, onSave, onSetActive, onDelete }) {
+  const [editing, setEditing] = useState(!!isNew && !readOnly)
 
   useEffect(() => {
     function onKey(e) { if (e.key === 'Escape') { editing && !isNew ? setEditing(false) : onClose() } }
@@ -312,14 +344,13 @@ export default function PersonProfileOverlay({ member, isNew, onClose, onSave, o
   if (!member) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={() => editing && !isNew ? setEditing(false) : onClose()} />
 
       {/* Card */}
-      <div className="relative z-10 bg-gray-900 border border-gray-700/80 rounded-2xl shadow-2xl w-full max-w-xs flex flex-col"
-        style={{ height: 'min(90vh, 580px)', overflow: 'hidden' }}>
+      <div className="relative z-10 bg-gray-900 border border-gray-700/80 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-sm flex flex-col h-[100dvh] sm:h-[90vh]" style={{ overflow: 'hidden' }}>
 
         {/* Close button (top-right) */}
         <button onClick={onClose}
@@ -338,7 +369,7 @@ export default function PersonProfileOverlay({ member, isNew, onClose, onSave, o
         ) : (
           <ProfileView
             member={member}
-            onEdit={onSave ? () => setEditing(true) : null} />
+            onEdit={onSave && !readOnly ? () => setEditing(true) : null} />
         )}
       </div>
     </div>

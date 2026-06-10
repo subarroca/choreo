@@ -1,17 +1,18 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
-  useDroppable,
+  useDroppable, DragOverlay,
 } from '@dnd-kit/core'
 import {
   arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Pencil, X, ChevronUp, ChevronDown, ChevronRight, ChevronsUp, ChevronsDown, Mic, Music, Plus, ArrowRight } from 'lucide-react'
+import { GripVertical, Pencil, X, ChevronUp, ChevronDown, ChevronRight, ChevronsUp, ChevronsDown, Mic, Music, Plus, ArrowRight, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { VOICE_COLORS } from '../lib/constants'
+import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
 import Layout from '../components/Layout'
+import PersonProfileOverlay from '../components/PersonProfileOverlay'
 
 // ─── Sortable moment row ──────────────────────────────────────
 function SortableMomentRow({ moment, index, showId, songId, onDelete }) {
@@ -20,7 +21,7 @@ function SortableMomentRow({ moment, index, showId, songId, onDelete }) {
 
   return (
     <div ref={setNodeRef} style={style}
-      className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-800/50 hover:bg-gray-900/60 group transition-colors">
+      className="flex items-center gap-2 pl-8 pr-3 py-2 border-b border-gray-800/50 bg-black/20 hover:bg-black/40 border-l-2 border-l-gray-700/60 group transition-colors">
       <button {...attributes} {...listeners}
         className="text-gray-700 hover:text-gray-500 cursor-grab active:cursor-grabbing p-1 -ml-1 touch-none shrink-0">
         <GripVertical size={13} />
@@ -54,9 +55,14 @@ function DroppableSongZone({ id, children, isEmpty }) {
 }
 
 // ─── Sortable song row ────────────────────────────────────────
-function SortableSong({ song, moments, expanded, onToggle, onEdit, onDelete, onAddMoment, onDeleteMoment, onReorderMoments, showId }) {
+function SortableSong({ song, moments, expanded, onToggle, onEdit, onDelete, onAddMoment, onDeleteMoment, onReorderMoments, showId, activeDragId, repSong }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: song.id })
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }
+  const isOtherDragging = activeDragId && activeDragId !== song.id
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0 : isOtherDragging ? 0.4 : 1,
+  }
 
   const momentSensors = useSensors(
     useSensor(PointerSensor),
@@ -83,9 +89,18 @@ function SortableSong({ song, moments, expanded, onToggle, onEdit, onDelete, onA
         </button>
         <button onClick={onToggle}
           className="flex-1 text-left min-w-0 py-2">
-          <span className="text-sm font-medium text-white block truncate">{song.title}</span>
-          {song.notes && <span className="text-xs text-gray-500 block truncate">{song.notes}</span>}
+          <span className="text-sm font-medium text-white block truncate">
+            {repSong ? repSong.title : song.title}
+          </span>
+          <span className="text-xs text-gray-500 block truncate">
+            {repSong?.composer && <span className="text-gray-600">{repSong.composer}</span>}
+            {repSong?.composer && song.notes && <span className="text-gray-700"> · </span>}
+            {song.notes}
+          </span>
         </button>
+        {song.duration_seconds > 0 && (
+          <span className="text-xs text-gray-500 shrink-0 tabular-nums">{formatDuration(song.duration_seconds)}</span>
+        )}
         <span className="text-xs text-gray-500 bg-gray-800 px-2.5 py-1 rounded-full shrink-0 tabular-nums">
           {moments.length}m
         </span>
@@ -119,6 +134,15 @@ function SortableSong({ song, moments, expanded, onToggle, onEdit, onDelete, onA
             className="flex items-center gap-1.5 w-full px-4 py-3 text-xs text-blue-600 hover:text-blue-400 hover:bg-gray-800 transition-colors border-t border-gray-800">
             <Plus size={12} /> Afegir moment
           </button>
+          {song.lyrics && (
+            <details className="border-t border-gray-800 group">
+              <summary className="px-4 py-2.5 text-xs text-gray-500 hover:text-gray-300 cursor-pointer list-none flex items-center gap-1.5 select-none">
+                <ChevronRight size={12} className="group-open:rotate-90 transition-transform" />
+                Lletra
+              </summary>
+              <pre className="px-4 pb-4 text-xs text-gray-400 whitespace-pre-wrap font-sans leading-relaxed">{song.lyrics}</pre>
+            </details>
+          )}
         </div>
       )}
     </div>
@@ -126,21 +150,168 @@ function SortableSong({ song, moments, expanded, onToggle, onEdit, onDelete, onA
 }
 
 // ─── Song form ────────────────────────────────────────────────
-function SongForm({ initial, parts, onSave, onCancel }) {
-  const [title, setTitle] = useState(initial?.title ?? '')
-  const [notes, setNotes] = useState(initial?.notes ?? '')
-  const [partId, setPartId] = useState(initial?.part_id ?? '')
+function parseDuration(str) {
+  if (!str) return null
+  const parts = str.split(':').map(s => parseInt(s, 10))
+  if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) return parts[0] * 60 + parts[1]
+  if (parts.length === 1 && !isNaN(parts[0])) return parts[0]
+  return null
+}
+function formatDuration(secs) {
+  if (!secs) return ''
+  return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`
+}
+
+// ─── Repertoire combobox ──────────────────────────────────────
+function RepPicker({ repertoire, value, onChange }) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen]   = useState(false)
+  const ref               = useRef(null)
+  const inputRef          = useRef(null)
+
+  const selected = repertoire.find(r => r.id === value)
+
+  const filtered = query.trim()
+    ? repertoire.filter(r => r.title.toLowerCase().includes(query.toLowerCase()))
+    : repertoire
+
+  useEffect(() => {
+    function onDown(e) { if (!ref.current?.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [])
+
+  function select(r) {
+    onChange(r ? r.id : '')
+    setQuery('')
+    setOpen(false)
+  }
+
+  function handleInputClick() {
+    setOpen(true)
+    setQuery('')
+    setTimeout(() => inputRef.current?.focus(), 0)
+  }
+
   return (
-    <form onSubmit={e => { e.preventDefault(); onSave({ title, notes, part_id: partId || null }) }} className="space-y-3">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="space-y-1 md:col-span-1">
+    <div ref={ref} className="relative">
+      {/* Trigger */}
+      {open ? (
+        <div className="flex items-center gap-2 bg-gray-800 border border-blue-500 rounded-lg px-3 py-2">
+          <Search size={13} className="text-gray-500 shrink-0" />
+          <input
+            ref={inputRef}
+            autoFocus
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Cerca pel títol…"
+            className="flex-1 bg-transparent text-sm text-white placeholder-gray-600 focus:outline-none"
+          />
+          <button type="button" onClick={() => setOpen(false)} className="text-gray-600 hover:text-white">
+            <X size={13} />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={handleInputClick}
+          className="w-full flex items-center gap-2 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-lg px-3 py-2 text-left transition-colors"
+        >
+          <Search size={13} className="text-gray-500 shrink-0" />
+          <span className={`flex-1 text-sm truncate ${selected ? 'text-white' : 'text-gray-500'}`}>
+            {selected ? selected.title : 'Triar del repertori…'}
+          </span>
+          {selected && (
+            <button type="button" onClick={e => { e.stopPropagation(); select(null) }}
+              className="text-gray-600 hover:text-white shrink-0">
+              <X size={12} />
+            </button>
+          )}
+        </button>
+      )}
+
+      {/* Dropdown */}
+      {open && (
+        <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
+          {/* Clear option */}
+          <button type="button" onClick={() => select(null)}
+            className="w-full text-left px-3 py-2 text-xs text-gray-500 hover:bg-gray-800 hover:text-gray-300 transition-colors border-b border-gray-800">
+            — Títol personalitzat —
+          </button>
+          {filtered.length === 0 ? (
+            <p className="px-3 py-3 text-xs text-gray-600 italic">Cap resultat per "{query}"</p>
+          ) : filtered.map(r => (
+            <button key={r.id} type="button" onClick={() => select(r)}
+              className={`w-full text-left px-3 py-2.5 text-sm transition-colors hover:bg-gray-800 ${r.id === value ? 'text-blue-400 bg-blue-900/20' : 'text-gray-200'}`}>
+              {r.title}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SongForm({ initial, parts, repertoire = [], onSave, onCancel }) {
+  const [repId, setRepId]           = useState(initial?.repertoire_song_id ?? '')
+  const [customTitle, setCustomTitle] = useState(initial?.title ?? '')
+  const [notes, setNotes]           = useState(initial?.notes ?? '')
+  const [partId, setPartId]         = useState(initial?.part_id ?? '')
+  const [durationStr, setDurationStr] = useState(formatDuration(initial?.duration_seconds))
+
+  const selectedRep = repertoire.find(r => r.id === repId)
+  const displayTitle = selectedRep ? selectedRep.title : customTitle
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    const title = displayTitle.trim()
+    if (!title) return
+    onSave({
+      title,
+      repertoire_song_id: repId || null,
+      notes: notes.trim() || null,
+      part_id: partId || null,
+      duration_seconds: parseDuration(durationStr),
+    })
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      {/* Repertoire picker */}
+      <div className="space-y-1">
+        <label className="text-xs text-gray-400">Cançó del repertori</label>
+        <RepPicker repertoire={repertoire} value={repId} onChange={setRepId} />
+      </div>
+
+      {/* Custom title (only shown if no rep selected) */}
+      {!repId && (
+        <div className="space-y-1">
           <label className="text-xs text-gray-400">Títol *</label>
-          <input value={title} onChange={e => setTitle(e.target.value)} required placeholder="Títol de la cançó"
+          <input value={customTitle} onChange={e => setCustomTitle(e.target.value)}
+            required={!repId} placeholder="Títol de la cançó"
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
         </div>
+      )}
+      {/* Preview of selected rep title */}
+      {selectedRep && (
+        <div className="flex items-center gap-2 bg-blue-900/20 border border-blue-800/50 rounded-lg px-3 py-2">
+          <Music size={13} className="text-blue-400 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm text-white font-medium truncate">{selectedRep.title}</p>
+            {selectedRep.composer && <p className="text-xs text-gray-400">{selectedRep.composer}</p>}
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="space-y-1">
           <label className="text-xs text-gray-400">Notes</label>
           <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Opcional"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-gray-400">Durada</label>
+          <input value={durationStr} onChange={e => setDurationStr(e.target.value)} placeholder="3:45"
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
         </div>
         {parts.length > 0 && (
@@ -178,33 +349,72 @@ function PartForm({ initial, onSave, onCancel }) {
   )
 }
 
+const VOICE_ORDER = ['soprano1','soprano2','alto1','alto2','tenor1','tenor2','baritone','bass']
+
 // ─── Cast panel ───────────────────────────────────────────────
-function CastPanel({ showId, allMembers, exclusions, onToggle }) {
-  if (allMembers.length === 0) return null
+function MemberChip({ member, excluded, onToggle, onEdit }) {
+  const c = VOICE_COLORS[member.voice] ?? VOICE_COLORS.extra
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
+    <div className={`flex items-center gap-1.5 rounded-lg text-xs border transition-all ${excluded ? 'opacity-40 border-gray-700 bg-gray-800/30' : 'bg-gray-800 border-gray-700'}`}>
+      <button onClick={() => onToggle(member.id, excluded)}
+        className="flex items-center gap-1.5 px-2 py-2 flex-1 text-left min-w-0"
+        title={excluded ? `Afegir ${member.name}` : `Treure ${member.name}`}>
+        <span className="w-5 h-5 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
+          style={{ backgroundColor: excluded ? '#374151' : c.bg, color: excluded ? '#6b7280' : c.fg }}>
+          {(member.initials || member.name?.slice(0, 2) || '?').toUpperCase()}
+        </span>
+        <span className={`truncate ${excluded ? 'text-gray-600 line-through' : 'text-gray-200'}`}>{member.name}</span>
+      </button>
+      <button onClick={() => onEdit(member)}
+        className="text-gray-600 hover:text-white p-1.5 rounded-r-lg hover:bg-gray-700 transition-colors shrink-0"
+        title="Editar perfil">
+        <Pencil size={10} />
+      </button>
+    </div>
+  )
+}
+
+function CastPanel({ showId, allMembers, exclusions, onToggle, onEditMember }) {
+  if (allMembers.length === 0) return null
+  const byVoice = VOICE_ORDER
+    .map(v => ({ voice: v, members: allMembers.filter(m => m.voice === v) }))
+    .filter(g => g.members.length > 0)
+  const ungrouped = allMembers.filter(m => !VOICE_ORDER.includes(m.voice))
+  return (
+    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-gray-300">Membres d'aquest espectacle</h3>
         <Link to="/members" className="text-xs text-blue-500 hover:text-blue-400 transition-colors">Gestionar cor →</Link>
       </div>
-      <p className="text-xs text-gray-600">Clica per excloure algú d'aquest espectacle.</p>
-      <div className="flex flex-wrap gap-2">
-        {allMembers.map(m => {
-          const excluded = exclusions.has(m.id)
-          const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
+      <p className="text-xs text-gray-600">Clica el nom per incloure/excloure · <Pencil size={9} className="inline" /> per editar el perfil.</p>
+      <div className="space-y-4">
+        {byVoice.map(({ voice, members: vMembers }) => {
+          const c = VOICE_COLORS[voice] ?? VOICE_COLORS.extra
           return (
-            <button key={m.id} onClick={() => onToggle(m.id, excluded)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${excluded ? 'opacity-30 border-gray-700 bg-transparent' : 'border-transparent'}`}
-              style={excluded ? {} : { backgroundColor: c.bg + '22', color: c.fg === '#fff' ? c.bg : c.fg, borderColor: c.bg + '55' }}
-              title={excluded ? `${m.name} exclòs` : `Exclou ${m.name}`}>
-              <span className="w-5 h-5 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
-                style={{ backgroundColor: excluded ? '#374151' : c.bg, color: excluded ? '#6b7280' : c.fg }}>
-                {(m.initials || m.name.slice(0, 2)).toUpperCase()}
-              </span>
-              <span className={excluded ? 'text-gray-600 line-through' : ''}>{m.name}</span>
-            </button>
+            <div key={voice}>
+              <p className="text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: c.bg }}>
+                {VOICE_LABELS[voice]}
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                {vMembers.map(m => (
+                  <MemberChip key={m.id} member={m} excluded={exclusions.has(m.id)}
+                    onToggle={onToggle} onEdit={onEditMember} />
+                ))}
+              </div>
+            </div>
           )
         })}
+        {ungrouped.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold mb-2 uppercase tracking-wider text-gray-500">Altres</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              {ungrouped.map(m => (
+                <MemberChip key={m.id} member={m} excluded={exclusions.has(m.id)}
+                  onToggle={onToggle} onEdit={onEditMember} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -223,13 +433,16 @@ export default function Setlist() {
   const [exclusions, setExclusions] = useState(new Set())
   const [expandedParts, setExpandedParts] = useState({})
   const [expandedSongs, setExpandedSongs] = useState({})
-  const [allExpanded, setAllExpanded] = useState(true)
+  const [allExpanded, setAllExpanded] = useState(false)
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [creatingPart, setCreatingPart] = useState(false)
   const [editingSong, setEditingSong] = useState(null)
   const [editingPart, setEditingPart] = useState(null)
   const [showCast, setShowCast] = useState(false)
+  const [activeDragId, setActiveDragId] = useState(null)
+  const [editingMember, setEditingMember] = useState(null)
+  const [repertoire, setRepertoire] = useState([])
 
   const songSensors = useSensors(
     useSensor(PointerSensor),
@@ -238,20 +451,25 @@ export default function Setlist() {
 
   useEffect(() => {
     async function load() {
-      const [showRes, partsRes, songsRes, membersRes, exclusionsRes] = await Promise.all([
+      const [showRes, partsRes, songsRes, membersRes, exclusionsRes, repRes] = await Promise.all([
         supabase.from('shows').select('*').eq('id', showId).single(),
         supabase.from('parts').select('*').eq('show_id', showId).order('order_index'),
         supabase.from('songs').select('*').eq('show_id', showId).order('order_index'),
         supabase.from('members').select('*').order('name'),
         supabase.from('show_exclusions').select('member_id').eq('show_id', showId),
+        supabase.from('repertoire_songs').select('id, title, composer').order('title'),
       ])
+      setRepertoire(repRes.data ?? [])
       setShow(showRes.data)
-      setParts(partsRes.data ?? [])
+      const partList = partsRes.data ?? []
+      setParts(partList)
+      const partExp = {}; for (const p of partList) partExp[p.id] = false
+      setExpandedParts(partExp)
       const songList = songsRes.data ?? []
       setSongs(songList)
       setAllMembers(membersRes.data ?? [])
       setExclusions(new Set((exclusionsRes.data ?? []).map(e => e.member_id)))
-      const expInit = {}; for (const s of songList) expInit[s.id] = true
+      const expInit = {}; for (const s of songList) expInit[s.id] = false
       setExpandedSongs(expInit)
       if (songList.length) {
         const { data: momentData } = await supabase
@@ -320,9 +538,15 @@ export default function Setlist() {
       return
     }
 
-    // Dropped onto another song → reorder within same part
+    // Dropped onto another song → reorder within same part, or move cross-part
     const overSong = songs.find(s => s.id === over.id)
-    if (!overSong || activeSong.part_id !== overSong.part_id) return
+    if (!overSong) return
+
+    if (activeSong.part_id !== overSong.part_id) {
+      const { data, error } = await supabase.from('songs').update({ part_id: overSong.part_id }).eq('id', activeSong.id).select().single()
+      if (!error) setSongs(prev => prev.map(s => s.id === activeSong.id ? data : s))
+      return
+    }
 
     const partSongs = songs.filter(s => s.part_id === activeSong.part_id)
     const oldIndex = partSongs.findIndex(s => s.id === activeSong.id)
@@ -366,6 +590,9 @@ export default function Setlist() {
     })
   }
 
+  // ─── Repertoire map (id → song) ──────────────────────────
+  const repMap = Object.fromEntries(repertoire.map(r => [r.id, r]))
+
   // ─── Group songs by part ─────────────────────────────────
   const songsByPart = {}
   for (const song of songs) {
@@ -382,6 +609,7 @@ export default function Setlist() {
   }
 
   return (
+    <>
     <Layout>
       <div className="space-y-5">
         {/* Header */}
@@ -429,7 +657,7 @@ export default function Setlist() {
         </div>
 
         {/* Cast panel */}
-        {showCast && <CastPanel showId={showId} allMembers={allMembers} exclusions={exclusions} onToggle={toggleExclusion} />}
+        {showCast && <CastPanel showId={showId} allMembers={allMembers} exclusions={exclusions} onToggle={toggleExclusion} onEditMember={setEditingMember} />}
 
         {/* Part forms */}
         {creatingPart && (
@@ -449,13 +677,13 @@ export default function Setlist() {
         {creating && (
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
             <h3 className="text-sm font-medium text-gray-300 mb-3">Nova cançó</h3>
-            <SongForm parts={parts} onSave={handleCreateSong} onCancel={() => setCreating(false)} />
+            <SongForm parts={parts} repertoire={repertoire} onSave={handleCreateSong} onCancel={() => setCreating(false)} />
           </div>
         )}
         {editingSong && (
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
             <h3 className="text-sm font-medium text-gray-300 mb-3">Editar cançó</h3>
-            <SongForm initial={editingSong} parts={parts}
+            <SongForm initial={editingSong} parts={parts} repertoire={repertoire}
               onSave={fields => handleUpdateSong(editingSong.id, fields)}
               onCancel={() => setEditingSong(null)} />
           </div>
@@ -463,7 +691,10 @@ export default function Setlist() {
 
         {/* Sections — single DndContext for cross-part song drag */}
         {loading ? <p className="text-gray-500">Carregant...</p> : (
-          <DndContext sensors={songSensors} collisionDetection={closestCenter} onDragEnd={handleSongDragEnd}>
+          <DndContext sensors={songSensors} collisionDetection={closestCenter}
+            onDragStart={({ active }) => setActiveDragId(active.id)}
+            onDragEnd={(e) => { setActiveDragId(null); handleSongDragEnd(e) }}
+            onDragCancel={() => setActiveDragId(null)}>
             <div className="space-y-6">
               {sections.map(({ key, part, songs: sectionSongs }) => {
                 const dropId = part ? `drop-part-${part.id}` : 'drop-part-none'
@@ -473,16 +704,17 @@ export default function Setlist() {
                   <div key={key} className="space-y-2">
                     {/* Part header */}
                     {part ? (
-                      <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border bg-gray-900 border-gray-700">
-                        <button onClick={() => setExpandedParts(prev => ({ ...prev, [part.id]: !(prev[part.id] !== false) }))}
-                          className="text-gray-500 hover:text-white p-0.5 transition-colors">
+                      <div
+                        onClick={() => setExpandedParts(prev => ({ ...prev, [part.id]: !(prev[part.id] !== false) }))}
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-xl border bg-gray-900 border-gray-700 hover:border-gray-600 cursor-pointer transition-colors">
+                        <span className="text-gray-500 p-0.5 shrink-0">
                           {isPartExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                        </button>
+                        </span>
                         <span className="font-semibold text-sm text-gray-200 flex-1">{part.title}</span>
                         <span className="text-xs text-gray-600">{sectionSongs.length} cançó{sectionSongs.length !== 1 ? 'ns' : ''}</span>
-                        <button onClick={() => setEditingPart(part)}
+                        <button onClick={e => { e.stopPropagation(); setEditingPart(part) }}
                           className="text-gray-500 hover:text-white p-1.5 rounded-lg hover:bg-gray-800 transition-colors"><Pencil size={13} /></button>
-                        <button onClick={() => handleDeletePart(part.id)}
+                        <button onClick={e => { e.stopPropagation(); handleDeletePart(part.id) }}
                           className="text-gray-600 hover:text-red-500 p-1.5 rounded-lg hover:bg-gray-800 transition-colors"><X size={13} /></button>
                       </div>
                     ) : (
@@ -507,7 +739,9 @@ export default function Setlist() {
                               onAddMoment={handleAddMoment}
                               onDeleteMoment={handleDeleteMoment}
                               onReorderMoments={handleReorderMoments}
-                              showId={showId} />
+                              showId={showId}
+                              activeDragId={activeDragId}
+                              repSong={song.repertoire_song_id ? repMap[song.repertoire_song_id] : null} />
                           ))}
                         </SortableContext>
                         {sectionSongs.length === 0 && (
@@ -528,10 +762,51 @@ export default function Setlist() {
                 </div>
               )}
             </div>
+
+            {/* Drag overlay — ghost card shown while dragging */}
+            <DragOverlay dropAnimation={null}>
+              {activeDragId ? (() => {
+                const s = songs.find(s => s.id === activeDragId)
+                if (!s) return null
+                return (
+                  <div className="bg-gray-900 border-2 border-blue-500 rounded-xl px-4 py-3 shadow-2xl opacity-95 pointer-events-none">
+                    <p className="text-sm font-medium text-white">{s.title}</p>
+                    {s.notes && <p className="text-xs text-gray-500 mt-0.5">{s.notes}</p>}
+                  </div>
+                )
+              })() : null}
+            </DragOverlay>
           </DndContext>
         )}
       </div>
     </Layout>
+
+    {/* Member profile overlay */}
+    {editingMember && (
+      <PersonProfileOverlay
+        member={editingMember}
+        isNew={false}
+        onClose={() => setEditingMember(null)}
+        onSave={async (fields) => {
+          const { data, error } = await supabase.from('members').update(fields).eq('id', editingMember.id).select().single()
+          if (!error) {
+            setAllMembers(prev => prev.map(m => m.id === editingMember.id ? data : m))
+            setEditingMember(data)
+          }
+        }}
+        onSetActive={async (id, active) => {
+          const fields = active ? { active: true, left_at: null } : { active: false, left_at: new Date().toISOString() }
+          const { data, error } = await supabase.from('members').update(fields).eq('id', id).select().single()
+          if (!error) { setAllMembers(prev => prev.map(m => m.id === id ? data : m)); setEditingMember(data) }
+        }}
+        onDelete={async (id) => {
+          if (!confirm('Eliminar definitivament?')) return
+          await supabase.from('members').delete().eq('id', id)
+          setAllMembers(prev => prev.filter(m => m.id !== id))
+          setEditingMember(null)
+        }} />
+    )}
+    </>
   )
 
   async function toggleExclusion(memberId, currentlyExcluded) {

@@ -98,26 +98,183 @@ const SEED_SHOWS = [
   },
 ]
 
+// ─── Seed: Parts del Condal 2026 ─────────────────────────────
+const SEED_PARTS = [
+  { id: 'dev-part-1', show_id: CONDAL_SHOW_ID, title: 'Primera Part', order_index: 0 },
+  { id: 'dev-part-2', show_id: CONDAL_SHOW_ID, title: 'Segona Part',  order_index: 1 },
+]
+
 // ─── Seed: Setlist Condal 2026 ────────────────────────────────
 const SEED_SONGS = [
   // PRIMERA PART
-  { id: 'dev-song-01', show_id: CONDAL_SHOW_ID, title: 'Medley Rey León',         notes: 'Primera part', order: 1 },
-  { id: 'dev-song-02', show_id: CONDAL_SHOW_ID, title: 'The Seal Lullaby',         notes: '',             order: 2 },
-  { id: 'dev-song-03', show_id: CONDAL_SHOW_ID, title: 'Euphoria',                 notes: '',             order: 3 },
-  { id: 'dev-song-04', show_id: CONDAL_SHOW_ID, title: 'Better is One Day',        notes: '',             order: 4 },
-  { id: 'dev-song-05', show_id: CONDAL_SHOW_ID, title: 'Rise Up',                  notes: '',             order: 5 },
-  { id: 'dev-song-06', show_id: CONDAL_SHOW_ID, title: 'Defying Gravity',           notes: '',             order: 6 },
-  { id: 'dev-song-07', show_id: CONDAL_SHOW_ID, title: 'Medley Rent',              notes: '',             order: 7 },
-  { id: 'dev-song-08', show_id: CONDAL_SHOW_ID, title: "You Can't Stop the Beat",  notes: 'Fi 1a part',   order: 8 },
+  { id: 'dev-song-01', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-1', repertoire_song_id: 'rep-01', title: 'Medley Rey León',        notes: '', order: 1 },
+  { id: 'dev-song-02', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-1', repertoire_song_id: 'rep-02', title: 'The Seal Lullaby',        notes: '', order: 2 },
+  { id: 'dev-song-03', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-1', repertoire_song_id: 'rep-03', title: 'Euphoria',                notes: '', order: 3 },
+  { id: 'dev-song-04', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-1', repertoire_song_id: 'rep-04', title: 'Better is One Day',       notes: '', order: 4 },
+  { id: 'dev-song-05', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-1', repertoire_song_id: 'rep-05', title: 'Rise Up',                 notes: '', order: 5 },
+  { id: 'dev-song-06', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-1', repertoire_song_id: 'rep-06', title: 'Defying Gravity',         notes: '', order: 6 },
+  { id: 'dev-song-07', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-1', repertoire_song_id: 'rep-07', title: 'Medley Rent',             notes: '', order: 7 },
+  { id: 'dev-song-08', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-1', repertoire_song_id: 'rep-08', title: "You Can't Stop the Beat", notes: '', order: 8 },
   // SEGONA PART
-  { id: 'dev-song-09', show_id: CONDAL_SHOW_ID, title: 'The Greatest Show',        notes: 'Segona part',  order: 9 },
-  { id: 'dev-song-10', show_id: CONDAL_SHOW_ID, title: 'Baba Yetu',                notes: '',             order: 10 },
-  { id: 'dev-song-11', show_id: CONDAL_SHOW_ID, title: 'Hallelujah',               notes: '',             order: 11 },
-  { id: 'dev-song-12', show_id: CONDAL_SHOW_ID, title: 'Medley Queen',             notes: '',             order: 12 },
-  { id: 'dev-song-13', show_id: CONDAL_SHOW_ID, title: 'Viva la Vida',             notes: '',             order: 13 },
-  { id: 'dev-song-14', show_id: CONDAL_SHOW_ID, title: 'Believe',                  notes: '',             order: 14 },
-  { id: 'dev-song-15', show_id: CONDAL_SHOW_ID, title: 'Titanium',                 notes: '',             order: 15 },
-  { id: 'dev-song-16', show_id: CONDAL_SHOW_ID, title: 'Medley Beyoncé',           notes: 'Fi 2a part',   order: 16 },
+  { id: 'dev-song-09', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-2', repertoire_song_id: 'rep-09', title: 'The Greatest Show',       notes: '', order: 9 },
+  { id: 'dev-song-10', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-2', repertoire_song_id: 'rep-10', title: 'Baba Yetu',               notes: '', order: 10 },
+  { id: 'dev-song-11', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-2', repertoire_song_id: 'rep-11', title: 'Hallelujah',              notes: '', order: 11 },
+  { id: 'dev-song-12', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-2', repertoire_song_id: 'rep-12', title: 'Medley Queen',            notes: '', order: 12 },
+  { id: 'dev-song-13', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-2', repertoire_song_id: 'rep-13', title: 'Viva la Vida',            notes: '', order: 13 },
+  { id: 'dev-song-14', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-2', repertoire_song_id: 'rep-14', title: 'Believe',                 notes: '', order: 14 },
+  { id: 'dev-song-15', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-2', repertoire_song_id: 'rep-15', title: 'Titanium',                notes: '', order: 15 },
+  { id: 'dev-song-16', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-2', repertoire_song_id: 'rep-16', title: 'Medley Beyoncé',          notes: '', order: 16 },
+]
+
+// ─── Seed: Repertori global (Condal 2026) ────────────────────
+const SEED_REPERTOIRE = [
+  {
+    id: 'rep-01', title: 'Medley Rey León', composer: 'Elton John / Hans Zimmer',
+    notes: 'Circle of Life + He Lives in You. Arranjament coral.',
+    is_public: false,
+    attachments: JSON.stringify([
+      { type: 'reference', label: 'Circle of Life (YouTube)', url: 'https://www.youtube.com/watch?v=GibiNy4d4gc' },
+      { type: 'reference', label: 'He Lives in You (YouTube)', url: 'https://www.youtube.com/watch?v=e2pVBNtbSCc' },
+    ]),
+    lyrics: `CIRCLE OF LIFE\nNants ingonyama bagithi Baba\nSithi uhm ingonyama\nNants ingonyama bagithi baba\nSithi uhhmm ingonyama\nIngonyama\n\nFrom the day we arrive on the planet\nAnd blinking, step into the sun\nThere's more to be seen than can ever be seen\nMore to do than can ever be done\n\nSome say eat or be eaten\nSome say live and let live\nBut all are agreed as they join the stampede\nYou should never take more than you give\n\nIn the circle of life\nIt's the wheel of fortune\nIt's the leap of faith\nIt's the band of hope\nTill we find our place\nOn the path unwinding\nIn the circle, the circle of life`,
+  },
+  {
+    id: 'rep-02', title: 'The Seal Lullaby', composer: 'Eric Whitacre',
+    notes: 'Text de Rudyard Kipling. Peça a cappella.',
+    is_public: false,
+    attachments: JSON.stringify([
+      { type: 'reference', label: 'Eric Whitacre (YouTube)', url: 'https://www.youtube.com/watch?v=3D7ZNITpA5g' },
+    ]),
+    lyrics: `Oh! Hush thee, my baby, the night is behind us,\nAnd black are the waters that sparkled so green.\nThe moon, o'er the combers, looks downward to find us\nAt rest in the hollows that rustle between.\n\nWhere billow meets billow, then soft be thy pillow,\nAh, weary wee flipperling, curl at thy ease!\nThe storm shall not wake thee, nor shark overtake thee,\nAsleep in the arms of the slow-swinging seas.`,
+  },
+  {
+    id: 'rep-03', title: 'Euphoria', composer: 'Loreen / Thomas G:son',
+    notes: 'Eurovision 2012. Arranjament per a cor mixte.',
+    is_public: false,
+    attachments: JSON.stringify([
+      { type: 'reference', label: 'Loreen - Euphoria (YouTube)', url: 'https://www.youtube.com/watch?v=Pfo-8z86x80' },
+    ]),
+    lyrics: `I am captured by a spell\nA paradise, a living hell\nI feel you coursing through my veins\nConsume my heart, ignite my brain\n\nI close my eyes, I'm in a trance\nLost in your hypnotic dance\nYou light me up, you burn me down\nI'm king and fool, I'm lost and found\n\nEuphoria\nForever, till the end of time\nFrom now on, only you and I\nEuphoria\nWe're going up, up, up, up, up`,
+  },
+  {
+    id: 'rep-04', title: 'Better is One Day', composer: 'Matt Redman',
+    notes: 'Cançó gospel/worship. Arranjament coral.',
+    is_public: false,
+    attachments: JSON.stringify([
+      { type: 'reference', label: 'Better is One Day (YouTube)', url: 'https://www.youtube.com/watch?v=V-UHtbGIsto' },
+    ]),
+    lyrics: `How lovely is Your dwelling place\nO Lord Almighty\nFor my soul longs and even faints for You\nFor here my heart is satisfied\nWithin Your presence\nI sing beneath the shadow of Your wings\n\nBetter is one day in Your courts\nBetter is one day in Your house\nBetter is one day in Your courts\nThan thousands elsewhere`,
+  },
+  {
+    id: 'rep-05', title: 'Rise Up', composer: 'Cassandra Batie / Jennifer Decilveo',
+    notes: 'Popularitzat per Andra Day. Arranjament SATB.',
+    is_public: false,
+    attachments: JSON.stringify([
+      { type: 'reference', label: 'Andra Day - Rise Up (YouTube)', url: 'https://www.youtube.com/watch?v=lwgr_IMeEgA' },
+    ]),
+    lyrics: `You're broken down and tired\nOf living life on a merry go round\nAnd you can't find the fighter\nBut I see it in you so we gonna walk it out\nAnd move mountains\n\nI'll rise up, I'll rise like the day\nI'll rise up, I'll rise unafraid\nI'll rise up, and I'll do it a thousand times again\n\nFor you, for you\nFor you, for you`,
+  },
+  {
+    id: 'rep-06', title: 'Defying Gravity', composer: 'Stephen Schwartz',
+    notes: 'Del musical Wicked. Soprano solista.',
+    is_public: false,
+    attachments: JSON.stringify([
+      { type: 'reference', label: 'Defying Gravity - Wicked (YouTube)', url: 'https://www.youtube.com/watch?v=pKMbnlJDhUE' },
+    ]),
+    lyrics: `Something has changed within me\nSomething is not the same\nI'm through with playing by the rules\nOf someone else's game\n\nToo late for second-guessing\nToo late to go back to sleep\nIt's time to trust my instincts\nClose my eyes and leap!\n\nIt's time to try defying gravity\nI think I'll try defying gravity\nAnd you can't pull me down!`,
+  },
+  {
+    id: 'rep-07', title: 'Medley Rent', composer: 'Jonathan Larson',
+    notes: 'Seasons of Love + No Day But Today + La Vie Bohème.',
+    is_public: false,
+    attachments: JSON.stringify([
+      { type: 'reference', label: 'Seasons of Love (YouTube)', url: 'https://www.youtube.com/watch?v=hj7LRuusFqo' },
+    ]),
+    lyrics: `Five hundred twenty-five thousand six hundred minutes\nFive hundred twenty-five thousand moments so dear\nFive hundred twenty-five thousand six hundred minutes\nHow do you measure, measure a year?\n\nIn daylights, in sunsets\nIn midnights, in cups of coffee\nIn inches, in miles\nIn laughter, in strife\n\nIn five hundred twenty-five thousand six hundred minutes\nHow do you measure a year in the life?\nHow about love?`,
+  },
+  {
+    id: 'rep-08', title: "You Can't Stop the Beat", composer: 'Marc Shaiman / Scott Wittman',
+    notes: 'Del musical Hairspray. Fi de la primera part.',
+    is_public: false,
+    attachments: JSON.stringify([
+      { type: 'reference', label: "You Can't Stop the Beat (YouTube)", url: 'https://www.youtube.com/watch?v=zCVlimtn7kA' },
+    ]),
+    lyrics: `You can't stop an avalanche as it races down the hill\nYou can try to stop the seasons, girl, but ya know you never will\nAnd you can try to stop my dancin' feet\nBut I just cannot stand still\n\n'Cause the world keeps spinning 'round and 'round\nAnd my heart's keeping time to the speed of sound\nI was lost 'til I heard the drums\nThen I found my way\n\n'Cause you can't stop the beat!`,
+  },
+  {
+    id: 'rep-09', title: 'The Greatest Show', composer: 'Pasek & Paul / Ryan Lewis',
+    notes: "De la pel·lícula The Greatest Showman. Inici de la 2a part.",
+    is_public: false,
+    attachments: JSON.stringify([
+      { type: 'reference', label: 'The Greatest Show (YouTube)', url: 'https://www.youtube.com/watch?v=yjki-9e536U' },
+    ]),
+    lyrics: `Whoa-oh, whoa-oh, whoa-oh, oh\nThis is the greatest show\n\nWoah-oh-oh\n\nLadies and gents, this is the moment you've waited for\nBeen searching in the dark, your sweat soaking through the floor\nAnd buried in your bones there's an ache that you can't ignore\nTaking your breath, stealing your mind\nAnd all that was real is left behind\n\nDon't fight it, it's coming for you, running at ya\nIt's only this moment, don't care what comes after\nYour fever dream, can't you see it getting closer?\nJust surrender 'cause you feel the feeling taking over`,
+  },
+  {
+    id: 'rep-10', title: 'Baba Yetu', composer: 'Christopher Tin',
+    notes: "Oració del Pare Nostre en swahili. Grammy 2011.",
+    is_public: false,
+    attachments: JSON.stringify([
+      { type: 'reference', label: 'Baba Yetu - Christopher Tin (YouTube)', url: 'https://www.youtube.com/watch?v=IJiHDmyhE1A' },
+    ]),
+    lyrics: `Baba yetu, yetu uliye\nMbinguni yetu, yetu amina\nBaba yetu, yetu uliye\nJina lako litukuzwe\n\nUtupe leo chakula chetu\nTunachohitaji utusamehe\nMakosa yetu, hey!\nKama nasi tunavyowasamehe\nWaliotukosea usitutie\nKatika majaribu\nLakini utuokoe\nNa yule muovu milele\n\nAmina!`,
+  },
+  {
+    id: 'rep-11', title: 'Hallelujah', composer: 'Leonard Cohen',
+    notes: "Versió coral. Arranjament per a SATB.",
+    is_public: false,
+    attachments: JSON.stringify([
+      { type: 'reference', label: 'Hallelujah - Leonard Cohen (YouTube)', url: 'https://www.youtube.com/watch?v=ttEMYvpoR-k' },
+    ]),
+    lyrics: `I've heard there was a secret chord\nThat David played, and it pleased the Lord\nBut you don't really care for music, do you?\nIt goes like this, the fourth, the fifth\nThe minor fall, the major lift\nThe baffled king composing Hallelujah\n\nHallelujah, Hallelujah\nHallelujah, Hallelujah`,
+  },
+  {
+    id: 'rep-12', title: 'Medley Queen', composer: 'Freddie Mercury / Brian May / Roger Taylor',
+    notes: "Bohemian Rhapsody + We Are the Champions + Somebody to Love",
+    is_public: false,
+    attachments: JSON.stringify([
+      { type: 'reference', label: 'Bohemian Rhapsody (YouTube)', url: 'https://www.youtube.com/watch?v=fJ9rUzIMcZQ' },
+      { type: 'reference', label: 'We Are the Champions (YouTube)', url: 'https://www.youtube.com/watch?v=04854XqcfBY' },
+    ]),
+    lyrics: `Is this the real life?\nIs this just fantasy?\nCaught in a landslide\nNo escape from reality\n\nOpen your eyes\nLook up to the skies and see\nI'm just a poor boy, I need no sympathy\nBecause it's easy come, easy go\nLittle high, little low\nAny way the wind blows\nDoesn't really matter to me, to me\n\nWe are the champions, my friends\nAnd we'll keep on fighting 'til the end\nWe are the champions\nWe are the champions\nNo time for losers\n'Cause we are the champions of the world`,
+  },
+  {
+    id: 'rep-13', title: 'Viva la Vida', composer: 'Coldplay',
+    notes: "Arranjament per a cor mixte amb percussió.",
+    is_public: false,
+    attachments: JSON.stringify([
+      { type: 'reference', label: 'Viva la Vida - Coldplay (YouTube)', url: 'https://www.youtube.com/watch?v=dvgZkm1xWPE' },
+    ]),
+    lyrics: `I used to rule the world\nSeas would rise when I gave the word\nNow in the morning I sleep alone\nSweep the streets I used to own\n\nI used to roll the dice\nFeel the fear in my enemy's eyes\nListened as the crowd would sing:\n"Now the old king is dead! Long live the king!"\n\nOne minute I held the key\nNext the walls were closed on me\nAnd I discovered that my castles stand\nUpon pillars of salt and pillars of sand`,
+  },
+  {
+    id: 'rep-14', title: 'Believe', composer: 'Brian Higgins / Stuart McLennan / Paul Barry / Steven Torch / Timothy Powell / Matt Gray',
+    notes: "Cher, 1998. Arranjament per a cor.",
+    is_public: false,
+    attachments: JSON.stringify([
+      { type: 'reference', label: 'Cher - Believe (YouTube)', url: 'https://www.youtube.com/watch?v=nZXRV4MezEw' },
+    ]),
+    lyrics: `No matter how hard I try\nYou keep pushing me aside\nAnd I can't break through\nThere's no talking to you\n\nIt's so sad that you're leaving\nIt takes time to believe it\nBut after all is said and done\nYou're going to be the lonely one\n\nDo you believe in life after love?\nI can feel something inside me say\nI really don't think you're strong enough, no`,
+  },
+  {
+    id: 'rep-15', title: 'Titanium', composer: 'David Guetta / Sia / Giorgio Tuinfort / Nick van de Wall',
+    notes: "David Guetta ft. Sia. Arranjament SATB.",
+    is_public: false,
+    attachments: JSON.stringify([
+      { type: 'reference', label: 'David Guetta ft. Sia - Titanium (YouTube)', url: 'https://www.youtube.com/watch?v=JRfuAukYTKg' },
+    ]),
+    lyrics: `I'm bulletproof, nothing to lose\nFire away, fire away\nRicochet, you take your aim\nFire away, fire away\nYou shoot me down but I won't fall\nI am titanium\n\nShoot me down but I won't fall\nI am titanium\nI am titanium\nI am titanium`,
+  },
+  {
+    id: 'rep-16', title: 'Medley Beyoncé', composer: 'Beyoncé Knowles / various',
+    notes: "Crazy in Love + Halo + Single Ladies. Fi de l'espectacle.",
+    is_public: false,
+    attachments: JSON.stringify([
+      { type: 'reference', label: 'Crazy in Love (YouTube)', url: 'https://www.youtube.com/watch?v=ViwtNLUqkMY' },
+      { type: 'reference', label: 'Halo (YouTube)', url: 'https://www.youtube.com/watch?v=Lp7e973zozc' },
+    ]),
+    lyrics: `CRAZY IN LOVE\nUh oh, uh oh, uh oh, oh no no\nI look and stare so deep in your eyes\nI touch on you more and more every time\nWhen you leave I'm begging you not to go\n\nHALO\nRemember those walls I built?\nWell, baby, they're tumbling down\nAnd they didn't even put up a fight\nThey didn't even make a sound\n\nI found a way to let you in\nBut I never really had a doubt\nStanding in the light of your halo\nI got my angel now`,
+  },
 ]
 
 // ─── Seed: Moments per cançó (basats en el PDF Condal 2026) ───
@@ -655,13 +812,27 @@ function ensureSeedData() {
   const showsChanged = JSON.stringify(migratedShows) !== JSON.stringify(existingShows)
   if (toAddShows.length || showsChanged) save('shows', [...migratedShows, ...toAddShows])
 
-  // ── Songs ────────────────────────────────────────────────────
+  // ── Parts ─────────────────────────────────────────────────────
+  const existingParts = load('parts')
+  const existingPartIds = new Set(existingParts.map(p => p.id))
+  const toAddParts = SEED_PARTS.filter(p => !existingPartIds.has(p.id))
+  if (toAddParts.length) save('parts', [...existingParts, ...toAddParts])
+
+  // ── Songs ─────────────────────────────────────────────────────
   const existingSongs = load('songs')
   const existingSongIds = new Set(existingSongs.map(s => s.id))
+  // Migrate: add part_id + repertoire_song_id from seed if missing
+  const migratedSongs = existingSongs.map(s => {
+    const seed = SEED_SONGS.find(ss => ss.id === s.id)
+    if (!seed) return s
+    const needsMigration = !s.part_id || !s.repertoire_song_id
+    return needsMigration ? { ...s, part_id: seed.part_id, repertoire_song_id: seed.repertoire_song_id } : s
+  })
+  const songsChanged = JSON.stringify(migratedSongs) !== JSON.stringify(existingSongs)
   const toAddSongs = SEED_SONGS
     .filter(s => !existingSongIds.has(s.id))
     .map(s => ({ ...s, created_at: new Date().toISOString() }))
-  if (toAddSongs.length) save('songs', [...existingSongs, ...toAddSongs])
+  if (toAddSongs.length || songsChanged) save('songs', [...migratedSongs, ...toAddSongs])
 
   // ── Moments ──────────────────────────────────────────────────
   const existingMoments = load('moments')
@@ -691,6 +862,25 @@ function ensureSeedData() {
     }
   }
   if (toAddPositions.length) save('positions', [...existingPositions, ...toAddPositions])
+
+  // ── Repertori ────────────────────────────────────────────────
+  const existingRepertoire = load('repertoire_songs')
+  const existingRepIds = new Set(existingRepertoire.map(s => s.id))
+  const toAddRep = SEED_REPERTOIRE
+    .filter(s => !existingRepIds.has(s.id))
+    .map(s => ({ ...s, created_at: new Date().toISOString(), created_by: DEV_USER.id }))
+  if (toAddRep.length) save('repertoire_songs', [...existingRepertoire, ...toAddRep])
+
+  // ── Profiles (dev user) ──────────────────────────────────────
+  const existingProfiles = load('profiles')
+  if (!existingProfiles.find(p => p.id === DEV_USER.id)) {
+    save('profiles', [...existingProfiles, {
+      id: DEV_USER.id,
+      email: DEV_USER.email,
+      full_name: DEV_USER.user_metadata.full_name,
+      role: DEV_USER.user_metadata.role,
+    }])
+  }
 }
 
 ensureSeedData()

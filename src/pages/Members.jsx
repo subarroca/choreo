@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
 import Layout from '../components/Layout'
 import PersonProfileOverlay from '../components/PersonProfileOverlay'
+import { useAuth } from '../hooks/useAuth.jsx'
 
 const VOICE_ORDER = ['soprano1','soprano2','alto1','alto2','tenor1','tenor2','baritone','bass']
 const ALL_VOICES = VOICE_ORDER
@@ -22,6 +23,8 @@ function deriveInitials(fn, ln) {
 
 // ─── Main page ────────────────────────────────────────────────
 export default function Members() {
+  const { permissions, role } = useAuth()
+  const canEdit = role === 'admin' || role === 'director' || permissions?.members?.edit
   const [members, setMembers]         = useState([])
   const [loading, setLoading]         = useState(true)
   const [showInactive, setShowInactive] = useState(false)
@@ -57,7 +60,10 @@ export default function Members() {
   }
 
   async function handleSetActive(id, active) {
-    const { data, error } = await supabase.from('members').update({ active }).eq('id', id).select().single()
+    const fields = active
+      ? { active: true, left_at: null }
+      : { active: false, left_at: new Date().toISOString() }
+    const { data, error } = await supabase.from('members').update(fields).eq('id', id).select().single()
     if (!error) {
       setMembers(prev => prev.map(m => m.id === id ? data : m))
       setOverlayMember(data)
@@ -88,11 +94,11 @@ export default function Members() {
   const overlayData = isNew ? null : overlayMember
 
   return (
-    <Layout fullWidth>
-      <div className="flex flex-col h-[calc(100vh-57px)]">
+    <Layout narrow>
+      <div className="space-y-4">
 
         {/* ── Header ── */}
-        <div className="px-4 py-3 border-b border-gray-800 bg-gray-900 shrink-0 space-y-3">
+        <div className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="flex-1 relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -100,10 +106,12 @@ export default function Members() {
                 placeholder="Cerca per nom…"
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-blue-500" />
             </div>
-            <button onClick={() => setOverlayMember('new')}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-lg transition-colors shrink-0">
-              <Plus size={14} /> Afegir
-            </button>
+            {canEdit && (
+              <button onClick={() => setOverlayMember('new')}
+                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-lg transition-colors shrink-0">
+                <Plus size={14} /> Afegir
+              </button>
+            )}
           </div>
 
           {/* Voice filter */}
@@ -128,9 +136,9 @@ export default function Members() {
         </div>
 
         {/* ── List ── */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="space-y-2">
           {loading ? (
-            <p className="text-gray-500 text-sm p-4">Carregant...</p>
+            <p className="text-gray-500 text-sm py-4">Carregant...</p>
           ) : listMembers.length === 0 ? (
             <div className="text-center py-16 text-gray-600">
               <Mic size={32} className="mx-auto mb-3 opacity-30" />
@@ -141,14 +149,14 @@ export default function Members() {
               const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
               const age = calcAge(m.birth_date)
               return (
-                <button key={m.id} onClick={() => setOverlayMember(m)}
-                  className="w-full flex items-center gap-3 pl-0 pr-4 py-2.5 text-left transition-colors border-b border-gray-800/60 hover:bg-gray-900">
-                  <span className="w-1 self-stretch rounded-r-full shrink-0" style={{ backgroundColor: c.bg }} />
-                  <span className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                <div key={m.id} onClick={() => setOverlayMember(m)}
+                  className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden flex items-center gap-3 pr-4 hover:border-gray-700 hover:bg-gray-800/30 cursor-pointer transition-colors">
+                  <span className="w-1 self-stretch shrink-0" style={{ backgroundColor: c.bg }} />
+                  <span className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 my-3"
                     style={{ backgroundColor: c.bg, color: c.fg }}>
                     {(m.initials || deriveInitials(m.first_name, m.last_name)).slice(0, 3)}
                   </span>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 py-3">
                     <div className="text-sm text-white font-medium truncate">
                       {m.first_name} <span className="font-semibold">{m.last_name}</span>
                     </div>
@@ -160,37 +168,42 @@ export default function Members() {
                       {m.height && <span className="text-xs text-gray-600">{m.height} cm</span>}
                     </div>
                   </div>
-                </button>
+                </div>
               )
             })
           )}
 
           {/* Inactive section */}
           {inactiveMembers.length > 0 && (
-            <div className="border-t border-gray-800 mt-1">
+            <div className="pt-2">
               <button onClick={() => setShowInactive(v => !v)}
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-yellow-700 hover:text-yellow-500 transition-colors">
+                className="flex items-center gap-2 px-1 py-2 text-xs text-yellow-700 hover:text-yellow-500 transition-colors w-full">
                 {showInactive ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                 De baixa ({inactiveMembers.length})
               </button>
-              {showInactive && inactiveMembers.map(m => {
-                const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
-                return (
-                  <button key={m.id} onClick={() => setOverlayMember(m)}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors border-b border-gray-800/60 opacity-50 hover:bg-gray-900">
-                    <span className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                      style={{ backgroundColor: c.bg, color: c.fg }}>
-                      {(m.initials || deriveInitials(m.first_name, m.last_name)).slice(0, 3)}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm text-white font-medium truncate line-through">
-                        {m.first_name} <span className="font-semibold">{m.last_name}</span>
+              {showInactive && (
+                <div className="space-y-2 mt-1">
+                  {inactiveMembers.map(m => {
+                    const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
+                    return (
+                      <div key={m.id} onClick={() => setOverlayMember(m)}
+                        className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden flex items-center gap-3 pr-4 opacity-50 hover:opacity-70 cursor-pointer transition-opacity">
+                        <span className="w-1 self-stretch shrink-0" style={{ backgroundColor: c.bg }} />
+                        <span className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 my-3"
+                          style={{ backgroundColor: c.bg, color: c.fg }}>
+                          {(m.initials || deriveInitials(m.first_name, m.last_name)).slice(0, 3)}
+                        </span>
+                        <div className="flex-1 min-w-0 py-3">
+                          <div className="text-sm text-white font-medium truncate line-through">
+                            {m.first_name} <span className="font-semibold">{m.last_name}</span>
+                          </div>
+                          <div className="text-xs text-yellow-700">De baixa</div>
+                        </div>
                       </div>
-                      <div className="text-xs text-yellow-700">De baixa</div>
-                    </div>
-                  </button>
-                )
-              })}
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -201,10 +214,11 @@ export default function Members() {
         <PersonProfileOverlay
           member={overlayData}
           isNew={isNew}
+          readOnly={!canEdit}
           onClose={() => setOverlayMember(null)}
-          onSave={fields => isNew ? handleCreate(fields) : handleUpdate(overlayData.id, fields)}
-          onSetActive={isNew ? null : handleSetActive}
-          onDelete={isNew ? null : handleDelete} />
+          onSave={canEdit ? (fields => isNew ? handleCreate(fields) : handleUpdate(overlayData.id, fields)) : null}
+          onSetActive={isNew || !canEdit ? null : handleSetActive}
+          onDelete={isNew || !canEdit ? null : handleDelete} />
       )}
     </Layout>
   )
