@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
-import { BookOpen, Plus, Pencil, Trash2, ExternalLink, Music, Globe, Lock, FileText, Upload, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { BookOpen, Plus, Pencil, ExternalLink, Music, Globe, Lock, FileText, Upload, X, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import Layout from '../components/Layout'
 
 const DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true'
 
-const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 placeholder-gray-600'
+const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 placeholder-gray-600'
 const labelCls = 'text-xs text-gray-400 mb-1 block'
 
 const ATTACHMENT_TYPES = [
@@ -81,7 +81,7 @@ function AttachmentEditor({ attachments, onChange }) {
             <div>
               <label className={labelCls}>Tipus</label>
               <select value={type} onChange={e => setType(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500">
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-cyan-500">
                 {ATTACHMENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
@@ -111,7 +111,7 @@ function AttachmentEditor({ attachments, onChange }) {
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={addAttachment}
-              className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
+              className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
               Afegir
             </button>
             <button type="button" onClick={() => { setAdding(false); setLabel(''); setUrl(''); setType('reference') }}
@@ -196,7 +196,7 @@ function SongForm({ initial, onSave, onCancel }) {
 
       <div className="flex gap-2">
         <button type="submit"
-          className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">
+          className="bg-cyan-600 hover:bg-cyan-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">
           Guardar
         </button>
         <button type="button" onClick={onCancel}
@@ -208,14 +208,45 @@ function SongForm({ initial, onSave, onCancel }) {
   )
 }
 
+// ── SongSheet (sidesheet) ─────────────────────────────────────
+function SongSheet({ song, isNew, onSave, onDelete, onClose }) {
+  return (
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-black/60 z-40" onClick={onClose} />
+      {/* Panel */}
+      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-gray-950 border-l border-gray-800 flex flex-col shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800 shrink-0">
+          <h2 className="text-base font-semibold text-white">
+            {isNew ? 'Nova cançó' : 'Editar cançó'}
+          </h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-white p-1.5 rounded-lg hover:bg-gray-800 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5">
+          <SongForm initial={isNew ? undefined : song} onSave={onSave} onCancel={onClose} />
+          {!isNew && onDelete && (
+            <div className="mt-6 pt-4 border-t border-gray-800">
+              <button onClick={onDelete}
+                className="text-sm text-red-500 hover:text-red-400 transition-colors">
+                Eliminar cançó del repertori
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────
 export default function Songs() {
   const { user } = useAuth()
-  const [songs, setSongs]         = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [creating, setCreating]   = useState(false)
-  const [editingId, setEditingId] = useState(null)
-  const [expandedId, setExpandedId] = useState(null)
+  const [songs, setSongs]       = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [sheetSong, setSheetSong] = useState(null) // song obj | 'new' | null
+  const [search, setSearch]     = useState('')
 
   useEffect(() => { fetchSongs() }, [])
 
@@ -232,7 +263,7 @@ export default function Songs() {
       .select().single()
     if (!error) {
       setSongs(prev => [...prev, data].sort((a, b) => a.title.localeCompare(b.title, 'ca')))
-      setCreating(false)
+      setSheetSong(null)
     }
   }
 
@@ -241,7 +272,7 @@ export default function Songs() {
       .from('repertoire_songs').update(fields).eq('id', id).select().single()
     if (!error) {
       setSongs(prev => prev.map(s => s.id === id ? data : s))
-      setEditingId(null)
+      setSheetSong(null)
     }
   }
 
@@ -249,14 +280,13 @@ export default function Songs() {
     if (!confirm('Eliminar aquesta cançó del repertori?')) return
     await supabase.from('repertoire_songs').delete().eq('id', id)
     setSongs(prev => prev.filter(s => s.id !== id))
-    if (expandedId === id) setExpandedId(null)
+    setSheetSong(null)
   }
 
   function parseAttachments(song) {
     if (song.attachments) {
       try { return JSON.parse(song.attachments) } catch { return [] }
     }
-    // Legacy fields
     const a = []
     if (song.source_url) a.push({ type: 'reference', label: 'Referència', url: song.source_url })
     if (song.score_url)  a.push({ type: 'score',     label: 'Partitura',  url: song.score_url })
@@ -264,112 +294,84 @@ export default function Songs() {
     return a
   }
 
+  const searchLower = search.toLowerCase()
+  const visibleSongs = search
+    ? songs.filter(s => s.title?.toLowerCase().includes(searchLower) || s.composer?.toLowerCase().includes(searchLower))
+    : songs
+
+  const isNew = sheetSong === 'new'
+
   return (
     <Layout narrow>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold text-white">Repertori</h1>
-          {!creating && (
-            <button onClick={() => setCreating(true)}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-              <Plus size={14} /> Nova cançó
-            </button>
-          )}
+          <button onClick={() => setSheetSong('new')}
+            className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-sm px-4 py-2 rounded-lg transition-colors shrink-0">
+            <Plus size={14} /> Nova cançó
+          </button>
         </div>
 
-        {creating && (
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Nova cançó al repertori</h3>
-            <SongForm onSave={handleCreate} onCancel={() => setCreating(false)} />
-          </div>
-        )}
+        {/* Search */}
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Cerca per títol o compositor…"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500" />
+        </div>
 
         {loading ? (
           <p className="text-gray-500">Carregant...</p>
-        ) : songs.length === 0 ? (
+        ) : visibleSongs.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
             <BookOpen size={40} className="mx-auto mb-4 opacity-30" />
-            <p>El repertori és buit.</p>
-            <p className="text-sm mt-1">Afegeix la primera cançó amb el botó de dalt.</p>
+            <p>{search ? 'Cap resultat per aquesta cerca.' : 'El repertori és buit.'}</p>
+            {!search && <p className="text-sm mt-1">Afegeix la primera cançó amb el botó de dalt.</p>}
           </div>
         ) : (
           <div className="space-y-2">
-            {songs.map(song => {
+            {visibleSongs.map(song => {
               const atts = parseAttachments(song)
-              const isExpanded = expandedId === song.id
               return (
-                <div key={song.id} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-                  {editingId === song.id ? (
-                    <div className="p-4">
-                      <h3 className="text-sm font-medium text-gray-300 mb-3">Editar cançó</h3>
-                      <SongForm initial={song}
-                        onSave={fields => handleUpdate(song.id, fields)}
-                        onCancel={() => setEditingId(null)} />
+                <button key={song.id} onClick={() => setSheetSong(song)}
+                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 hover:border-gray-700 hover:bg-gray-800/30 transition-colors text-left flex items-center gap-3">
+                  <Music size={14} className="text-gray-600 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-white font-medium text-sm">{song.title}</p>
+                      {song.is_public
+                        ? <span className="flex items-center gap-1 text-xs text-green-500 px-1.5 py-0.5 rounded shrink-0">
+                            <Globe size={9} /> Pública
+                          </span>
+                        : <span className="flex items-center gap-1 text-xs text-gray-600 px-1.5 py-0.5 rounded shrink-0">
+                            <Lock size={9} /> Privada
+                          </span>
+                      }
                     </div>
-                  ) : (
-                    <>
-                      <div onClick={() => setExpandedId(isExpanded ? null : song.id)}
-                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-800/50 cursor-pointer transition-colors">
-                        <Music size={14} className="text-gray-600 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <p className="text-white font-medium text-sm">{song.title}</p>
-                            {song.is_public
-                              ? <span className="flex items-center gap-1 text-xs text-green-500 bg-green-900/30 px-1.5 py-0.5 rounded shrink-0">
-                                  <Globe size={9} /> Pública
-                                </span>
-                              : <span className="flex items-center gap-1 text-xs text-gray-600 bg-gray-800 px-1.5 py-0.5 rounded shrink-0">
-                                  <Lock size={9} /> Privada
-                                </span>
-                            }
-                          </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            {song.composer && <p className="text-xs text-gray-500 truncate">{song.composer}</p>}
-                            {atts.length > 0 && (
-                              <span className="text-xs text-gray-600 shrink-0">{atts.length} recurs{atts.length !== 1 ? 'os' : ''}</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button onClick={e => { e.stopPropagation(); setEditingId(song.id) }}
-                            className="text-gray-500 hover:text-white p-2 rounded-lg hover:bg-gray-700 transition-colors">
-                            <Pencil size={13} />
-                          </button>
-                          <button onClick={e => { e.stopPropagation(); handleDelete(song.id) }}
-                            className="text-gray-600 hover:text-red-500 p-2 rounded-lg hover:bg-gray-700 transition-colors">
-                            <Trash2 size={13} />
-                          </button>
-                          {isExpanded ? <ChevronUp size={14} className="text-gray-600" /> : <ChevronDown size={14} className="text-gray-600" />}
-                        </div>
-                      </div>
-
-                      {isExpanded && (
-                        <div className="border-t border-gray-800 px-4 py-3 space-y-2 bg-black/20">
-                          {song.notes && <p className="text-xs text-gray-400">{song.notes}</p>}
-                          {atts.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                              {atts.map((a, i) => (
-                                <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
-                                  onClick={e => e.stopPropagation()}
-                                  className="flex items-center gap-1.5 text-xs bg-gray-800 hover:bg-gray-700 px-2.5 py-1.5 rounded-lg transition-colors">
-                                  <AttachmentIcon type={a.type} size={11} />
-                                  <span className="text-gray-300">{a.label}</span>
-                                </a>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-xs text-gray-600 italic">Sense recursos afegits</p>
-                          )}
-                        </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {song.composer && <p className="text-xs text-gray-500 truncate">{song.composer}</p>}
+                      {atts.length > 0 && (
+                        <span className="text-xs text-gray-600 shrink-0">{atts.length} recurs{atts.length !== 1 ? 'os' : ''}</span>
                       )}
-                    </>
-                  )}
-                </div>
+                    </div>
+                  </div>
+                  <Pencil size={12} className="text-gray-700 shrink-0" />
+                </button>
               )
             })}
           </div>
         )}
       </div>
+
+      {sheetSong && (
+        <SongSheet
+          song={isNew ? null : sheetSong}
+          isNew={isNew}
+          onSave={isNew ? handleCreate : fields => handleUpdate(sheetSong.id, fields)}
+          onDelete={isNew ? null : () => handleDelete(sheetSong.id)}
+          onClose={() => setSheetSong(null)} />
+      )}
     </Layout>
   )
 }

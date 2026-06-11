@@ -21,14 +21,14 @@ export default function Layout({ children, fullWidth = false, narrow = false }) 
   const navLinkCls = (path) =>
     `flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
       location.pathname === path
-        ? 'bg-gray-700 text-white'
+        ? 'bg-cyan-700/40 text-cyan-300'
         : 'text-gray-400 hover:text-white hover:bg-gray-800'
     }`
 
   const mobileNavLinkCls = (path) =>
     `flex items-center gap-2 px-4 py-3 rounded-lg text-sm transition-colors ${
       location.pathname === path
-        ? 'bg-gray-700 text-white'
+        ? 'bg-cyan-700/40 text-cyan-300'
         : 'text-gray-400 hover:text-white hover:bg-gray-800'
     }`
 
@@ -42,17 +42,17 @@ export default function Layout({ children, fullWidth = false, narrow = false }) 
         {/* Desktop nav */}
         {user && (
           <nav className="hidden md:flex items-center gap-1 text-sm">
+            {canViewRepertoire && (
+              <Link to="/songs" className={navLinkCls('/songs')}>
+                <BookOpen size={14} /> Repertori
+              </Link>
+            )}
             <Link to="/" className={navLinkCls('/')}>
               <Clapperboard size={14} /> Espectacles
             </Link>
             {canViewMembers && (
               <Link to="/members" className={navLinkCls('/members')}>
                 <Users size={14} /> Persones
-              </Link>
-            )}
-            {canViewRepertoire && (
-              <Link to="/songs" className={navLinkCls('/songs')}>
-                <BookOpen size={14} /> Repertori
               </Link>
             )}
             {isAdmin && (
@@ -88,17 +88,17 @@ export default function Layout({ children, fullWidth = false, narrow = false }) 
           <div className="absolute top-full left-0 right-0 z-50 bg-gray-900 border-b border-gray-800 shadow-xl md:hidden"
             onClick={() => setNavOpen(false)}>
             <nav className="flex flex-col p-3 gap-1">
+              {canViewRepertoire && (
+                <Link to="/songs" className={mobileNavLinkCls('/songs')}>
+                  <BookOpen size={16} /> Repertori
+                </Link>
+              )}
               <Link to="/" className={mobileNavLinkCls('/')}>
                 <Clapperboard size={16} /> Espectacles
               </Link>
               {canViewMembers && (
                 <Link to="/members" className={mobileNavLinkCls('/members')}>
                   <Users size={16} /> Persones
-                </Link>
-              )}
-              {canViewRepertoire && (
-                <Link to="/songs" className={mobileNavLinkCls('/songs')}>
-                  <BookOpen size={16} /> Repertori
                 </Link>
               )}
               {isAdmin && (

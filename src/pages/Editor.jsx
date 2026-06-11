@@ -5,8 +5,8 @@ import {
   RotateCcw, Waypoints, GripVertical, Pencil, X,
   ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
-  Plus, AlignCenter, AlignVerticalJustifyEnd, Target, Mic, LayoutTemplate, Disc, UserRound,
-  Menu, MousePointer2,
+  Plus, Target, MicVocal, LayoutTemplate, Disc, UserRound,
+  Menu, Crosshair,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { VOICE_COLORS, VOICE_LABELS, VOICE_SHORT } from '../lib/constants' // VOICE_SHORT used in members sidebar
@@ -312,8 +312,8 @@ function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX,
   if (drag?.type === 'select-rect') {
     const rx = Math.min(drag.startX, drag.currentX), ry = Math.min(drag.startY, drag.currentY)
     const rw = Math.abs(drag.currentX - drag.startX), rh = Math.abs(drag.currentY - drag.startY)
-    ctx.fillStyle = '#3b82f618'; ctx.fillRect(rx, ry, rw, rh)
-    ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 1; ctx.setLineDash([4, 3])
+    ctx.fillStyle = '#06b6d418'; ctx.fillRect(rx, ry, rw, rh)
+    ctx.strokeStyle = '#06b6d4'; ctx.lineWidth = 1; ctx.setLineDash([4, 3])
     ctx.strokeRect(rx, ry, rw, rh); ctx.setLineDash([])
   }
   const directorHighlighted = hasHighlight && !!directorMember && highlightId === directorMember.id
@@ -324,7 +324,7 @@ function drawToken(ctx, x, y, member, highlighted, selected, hasHighlight, rotat
   const c = VOICE_COLORS[member.voice] ?? VOICE_COLORS.extra
   const initials = (member.initials || member.name.slice(0, 2)).toUpperCase()
   if (selected) {
-    roundedHexPath(ctx, x, y, TOKEN_R + 5); ctx.strokeStyle = '#60a5fa'; ctx.lineWidth = 2; ctx.stroke()
+    roundedHexPath(ctx, x, y, TOKEN_R + 5); ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 2; ctx.stroke()
   }
   if (hasHighlight && !highlighted) {
     roundedHexPath(ctx, x, y, TOKEN_R); ctx.strokeStyle = c.bg + 'aa'; ctx.lineWidth = 1.5; ctx.stroke()
@@ -719,10 +719,10 @@ function SortableRow({ id, label, elevation, onEdit, onEditElevation, onRemove }
         <GripVertical size={10} />
       </button>
       <input value={label} onChange={e => onEdit(e.target.value)}
-        className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none focus:border-blue-500" />
+        className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none focus:border-cyan-500" />
       <input value={elevation ?? 0} onChange={e => onEditElevation(e.target.value)}
         type="number" min="0" max="300" step="5"
-        className="w-12 bg-gray-800 border border-gray-700 rounded px-1 py-0.5 text-xs text-gray-300 focus:outline-none focus:border-blue-500 tabular-nums"
+        className="w-12 bg-gray-800 border border-gray-700 rounded px-1 py-0.5 text-xs text-gray-300 focus:outline-none focus:border-cyan-500 tabular-nums"
         title="Alçada de la tarima (cm)" />
       <span className="text-xs text-gray-700 shrink-0">cm</span>
       <button onClick={onRemove} className="text-gray-600 hover:text-red-500 shrink-0">
@@ -790,6 +790,7 @@ export default function Editor() {
 
   // Arrangement prefill
   const [showArrange, setShowArrange] = useState(false)
+  const [showFocusPicker, setShowFocusPicker] = useState(false)
   const [arrangeAxis, setArrangeAxis] = useState('cols')
   const [arrangeReplaceAll, setArrangeReplaceAll] = useState(false)
 
@@ -1759,6 +1760,7 @@ export default function Editor() {
 
   // ─── Derived ─────────────────────────────────────────────
   const choirMembers = members.filter(m => m.role !== 'director')
+  const showMics = Array.isArray(show?.mics) ? show.mics : (show?.mics ? JSON.parse(show.mics) : [])
   const visibleMembers = choirMembers
   const unplacedCount = visibleMembers.filter(m => !placements[m.id]).length
   const allVoices = [...new Set(choirMembers.map(m => m.voice))]
@@ -1780,7 +1782,7 @@ export default function Editor() {
     { id: 'semicircle', Icon: Disc,       label: 'Semicercle' },
   ]
 
-  const inputCls = 'bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500'
+  const inputCls = 'bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-cyan-500'
 
   // ─── Render ───────────────────────────────────────────────
   return (
@@ -1788,140 +1790,6 @@ export default function Editor() {
       <div className="flex flex-col h-[calc(100vh-57px)]">
 
         {/* ── Toolbar ── */}
-        <div className="flex items-center gap-2 flex-wrap px-3 py-2 bg-gray-900 border-b border-gray-800 shrink-0">
-          <button onClick={() => setSidebarOpen(v => !v)}
-            className="lg:hidden p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors shrink-0">
-            <Menu size={18} />
-          </button>
-          <nav className="flex items-center gap-1 text-sm text-gray-500 flex-1 min-w-0 truncate">
-            <Link to="/" className="hover:text-gray-300 shrink-0">{show?.name ?? '…'}</Link>
-            <span className="mx-0.5 shrink-0">/</span>
-            <Link to={`/show/${showId}`} className="hover:text-gray-300 shrink-0 truncate max-w-[120px]">{song?.title ?? '…'}</Link>
-            <span className="mx-0.5 shrink-0">/</span>
-            <span className="text-gray-300 truncate">{moment?.title ?? '…'}</span>
-          </nav>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {!trajectoryMode && <>
-              <div className="flex rounded-lg border border-gray-700 overflow-hidden">
-                {[[ArrowUp,-1,0],[ArrowDown,1,0],[ArrowLeft,0,-1],[ArrowRight,0,1]].map(([Icon,dr,dc]) => (
-                  <button key={`${dr}${dc}`} onClick={() => shiftSelected(dr, dc)}
-                    className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-colors border-r border-gray-700 last:border-0">
-                    <Icon size={13} />
-                  </button>
-                ))}
-              </div>
-              <button onClick={() => setSelectMode(v => !v)} title="Mode selecció (alternativa al Shift+clic)"
-                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs border transition-colors ${selectMode ? 'border-blue-600 text-blue-400 bg-blue-900/20' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
-                <MousePointer2 size={11} />
-              </button>
-              {selectedIds.size > 0 && (
-                <span className="flex items-center gap-1 text-xs text-blue-400 border border-blue-800 px-2 py-0.5 rounded-full">
-                  {selectedIds.size} sel.
-                  <button onClick={() => setSelectedIds(new Set())}><X size={10} /></button>
-                </span>
-              )}
-            </>}
-
-            <button onClick={() => { const n = !rotated; setRotated(n); localStorage.setItem('rotated', n) }}
-              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs border transition-colors ${rotated ? 'border-blue-600 text-blue-400 bg-blue-900/20' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
-              <RotateCcw size={11} />{rotated ? '180°' : '0°'}
-            </button>
-
-            {!trajectoryMode && (
-              <select value={highlightId}
-                onChange={e => { setHighlightId(e.target.value); localStorage.setItem('highlightMemberId', e.target.value) }}
-                className="bg-gray-800 border border-gray-700 rounded-lg text-xs text-gray-300 px-2 py-1 focus:outline-none max-w-[120px]">
-                <option value="">Jo soc…</option>
-                {members.filter(m => m.role === 'director').map(m => <option key={m.id} value={m.id}>{m.name} (dir.)</option>)}
-                {choirMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
-            )}
-
-            <button onClick={() => trajectoryMode ? enterTrajectoryMode('') : setTrajectoryMode(true)}
-              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs border transition-colors ${trajectoryMode ? 'border-violet-600 text-violet-400 bg-violet-900/20' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
-              <Waypoints size={11} /> Trajectòria
-            </button>
-            {trajectoryMode && (
-              <select value={trajectoryMemberId} onChange={e => enterTrajectoryMode(e.target.value)}
-                className="bg-gray-800 border border-violet-700 rounded-lg text-xs text-violet-300 px-2 py-1 focus:outline-none max-w-[130px]">
-                <option value="">Tria persona…</option>
-                {choirMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
-            )}
-
-            {!trajectoryMode && mode !== 'semicircle' && (
-              <div className="flex rounded-lg border border-gray-700 overflow-hidden">
-                <button onClick={() => compactPositions('h')} title="Pinya horitzontal (compactar dins cada fila)"
-                  className="flex items-center gap-1 px-2 py-1 text-gray-400 hover:text-white hover:bg-gray-700 text-xs transition-colors border-r border-gray-700">
-                  <AlignCenter size={11} />H
-                </button>
-                <button onClick={() => compactPositions('hv')} title="Pinya horitzontal + vertical (compactar tot)"
-                  className="flex items-center gap-1 px-2 py-1 text-gray-400 hover:text-white hover:bg-gray-700 text-xs transition-colors">
-                  <AlignVerticalJustifyEnd size={11} />H+V
-                </button>
-              </div>
-            )}
-
-            {!trajectoryMode && (
-              <div className="relative">
-                <button onClick={() => setShowArrange(v => !v)}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs border transition-colors ${showArrange ? 'border-violet-600 text-violet-400 bg-violet-900/20' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
-                  <LayoutTemplate size={11} /> Disposar…
-                </button>
-                {showArrange && (
-                  <div className="absolute top-full right-0 mt-1 z-50 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-3 w-72"
-                    onMouseLeave={() => {}}>
-                    <div className="flex gap-1 mb-3">
-                      {['cols','rows'].map(ax => (
-                        <button key={ax} onClick={() => setArrangeAxis(ax)}
-                          className={`flex-1 py-1 rounded-lg text-xs border transition-colors ${arrangeAxis === ax ? 'border-violet-600 text-violet-300 bg-violet-900/30' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
-                          {ax === 'cols' ? '← Columnes (E→D)' : '↑ Files (D→F)'}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="grid grid-cols-5 gap-1.5 mb-3">
-                      {ARRANGEMENT_PATTERNS.map(pat => {
-                        const letters = pat.split('')
-                        const groupSizes = letters.map(l => (VOICE_GROUPS[l] ?? []).length)
-                        const total = groupSizes.reduce((a, b) => a + b, 0)
-                        return (
-                          <button key={pat}
-                            onClick={() => { autoPlaceByArrangement(pat, arrangeAxis, arrangeReplaceAll); setShowArrange(false) }}
-                            className="flex flex-col items-center gap-1 p-1.5 rounded-lg border border-gray-700 hover:border-violet-600 hover:bg-violet-900/20 transition-colors">
-                            <div className="flex w-full h-5 rounded overflow-hidden gap-px">
-                              {letters.map((l, i) => {
-                                const voices = VOICE_GROUPS[l] ?? []
-                                const pct = total > 0 ? groupSizes[i] / total * 100 : 25
-                                const sampleVoice = voices[0]
-                                const c = sampleVoice ? (VOICE_COLORS[sampleVoice] ?? VOICE_COLORS.extra) : VOICE_COLORS.extra
-                                return <div key={i} style={{ width: pct + '%', background: c.bg }} />
-                              })}
-                            </div>
-                            <span className="text-xs text-gray-400 font-mono">{pat}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                    <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none">
-                      <input type="checkbox" checked={arrangeReplaceAll} onChange={e => setArrangeReplaceAll(e.target.checked)}
-                        className="accent-violet-500" />
-                      Substituir tot (esborra posicions actuals)
-                    </label>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {directorManualX != null && !trajectoryMode && (
-              <button onClick={() => setDirectorManualX(null)}
-                className="flex items-center gap-1 text-xs text-yellow-500 hover:text-yellow-400 border border-yellow-800 px-2 py-1 rounded-lg transition-colors">
-                <Target size={11} /> Auto
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* ── Moment nav bar ── */}
         {(() => {
           const mIdx = moments.findIndex(m => m.id === momentId)
           const curMoment = moments[mIdx]
@@ -1930,61 +1798,212 @@ export default function Editor() {
           const sIdx = allShowSongs.findIndex(s => s.id === songId)
           const prevSong = allShowSongs[sIdx - 1]
           const nextSong = allShowSongs[sIdx + 1]
+          const highlightedMember = highlightId ? members.find(m => m.id === highlightId) : null
           return (
-            <div className="border-b border-gray-800 bg-gray-900 px-2 py-1.5 shrink-0 flex items-center gap-1">
-              {/* Prev song */}
-              <button onClick={() => prevSong && navigateToSong(prevSong.id)}
-                disabled={!prevSong}
-                className="flex items-center gap-0.5 px-2 py-1.5 rounded-lg text-xs text-gray-500 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
-                title={prevSong ? `Cançó anterior: ${prevSong.title}` : ''}>
-                <ChevronLeft size={13} /><ChevronLeft size={13} className="-ml-2" />
+            <div className="flex items-center justify-between gap-0 px-2 py-1 bg-gray-900 border-b border-gray-800 shrink-0 min-h-[44px]">
+              {/* Mobile sidebar toggle */}
+              <button onClick={() => setSidebarOpen(v => !v)}
+                className="lg:hidden w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors shrink-0 mr-1">
+                <Menu size={18} />
               </button>
-              {/* Prev moment */}
-              <button onClick={() => prevMoment && navigate(`/show/${showId}/song/${songId}/moment/${prevMoment.id}`)}
-                disabled={!prevMoment}
-                className="flex items-center px-2 py-1.5 rounded-lg text-xs text-gray-500 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
-                title={prevMoment?.title}>
-                <ChevronLeft size={13} />
-              </button>
-              {/* Dropdown centre */}
-              <div className="flex-1 min-w-0">
-                <select
-                  value={momentId}
-                  onChange={e => navigate(`/show/${showId}/song/${songId}/moment/${e.target.value}`)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 truncate">
-                  {moments.map((m, i) => (
-                    <option key={m.id} value={m.id}>
-                      {i + 1}/{moments.length} · {m.title}{m.subtitle ? ` · ${m.subtitle}` : ''}
-                    </option>
-                  ))}
-                </select>
+
+              {/* ── Left: nav block (natural width, not expanding) ── */}
+              <div className="flex items-center gap-0.5 shrink-0 min-w-0 max-w-[min(50%,420px)]">
+                {/* Prev song */}
+                <button onClick={() => prevSong && navigateToSong(prevSong.id)} disabled={!prevSong}
+                  className="w-8 h-10 flex items-center justify-center rounded text-gray-600 hover:text-white hover:bg-gray-800 disabled:opacity-20 disabled:cursor-not-allowed transition-colors shrink-0"
+                  title={prevSong ? `Cançó anterior: ${prevSong.title}` : ''}>
+                  <ChevronLeft size={12} /><ChevronLeft size={12} className="-ml-2" />
+                </button>
+                {/* Prev moment */}
+                <button onClick={() => prevMoment && navigate(`/show/${showId}/song/${songId}/moment/${prevMoment.id}`)} disabled={!prevMoment}
+                  className="w-8 h-10 flex items-center justify-center rounded text-gray-500 hover:text-white hover:bg-gray-800 disabled:opacity-20 disabled:cursor-not-allowed transition-colors shrink-0"
+                  title={prevMoment?.title}>
+                  <ChevronLeft size={15} />
+                </button>
+
+                {/* Centre: show/song + moment selector */}
+                <div className="min-w-0 px-1">
+                  <div className="flex items-center gap-1 text-xs text-gray-500 leading-none mb-0.5 truncate">
+                    <Link to="/" className="hover:text-gray-300 shrink-0 truncate max-w-[80px]">{show?.name ?? '…'}</Link>
+                    <span className="shrink-0">/</span>
+                    <Link to={`/show/${showId}`} className="hover:text-gray-300 truncate">{song?.title ?? '…'}</Link>
+                  </div>
+                  <select value={momentId}
+                    onChange={e => navigate(`/show/${showId}/song/${songId}/moment/${e.target.value}`)}
+                    className="bg-transparent border-0 text-sm font-medium text-white focus:outline-none cursor-pointer truncate leading-tight py-0 max-w-[220px]">
+                    {moments.map((m, i) => (
+                      <option key={m.id} value={m.id} className="bg-gray-800">
+                        {i + 1}/{moments.length} · {m.title}{m.subtitle ? ` · ${m.subtitle}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Next moment */}
+                <button onClick={() => nextMoment && navigate(`/show/${showId}/song/${songId}/moment/${nextMoment.id}`)} disabled={!nextMoment}
+                  className="w-8 h-10 flex items-center justify-center rounded text-gray-500 hover:text-white hover:bg-gray-800 disabled:opacity-20 disabled:cursor-not-allowed transition-colors shrink-0"
+                  title={nextMoment?.title}>
+                  <ChevronRight size={15} />
+                </button>
+                {/* Next song */}
+                <button onClick={() => nextSong && navigateToSong(nextSong.id)} disabled={!nextSong}
+                  className="w-8 h-10 flex items-center justify-center rounded text-gray-600 hover:text-white hover:bg-gray-800 disabled:opacity-20 disabled:cursor-not-allowed transition-colors shrink-0"
+                  title={nextSong ? `Cançó següent: ${nextSong.title}` : ''}>
+                  <ChevronRight size={12} /><ChevronRight size={12} className="-ml-2" />
+                </button>
+
+                {/* Edit + Add moment */}
+                <button onClick={() => { if (curMoment) { setEditMomentTitle(curMoment.title); setEditMomentSubtitle(curMoment.subtitle ?? ''); setEditingMoment(v => !v); setAddingMoment(false) } }}
+                  className={`w-9 h-10 flex items-center justify-center rounded-lg transition-colors shrink-0 ${editingMoment ? 'text-cyan-400 bg-cyan-900/30' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}
+                  title="Editar moment">
+                  <Pencil size={13} />
+                </button>
+                <button onClick={openAddMoment}
+                  className="w-9 h-10 flex items-center justify-center rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors shrink-0"
+                  title="Afegir moment">
+                  <Plus size={13} />
+                </button>
               </div>
-              {/* Next moment */}
-              <button onClick={() => nextMoment && navigate(`/show/${showId}/song/${songId}/moment/${nextMoment.id}`)}
-                disabled={!nextMoment}
-                className="flex items-center px-2 py-1.5 rounded-lg text-xs text-gray-500 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
-                title={nextMoment?.title}>
-                <ChevronRight size={13} />
-              </button>
-              {/* Next song */}
-              <button onClick={() => nextSong && navigateToSong(nextSong.id)}
-                disabled={!nextSong}
-                className="flex items-center gap-0.5 px-2 py-1.5 rounded-lg text-xs text-gray-500 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
-                title={nextSong ? `Cançó següent: ${nextSong.title}` : ''}>
-                <ChevronRight size={13} /><ChevronRight size={13} className="-ml-2" />
-              </button>
-              {/* Edit moment */}
-              <button onClick={() => { if (curMoment) { setEditMomentTitle(curMoment.title); setEditMomentSubtitle(curMoment.subtitle ?? ''); setEditingMoment(v => !v); setAddingMoment(false) } }}
-                className={`p-1.5 rounded-lg transition-colors shrink-0 ${editingMoment ? 'text-blue-400 bg-blue-900/30' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}
-                title="Editar moment">
-                <Pencil size={13} />
-              </button>
-              {/* Add moment */}
-              <button onClick={openAddMoment}
-                className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors shrink-0"
-                title="Afegir moment">
-                <Plus size={13} />
-              </button>
+
+              {/* ── Separator ── */}
+              <div className="mx-3 self-stretch border-l border-gray-700" />
+
+              {/* ── Right: tools ── */}
+              <div className="flex items-center gap-1 shrink-0">
+                {/* Movement arrows — only when something is selected */}
+                {!trajectoryMode && selectedIds.size > 0 && (
+                  <div className="flex rounded-lg border border-gray-700 overflow-hidden h-10">
+                    {[[ArrowUp,-1,0],[ArrowDown,1,0],[ArrowLeft,0,-1],[ArrowRight,0,1]].map(([Icon,dr,dc]) => (
+                      <button key={`${dr}${dc}`} onClick={() => shiftSelected(dr, dc)}
+                        className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-colors border-r border-gray-700 last:border-0">
+                        <Icon size={13} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Selected count badge */}
+                {!trajectoryMode && selectedIds.size > 0 && (
+                  <span className="flex items-center gap-1 text-xs text-cyan-400 border border-cyan-800 px-2 py-1 rounded-full">
+                    {selectedIds.size}
+                    <button onClick={() => setSelectedIds(new Set())} className="flex items-center"><X size={10} /></button>
+                  </span>
+                )}
+
+                {/* Orientation (rotation) */}
+                <button onClick={() => { const n = !rotated; setRotated(n); localStorage.setItem('rotated', n) }}
+                  className={`flex items-center gap-1.5 px-3 h-10 rounded-lg text-xs border transition-colors ${rotated ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-gray-700 text-gray-400 hover:text-white'}`}
+                  title="Orientation">
+                  <RotateCcw size={13} />{rotated ? '180°' : '0°'}
+                </button>
+
+                {/* Focus (highlight self) */}
+                {!trajectoryMode && (
+                  <div className="relative">
+                    <button onClick={() => setShowFocusPicker(v => !v)}
+                      className={`flex items-center gap-1.5 px-3 h-10 rounded-lg text-xs border transition-colors ${highlightId ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
+                      <Crosshair size={13} />
+                      <span className="max-w-[80px] truncate">{highlightedMember ? highlightedMember.name.split(' ')[0] : 'Focus'}</span>
+                      {highlightId && (
+                        <button onClick={e => { e.stopPropagation(); setHighlightId(''); localStorage.removeItem('highlightMemberId'); setShowFocusPicker(false) }}
+                          className="ml-0.5 hover:text-white flex items-center"><X size={10} /></button>
+                      )}
+                    </button>
+                    {showFocusPicker && (
+                      <div className="absolute top-full right-0 mt-1 z-50 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-2 w-48 max-h-64 overflow-y-auto">
+                        <button onClick={() => { setHighlightId(''); localStorage.removeItem('highlightMemberId'); setShowFocusPicker(false) }}
+                          className="w-full text-left px-3 py-2 rounded-lg text-xs text-gray-500 hover:text-white hover:bg-gray-800 transition-colors">
+                          — None —
+                        </button>
+                        {members.filter(m => m.role === 'director').map(m => (
+                          <button key={m.id} onClick={() => { setHighlightId(m.id); localStorage.setItem('highlightMemberId', m.id); setShowFocusPicker(false) }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${highlightId === m.id ? 'text-cyan-400 bg-cyan-900/20' : 'text-gray-300 hover:bg-gray-800'}`}>
+                            {m.name} (dir.)
+                          </button>
+                        ))}
+                        {choirMembers.map(m => (
+                          <button key={m.id} onClick={() => { setHighlightId(m.id); localStorage.setItem('highlightMemberId', m.id); setShowFocusPicker(false) }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${highlightId === m.id ? 'text-cyan-400 bg-cyan-900/20' : 'text-gray-300 hover:bg-gray-800'}`}>
+                            {m.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Trajectory */}
+                <button onClick={() => trajectoryMode ? enterTrajectoryMode('') : setTrajectoryMode(true)}
+                  className={`flex items-center gap-1.5 px-3 h-10 rounded-lg text-xs border transition-colors ${trajectoryMode ? 'border-violet-600 text-violet-400 bg-violet-900/20' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
+                  <Waypoints size={13} /> Traject.
+                </button>
+                {trajectoryMode && (
+                  <select value={trajectoryMemberId} onChange={e => enterTrajectoryMode(e.target.value)}
+                    className="bg-gray-800 border border-violet-700 rounded-lg text-xs text-violet-300 px-2 h-10 focus:outline-none max-w-[120px]">
+                    <option value="">Tria persona…</option>
+                    {choirMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                )}
+
+                {/* Arrange */}
+                {!trajectoryMode && (
+                  <div className="relative">
+                    <button onClick={() => setShowArrange(v => !v)}
+                      className={`flex items-center gap-1.5 px-3 h-10 rounded-lg text-xs border transition-colors ${showArrange ? 'border-violet-600 text-violet-400 bg-violet-900/20' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
+                      <LayoutTemplate size={13} /> Disposar…
+                    </button>
+                    {showArrange && (
+                      <div className="absolute top-full right-0 mt-1 z-50 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-3 w-72">
+                        <div className="flex gap-1 mb-3">
+                          {['cols','rows'].map(ax => (
+                            <button key={ax} onClick={() => setArrangeAxis(ax)}
+                              className={`flex-1 py-1 rounded-lg text-xs border transition-colors ${arrangeAxis === ax ? 'border-violet-600 text-violet-300 bg-violet-900/30' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
+                              {ax === 'cols' ? '← Columnes (E→D)' : '↑ Files (D→F)'}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-5 gap-1.5 mb-3">
+                          {ARRANGEMENT_PATTERNS.map(pat => {
+                            const letters = pat.split('')
+                            const groupSizes = letters.map(l => (VOICE_GROUPS[l] ?? []).length)
+                            const total = groupSizes.reduce((a, b) => a + b, 0)
+                            return (
+                              <button key={pat}
+                                onClick={() => { autoPlaceByArrangement(pat, arrangeAxis, arrangeReplaceAll); setShowArrange(false) }}
+                                className="flex flex-col items-center gap-1 p-1.5 rounded-lg border border-gray-700 hover:border-violet-600 hover:bg-violet-900/20 transition-colors">
+                                <div className="flex w-full h-5 rounded overflow-hidden gap-px">
+                                  {letters.map((l, i) => {
+                                    const voices = VOICE_GROUPS[l] ?? []
+                                    const pct = total > 0 ? groupSizes[i] / total * 100 : 25
+                                    const sampleVoice = voices[0]
+                                    const c = sampleVoice ? (VOICE_COLORS[sampleVoice] ?? VOICE_COLORS.extra) : VOICE_COLORS.extra
+                                    return <div key={i} style={{ width: pct + '%', background: c.bg }} />
+                                  })}
+                                </div>
+                                <span className="text-xs text-gray-400 font-mono">{pat}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none">
+                          <input type="checkbox" checked={arrangeReplaceAll} onChange={e => setArrangeReplaceAll(e.target.checked)}
+                            className="accent-violet-500" />
+                          Substituir tot (esborra posicions actuals)
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Director auto-reset */}
+                {directorManualX != null && !trajectoryMode && (
+                  <button onClick={() => setDirectorManualX(null)}
+                    className="flex items-center gap-1.5 text-xs text-yellow-500 hover:text-yellow-400 border border-yellow-800 px-3 h-9 rounded-lg transition-colors">
+                    <Target size={13} /> Auto
+                  </button>
+                )}
+              </div>
             </div>
           )
         })()}
@@ -2005,7 +2024,7 @@ export default function Editor() {
                 <div className="flex rounded-lg border border-gray-700 overflow-hidden">
                   {MODES.map(({ id, Icon, label }) => (
                     <button key={id} onClick={() => changeMode(id)} title={label}
-                      className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 text-xs transition-colors ${mode === id ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
+                      className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 text-xs transition-colors ${mode === id ? 'bg-cyan-600 text-white' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
                       <Icon size={12} /><span className="text-xs leading-none">{label}</span>
                     </button>
                   ))}
@@ -2024,7 +2043,7 @@ export default function Editor() {
                       ))}
                     </SortableContext>
                   </DndContext>
-                  <button onClick={addRow} className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-400 transition-colors mt-0.5">
+                  <button onClick={addRow} className="flex items-center gap-1 text-xs text-cyan-500 hover:text-cyan-400 transition-colors mt-0.5">
                     <Plus size={9} /> Fila
                   </button>
                 </div>
@@ -2061,7 +2080,7 @@ export default function Editor() {
                                 onDragStart={e => e.dataTransfer.setData('memberId', m.id)}
                                 onContextMenu={e => openContextMenu(e, m)}
                                 onClick={!placed ? () => setPendingMemberId(prev => prev === m.id ? null : m.id) : undefined}
-                                className={`flex items-center gap-1.5 px-1.5 py-1 rounded text-xs select-none ml-3 transition-colors ${isPending ? 'bg-blue-900/40 ring-1 ring-blue-500' : placed ? 'opacity-40 hover:opacity-100' : 'cursor-pointer hover:bg-gray-800'}`}>
+                                className={`flex items-center gap-1.5 px-1.5 py-1 rounded text-xs select-none ml-3 transition-colors ${isPending ? 'bg-cyan-900/40 ring-1 ring-cyan-500' : placed ? 'opacity-40 hover:opacity-100' : 'cursor-pointer hover:bg-gray-800'}`}>
                                 <span className="w-5 h-5 rounded flex items-center justify-center font-bold shrink-0 text-xs"
                                   style={{ backgroundColor: c.bg, color: c.fg }}>
                                   {(m.initials || m.name.slice(0, 2)).toUpperCase()}
@@ -2078,7 +2097,7 @@ export default function Editor() {
                                       className="bg-amber-900/40 border border-amber-700/60 rounded px-1 text-xs text-amber-300 w-8 focus:outline-none shrink-0 cursor-pointer"
                                       title="Micro (solista)">
                                       <option value="">—</option>
-                                      {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={String(n)}>{n}</option>)}
+                                      {(showMics.length > 0 ? showMics : [1,2,3,4,5,6,7,8,9,10]).map(n => <option key={n} value={String(n)}>{n}</option>)}
                                     </select>
                                   )
                                 })()}
@@ -2102,9 +2121,9 @@ export default function Editor() {
                 const pm = members.find(m => m.id === pendingMemberId)
                 return (
                   <div className="absolute inset-x-0 top-2 flex justify-center z-10 pointer-events-none">
-                    <div className="pointer-events-auto flex items-center gap-2 bg-blue-950/90 border border-blue-700 text-blue-200 text-xs px-3 py-1.5 rounded-full shadow-lg">
+                    <div className="pointer-events-auto flex items-center gap-2 bg-cyan-950/90 border border-cyan-700 text-cyan-200 text-xs px-3 py-1.5 rounded-full shadow-lg">
                       <span>Toca el canvas per col·locar <strong>{pm?.name}</strong></span>
-                      <button onClick={() => setPendingMemberId(null)} className="text-blue-400 hover:text-white ml-1"><X size={10} /></button>
+                      <button onClick={() => setPendingMemberId(null)} className="text-cyan-400 hover:text-white ml-1"><X size={10} /></button>
                     </div>
                   </div>
                 )
@@ -2147,11 +2166,11 @@ export default function Editor() {
               <p className="text-xs text-gray-700 text-center select-none">
                 {trajectoryMode
                   ? 'Toca/clica qualsevol punt per anar a aquell moment · Esc per sortir'
-                  : 'Arrossega · Shift+clic o botó Sel. per seleccionar · fletxes mouen selecció · Doble tap per treure · Mantén premut per menú'}
+                  : 'Arrossega · Shift+clic per seleccionar · fletxes mouen selecció · Doble tap per treure · Mantén premut per menú'}
               </p>
               {canvasScale !== 1 && (
                 <button onClick={() => { canvasScaleRef.current = 1; setCanvasScale(1) }}
-                  className="shrink-0 text-xs text-blue-400 border border-blue-800 px-2 py-0.5 rounded-full hover:bg-blue-900/30 transition-colors">
+                  className="shrink-0 text-xs text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded-full hover:bg-cyan-900/30 transition-colors">
                   {Math.round(canvasScale * 100)}% · Reset
                 </button>
               )}
@@ -2177,7 +2196,7 @@ export default function Editor() {
               </div>
               <div className="flex gap-1.5 self-end">
                 <button onClick={saveMomentMeta}
-                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">Guardar</button>
+                  className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">Guardar</button>
                 <button onClick={() => handleDeleteMoment(momentId)}
                   className="bg-red-900/50 hover:bg-red-800 text-red-400 hover:text-red-300 text-xs px-3 py-1.5 rounded-lg transition-colors">Eliminar</button>
                 <button onClick={() => setEditingMoment(false)}
@@ -2237,7 +2256,7 @@ export default function Editor() {
               )}
               <div className="flex gap-1.5 self-end">
                 <button onClick={createMoment}
-                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">Crear</button>
+                  className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">Crear</button>
                 <button onClick={() => setAddingMoment(false)}
                   className="text-gray-500 hover:text-white text-xs px-2 py-1.5 transition-colors">Cancel·lar</button>
               </div>
@@ -2269,13 +2288,13 @@ export default function Editor() {
 
         const menuItems = (itemCls) => (
           <>
-            <button className={itemCls + (isMe ? ' text-blue-400' : ' text-gray-300')}
+            <button className={itemCls + (isMe ? ' text-cyan-400' : ' text-gray-300')}
               onClick={() => { const v = isMe ? '' : m.id; setHighlightId(v); localStorage.setItem('highlightMemberId', v); setContextMenu(null) }}>
-              <Target size={13} /> {isMe ? '✓ Soc jo' : 'Soc jo'}
+              <Crosshair size={13} /> {isMe ? '✓ Focus' : 'Focus'}
             </button>
             <button className={itemCls + (isSoloist ? ' text-amber-400' : ' text-gray-300')}
               onClick={() => toggleSoloist(m.id)}>
-              <Mic size={13} /> {isSoloist ? '✓ Solista' : 'Marcar com solista'}
+              <MicVocal size={13} /> {isSoloist ? '✓ Solista' : 'Marcar com solista'}
             </button>
             {isSoloist && (
               <div className="flex items-center gap-2 px-4 py-2 text-xs text-gray-400">
@@ -2284,7 +2303,7 @@ export default function Editor() {
                   onChange={e => updateSoloistMic(m.id, e.target.value)}
                   className="bg-gray-800 border border-gray-700 rounded px-1 text-xs text-white flex-1 focus:outline-none focus:border-amber-500">
                   <option value="">—</option>
-                  {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={String(n)}>{n}</option>)}
+                  {(showMics.length > 0 ? showMics : [1,2,3,4,5,6,7,8,9,10]).map(n => <option key={n} value={String(n)}>{n}</option>)}
                 </select>
               </div>
             )}

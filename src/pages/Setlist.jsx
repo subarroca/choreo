@@ -8,16 +8,20 @@ import {
   arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Pencil, X, ChevronUp, ChevronDown, ChevronRight, ChevronsUp, ChevronsDown, Mic, Music, Plus, ArrowRight, Search } from 'lucide-react'
+import { GripVertical, Pencil, X, ChevronUp, ChevronDown, ChevronRight, ChevronsUp, ChevronsDown, MicVocal, Music, Plus, ArrowRight, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
 import Layout from '../components/Layout'
 import PersonProfileOverlay from '../components/PersonProfileOverlay'
 
 // ─── Sortable moment row ──────────────────────────────────────
-function SortableMomentRow({ moment, index, showId, songId, onDelete }) {
+function SortableMomentRow({ moment, index, showId, songId, onDelete, micAssignments }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: moment.id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }
+
+  const activeMicCount = micAssignments
+    ? Object.values(micAssignments[moment.id] ?? {}).filter(Boolean).length
+    : 0
 
   return (
     <div ref={setNodeRef} style={style}
@@ -31,8 +35,14 @@ function SortableMomentRow({ moment, index, showId, songId, onDelete }) {
         <span className="text-sm text-gray-200 font-medium block truncate">{moment.title}</span>
         {moment.subtitle && <span className="text-xs text-gray-500 block truncate">{moment.subtitle}</span>}
       </Link>
+      {activeMicCount > 0 && (
+        <span className="flex items-center gap-0.5 text-xs text-gray-500 shrink-0">
+          <MicVocal size={10} className="text-gray-600" />
+          {activeMicCount}
+        </span>
+      )}
       <Link to={`/show/${showId}/song/${songId}/moment/${moment.id}`}
-        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-400 px-2 py-1.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+        className="flex items-center gap-1 text-xs text-cyan-600 hover:text-cyan-400 px-2 py-1.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
         <ArrowRight size={13} />
       </Link>
       <button onClick={() => onDelete(moment.id)}
@@ -48,14 +58,14 @@ function DroppableSongZone({ id, children, isEmpty }) {
   const { setNodeRef, isOver } = useDroppable({ id })
   return (
     <div ref={setNodeRef}
-      className={`space-y-2 rounded-xl transition-colors ${isOver ? 'bg-blue-950/30 ring-1 ring-blue-700/50' : ''} ${isEmpty && isOver ? 'min-h-[60px]' : ''}`}>
+      className={`space-y-2 rounded-xl transition-colors ${isOver ? 'bg-cyan-950/30 ring-1 ring-cyan-700/50' : ''} ${isEmpty && isOver ? 'min-h-[60px]' : ''}`}>
       {children}
     </div>
   )
 }
 
 // ─── Sortable song row ────────────────────────────────────────
-function SortableSong({ song, moments, expanded, onToggle, onEdit, onDelete, onAddMoment, onDeleteMoment, onReorderMoments, showId, activeDragId, repSong }) {
+function SortableSong({ song, moments, expanded, onToggle, onEdit, onDelete, onAddMoment, onDeleteMoment, onReorderMoments, showId, activeDragId, repSong, micAssignments }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: song.id })
   const isOtherDragging = activeDragId && activeDragId !== song.id
   const style = {
@@ -125,13 +135,13 @@ function SortableSong({ song, moments, expanded, onToggle, onEdit, onDelete, onA
                   {moments.map((m, i) => (
                     <SortableMomentRow key={m.id} moment={m} index={i}
                       showId={showId} songId={song.id}
-                      onDelete={onDeleteMoment} />
+                      onDelete={onDeleteMoment} micAssignments={micAssignments} />
                   ))}
                 </SortableContext>
               </DndContext>
             )}
           <button onClick={() => onAddMoment(song.id, false)}
-            className="flex items-center gap-1.5 w-full px-4 py-3 text-xs text-blue-600 hover:text-blue-400 hover:bg-gray-800 transition-colors border-t border-gray-800">
+            className="flex items-center gap-1.5 w-full px-4 py-3 text-xs text-cyan-600 hover:text-cyan-400 hover:bg-gray-800 transition-colors border-t border-gray-800">
             <Plus size={12} /> Afegir moment
           </button>
           {song.lyrics && (
@@ -197,7 +207,7 @@ function RepPicker({ repertoire, value, onChange }) {
     <div ref={ref} className="relative">
       {/* Trigger */}
       {open ? (
-        <div className="flex items-center gap-2 bg-gray-800 border border-blue-500 rounded-lg px-3 py-2">
+        <div className="flex items-center gap-2 bg-gray-800 border border-cyan-500 rounded-lg px-3 py-2">
           <Search size={13} className="text-gray-500 shrink-0" />
           <input
             ref={inputRef}
@@ -242,7 +252,7 @@ function RepPicker({ repertoire, value, onChange }) {
             <p className="px-3 py-3 text-xs text-gray-600 italic">Cap resultat per "{query}"</p>
           ) : filtered.map(r => (
             <button key={r.id} type="button" onClick={() => select(r)}
-              className={`w-full text-left px-3 py-2.5 text-sm transition-colors hover:bg-gray-800 ${r.id === value ? 'text-blue-400 bg-blue-900/20' : 'text-gray-200'}`}>
+              className={`w-full text-left px-3 py-2.5 text-sm transition-colors hover:bg-gray-800 ${r.id === value ? 'text-cyan-400 bg-cyan-900/20' : 'text-gray-200'}`}>
               {r.title}
             </button>
           ))}
@@ -289,13 +299,13 @@ function SongForm({ initial, parts, repertoire = [], onSave, onCancel }) {
           <label className="text-xs text-gray-400">Títol *</label>
           <input value={customTitle} onChange={e => setCustomTitle(e.target.value)}
             required={!repId} placeholder="Títol de la cançó"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500" />
         </div>
       )}
       {/* Preview of selected rep title */}
       {selectedRep && (
-        <div className="flex items-center gap-2 bg-blue-900/20 border border-blue-800/50 rounded-lg px-3 py-2">
-          <Music size={13} className="text-blue-400 shrink-0" />
+        <div className="flex items-center gap-2 bg-cyan-900/20 border border-cyan-800/50 rounded-lg px-3 py-2">
+          <Music size={13} className="text-cyan-400 shrink-0" />
           <div className="min-w-0">
             <p className="text-sm text-white font-medium truncate">{selectedRep.title}</p>
             {selectedRep.composer && <p className="text-xs text-gray-400">{selectedRep.composer}</p>}
@@ -307,18 +317,18 @@ function SongForm({ initial, parts, repertoire = [], onSave, onCancel }) {
         <div className="space-y-1">
           <label className="text-xs text-gray-400">Notes</label>
           <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Opcional"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500" />
         </div>
         <div className="space-y-1">
           <label className="text-xs text-gray-400">Durada</label>
           <input value={durationStr} onChange={e => setDurationStr(e.target.value)} placeholder="3:45"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500" />
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500" />
         </div>
         {parts.length > 0 && (
           <div className="space-y-1">
             <label className="text-xs text-gray-400">Part</label>
             <select value={partId} onChange={e => setPartId(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500">
               <option value="">Sense part</option>
               {parts.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
             </select>
@@ -326,7 +336,7 @@ function SongForm({ initial, parts, repertoire = [], onSave, onCancel }) {
         )}
       </div>
       <div className="flex gap-2">
-        <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">Guardar</button>
+        <button type="submit" className="bg-cyan-600 hover:bg-cyan-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">Guardar</button>
         <button type="button" onClick={onCancel} className="text-gray-400 hover:text-white text-sm px-4 py-2 rounded-lg transition-colors">Cancel·lar</button>
       </div>
     </form>
@@ -384,7 +394,7 @@ function CastPanel({ showId, allMembers, exclusions, onToggle, onEditMember }) {
     <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-gray-300">Membres d'aquest espectacle</h3>
-        <Link to="/members" className="text-xs text-blue-500 hover:text-blue-400 transition-colors">Gestionar cor →</Link>
+        <Link to="/members" className="text-xs text-cyan-500 hover:text-cyan-400 transition-colors">Gestionar cor →</Link>
       </div>
       <p className="text-xs text-gray-600">Clica el nom per incloure/excloure · <Pencil size={9} className="inline" /> per editar el perfil.</p>
       <div className="space-y-4">
@@ -429,6 +439,7 @@ export default function Setlist() {
   const [parts, setParts] = useState([])
   const [songs, setSongs] = useState([])
   const [moments, setMoments] = useState({})
+  const [micAssignments, setMicAssignments] = useState({})
   const [allMembers, setAllMembers] = useState([])
   const [exclusions, setExclusions] = useState(new Set())
   const [expandedParts, setExpandedParts] = useState({})
@@ -460,7 +471,13 @@ export default function Setlist() {
         supabase.from('repertoire_songs').select('id, title, composer').order('title'),
       ])
       setRepertoire(repRes.data ?? [])
-      setShow(showRes.data)
+      const showData = showRes.data
+      setShow(showData)
+      if (showData?.mic_assignments) {
+        setMicAssignments(typeof showData.mic_assignments === 'string'
+          ? JSON.parse(showData.mic_assignments)
+          : showData.mic_assignments)
+      }
       const partList = partsRes.data ?? []
       setParts(partList)
       const partExp = {}; for (const p of partList) partExp[p.id] = false
@@ -635,11 +652,11 @@ export default function Setlist() {
             </button>
             <Link to={`/show/${showId}/mics`}
               className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
-              <Mic size={14} /> Micros
+              <MicVocal size={14} /> Micros
             </Link>
             <button onClick={() => setShowCast(v => !v)}
-              className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border transition-colors ${showCast ? 'border-blue-600 text-blue-400 bg-blue-900/20' : 'border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800'}`}>
-              <Mic size={14} /> Membres {exclusions.size > 0 && <span className="ml-1 text-xs text-yellow-500">({allMembers.length - exclusions.size}/{allMembers.length})</span>}
+              className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border transition-colors ${showCast ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800'}`}>
+              <MicVocal size={14} /> Membres {exclusions.size > 0 && <span className="ml-1 text-xs text-yellow-500">({allMembers.length - exclusions.size}/{allMembers.length})</span>}
             </button>
             {!creatingPart && (
               <button onClick={() => setCreatingPart(true)}
@@ -649,7 +666,7 @@ export default function Setlist() {
             )}
             {!creating && (
               <button onClick={() => setCreating(true)}
-                className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">
+                className="bg-cyan-600 hover:bg-cyan-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">
                 + Nova cançó
               </button>
             )}
@@ -741,7 +758,8 @@ export default function Setlist() {
                               onReorderMoments={handleReorderMoments}
                               showId={showId}
                               activeDragId={activeDragId}
-                              repSong={song.repertoire_song_id ? repMap[song.repertoire_song_id] : null} />
+                              repSong={song.repertoire_song_id ? repMap[song.repertoire_song_id] : null}
+                              micAssignments={micAssignments} />
                           ))}
                         </SortableContext>
                         {sectionSongs.length === 0 && (
@@ -769,7 +787,7 @@ export default function Setlist() {
                 const s = songs.find(s => s.id === activeDragId)
                 if (!s) return null
                 return (
-                  <div className="bg-gray-900 border-2 border-blue-500 rounded-xl px-4 py-3 shadow-2xl opacity-95 pointer-events-none">
+                  <div className="bg-gray-900 border-2 border-cyan-500 rounded-xl px-4 py-3 shadow-2xl opacity-95 pointer-events-none">
                     <p className="text-sm font-medium text-white">{s.title}</p>
                     {s.notes && <p className="text-xs text-gray-500 mt-0.5">{s.notes}</p>}
                   </div>

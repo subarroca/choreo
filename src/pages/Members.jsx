@@ -104,11 +104,11 @@ export default function Members() {
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
               <input value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Cerca per nom…"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-blue-500" />
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500" />
             </div>
             {canEdit && (
               <button onClick={() => setOverlayMember('new')}
-                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-lg transition-colors shrink-0">
+                className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-sm px-4 py-2 rounded-lg transition-colors shrink-0">
                 <Plus size={14} /> Afegir
               </button>
             )}
@@ -117,7 +117,7 @@ export default function Members() {
           {/* Voice filter */}
           <div className="flex flex-wrap gap-1.5">
             <button onClick={() => setFilterVoice('')}
-              className={`px-3 py-1 rounded-full text-xs border transition-colors ${!filterVoice ? 'border-blue-600 text-blue-400 bg-blue-900/20' : 'border-gray-700 text-gray-500 hover:text-white'}`}>
+              className={`px-3 py-1 rounded-full text-xs border transition-colors ${!filterVoice ? 'border-cyan-600 text-cyan-400' : 'border-gray-700 text-gray-500 hover:text-white'}`}>
               Totes <span className="text-gray-600 ml-1">{activeMembers.length}</span>
             </button>
             {ALL_VOICES.filter(v => voiceCounts[v] > 0).map(v => {
@@ -126,8 +126,8 @@ export default function Members() {
                 <button key={v} onClick={() => setFilterVoice(filterVoice === v ? '' : v)}
                   className="px-3 py-1 rounded-full text-xs border transition-all font-medium"
                   style={filterVoice === v
-                    ? { backgroundColor: c.bg, color: c.fg, borderColor: c.bg }
-                    : { backgroundColor: c.bg + '22', color: c.bg, borderColor: c.bg + '55' }}>
+                    ? { color: c.bg, borderColor: c.bg }
+                    : { color: c.bg + 'aa', borderColor: c.bg + '44' }}>
                   {VOICE_LABELS[v]} <span className="opacity-70 ml-0.5">{voiceCounts[v]}</span>
                 </button>
               )
@@ -150,8 +150,7 @@ export default function Members() {
               const age = calcAge(m.birth_date)
               return (
                 <div key={m.id} onClick={() => setOverlayMember(m)}
-                  className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden flex items-center gap-3 pr-4 hover:border-gray-700 hover:bg-gray-800/30 cursor-pointer transition-colors">
-                  <span className="w-1 self-stretch shrink-0" style={{ backgroundColor: c.bg }} />
+                  className="bg-gray-900 rounded-xl flex items-center gap-3 px-3 hover:bg-gray-800/50 cursor-pointer transition-colors">
                   <span className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 my-3"
                     style={{ backgroundColor: c.bg, color: c.fg }}>
                     {(m.initials || deriveInitials(m.first_name, m.last_name)).slice(0, 3)}
@@ -168,7 +167,7 @@ export default function Members() {
                       {m.height && <span className="text-xs text-gray-600">{m.height} cm</span>}
                     </div>
                   </div>
-                </div>
+              </div>
               )
             })
           )}
@@ -187,8 +186,7 @@ export default function Members() {
                     const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
                     return (
                       <div key={m.id} onClick={() => setOverlayMember(m)}
-                        className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden flex items-center gap-3 pr-4 opacity-50 hover:opacity-70 cursor-pointer transition-opacity">
-                        <span className="w-1 self-stretch shrink-0" style={{ backgroundColor: c.bg }} />
+                        className="bg-gray-900 rounded-xl flex items-center gap-3 px-3 opacity-50 hover:opacity-70 cursor-pointer transition-opacity">
                         <span className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 my-3"
                           style={{ backgroundColor: c.bg, color: c.fg }}>
                           {(m.initials || deriveInitials(m.first_name, m.last_name)).slice(0, 3)}

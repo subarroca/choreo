@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Clapperboard, Pencil, Trash2 } from 'lucide-react'
+import { Clapperboard, Pencil, Trash2, MapPin, ImageIcon, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import Layout from '../components/Layout'
@@ -9,10 +9,34 @@ function ShowForm({ initial, onSave, onCancel }) {
   const [name, setName] = useState(initial?.name ?? '')
   const [date, setDate] = useState(initial?.date ?? '')
   const [venue, setVenue] = useState(initial?.venue ?? '')
+  const [posterUrl, setPosterUrl] = useState(initial?.poster_url ?? '')
+  const [posterPreview, setPosterPreview] = useState(initial?.poster_url ?? '')
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef()
+
+  async function handlePosterChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    // Local preview immediately
+    const localUrl = URL.createObjectURL(file)
+    setPosterPreview(localUrl)
+    setUploading(true)
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `shows/${Date.now()}.${ext}`
+      const { error } = await supabase.storage.from('show-posters').upload(path, file, { upsert: true })
+      if (!error) {
+        const { data: { publicUrl } } = supabase.storage.from('show-posters').getPublicUrl(path)
+        setPosterUrl(publicUrl)
+        setPosterPreview(publicUrl)
+      }
+    } catch (_) {}
+    setUploading(false)
+  }
 
   function handleSubmit(e) {
     e.preventDefault()
-    onSave({ name, date: date || null, venue })
+    onSave({ name, date: date || null, venue, poster_url: posterUrl || null })
   }
 
   return (
@@ -20,35 +44,44 @@ function ShowForm({ initial, onSave, onCancel }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="space-y-1">
           <label className="text-xs text-gray-400">Nom *</label>
-          <input
-            value={name}
-            onChange={e => setName(e.target.value)}
-            required
-            placeholder="Condal 2026"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-          />
+          <input value={name} onChange={e => setName(e.target.value)} required placeholder="Condal 2026"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500" />
         </div>
         <div className="space-y-1">
           <label className="text-xs text-gray-400">Data</label>
-          <input
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-          />
+          <input type="date" value={date} onChange={e => setDate(e.target.value)}
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500" />
         </div>
         <div className="space-y-1">
           <label className="text-xs text-gray-400">Sala</label>
-          <input
-            value={venue}
-            onChange={e => setVenue(e.target.value)}
-            placeholder="Gran Teatre del Liceu"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-          />
+          <input value={venue} onChange={e => setVenue(e.target.value)} placeholder="Gran Teatre del Liceu"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500" />
         </div>
       </div>
+
+      {/* Poster */}
+      <div className="flex items-start gap-3">
+        <div className="space-y-1 flex-1">
+          <label className="text-xs text-gray-400">Poster</label>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => fileRef.current?.click()}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-700 text-xs text-gray-400 hover:text-white hover:border-gray-600 transition-colors">
+              <ImageIcon size={12} /> {uploading ? 'Pujant…' : 'Triar imatge'}
+            </button>
+            {posterPreview && (
+              <button type="button" onClick={() => { setPosterUrl(''); setPosterPreview('') }}
+                className="text-gray-600 hover:text-red-400 transition-colors"><X size={13} /></button>
+            )}
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePosterChange} />
+          </div>
+        </div>
+        {posterPreview && (
+          <img src={posterPreview} alt="Poster" className="w-16 h-20 object-cover rounded-lg border border-gray-700 shrink-0" />
+        )}
+      </div>
+
       <div className="flex gap-2">
-        <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-1.5 rounded-lg transition-colors">
+        <button type="submit" className="bg-cyan-600 hover:bg-cyan-500 text-white text-sm px-4 py-1.5 rounded-lg transition-colors">
           Guardar
         </button>
         <button type="button" onClick={onCancel} className="text-gray-400 hover:text-white text-sm px-4 py-1.5 rounded-lg transition-colors">
@@ -75,8 +108,13 @@ export default function Shows() {
       .from('shows')
       .select('*')
       .order('created_at', { ascending: false })
-    setShows(data ?? [])
+    const list = data ?? []
+    setShows(list)
     setLoading(false)
+    // Auto-navigate when there is exactly one show and the user isn't an editor
+    if (list.length === 1 && !canEdit) {
+      navigate(`/show/${list[0].id}`, { replace: true })
+    }
   }
 
   async function handleCreate(fields) {
@@ -118,7 +156,7 @@ export default function Shows() {
           {!creating && canEdit && (
             <button
               onClick={() => setCreating(true)}
-              className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+              className="bg-cyan-600 hover:bg-cyan-500 text-white text-sm px-4 py-2 rounded-lg transition-colors"
             >
               + Nou espectacle
             </button>
@@ -154,11 +192,24 @@ export default function Shows() {
                   />
                 ) : (
                   <div className="flex items-center justify-between gap-4">
+                    {show.poster_url && (
+                      <img src={show.poster_url} alt="Poster" className="w-10 h-12 object-cover rounded-lg border border-gray-700 shrink-0" />
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-semibold">{show.name}</p>
-                      <div className="flex gap-3 mt-1 text-xs text-gray-500">
+                      <div className="flex gap-3 mt-1 text-xs text-gray-500 items-center">
                         {show.date && <span>{new Date(show.date).toLocaleDateString('ca-ES')}</span>}
-                        {show.venue && <span>{show.venue}</span>}
+                        {show.venue && (
+                          <span className="flex items-center gap-1">
+                            {show.venue}
+                            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(show.venue)}`}
+                              target="_blank" rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              className="text-gray-600 hover:text-cyan-400 transition-colors" title="Veure al mapa">
+                              <MapPin size={11} />
+                            </a>
+                          </span>
+                        )}
                       </div>
                     </div>
                     {canEdit && (

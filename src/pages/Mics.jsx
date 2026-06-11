@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { X, Plus, Mic, ArrowRight, Menu } from 'lucide-react'
+import { X, Plus, MicVocal, ArrowRight, Menu } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { VOICE_COLORS } from '../lib/constants'
 import Layout from '../components/Layout'
@@ -76,12 +76,18 @@ export default function Mics() {
   }
 
   function addMic() {
-    const label = newMicLabel.trim()
-    if (!label || mics.includes(label)) return
+    // Auto-assign next number if no label given
+    const label = newMicLabel.trim() || String(mics.length + 1)
+    if (mics.includes(label)) return
     const next = [...mics, label]
     setMics(next)
     setNewMicLabel('')
     persist(next, assignments)
+  }
+
+  function displayMic(mic) {
+    // Show just the number: strip leading M/m prefix for legacy labels
+    return mic.replace(/^[Mm]/, '')
   }
 
   function removeMic(mic) {
@@ -114,7 +120,7 @@ export default function Mics() {
     return prevMember && currMember && prevMember !== currMember
   }
 
-  const inputCls = 'bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500'
+  const inputCls = 'bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-cyan-500'
 
   return (
     <Layout fullWidth>
@@ -130,7 +136,7 @@ export default function Mics() {
             <span>/</span>
             <Link to={`/show/${showId}`} className="hover:text-gray-300">{show?.name ?? '…'}</Link>
             <span>/</span>
-            <span className="text-gray-300 flex items-center gap-1"><Mic size={13} /> Micròfons</span>
+            <span className="text-gray-300 flex items-center gap-1"><MicVocal size={13} /> Micròfons</span>
           </nav>
           {saving && <span className="text-xs text-gray-600 ml-auto">Guardant…</span>}
         </div>
@@ -156,9 +162,9 @@ export default function Mics() {
               <div className="flex gap-1 mt-2">
                 <input value={newMicLabel} onChange={e => setNewMicLabel(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addMic()}
-                  placeholder="M4…" className={inputCls + ' flex-1 min-w-0'} />
+                  placeholder={String(mics.length + 1)} className={inputCls + ' flex-1 min-w-0'} />
                 <button onClick={addMic}
-                  className="w-6 h-6 flex items-center justify-center bg-blue-600 hover:bg-blue-500 rounded text-white transition-colors shrink-0">
+                  className="w-6 h-6 flex items-center justify-center bg-cyan-600 hover:bg-cyan-500 rounded text-white transition-colors shrink-0">
                   <Plus size={11} />
                 </button>
               </div>
@@ -173,7 +179,7 @@ export default function Mics() {
             </div>
           </div>
 
-          {/* Matrix */}
+          {/* Matrix — moments as rows, mics as columns */}
           <div className="flex-1 overflow-auto p-3">
             {mics.length === 0 && (
               <div className="text-gray-600 text-sm mt-8 text-center">Afegeix micròfons al panell esquerre per començar.</div>
@@ -182,84 +188,85 @@ export default function Mics() {
               <div className="text-gray-600 text-sm mt-8 text-center">Crea moments a les cançons per poder assignar micros.</div>
             )}
             {mics.length > 0 && allMoments.length > 0 && (
-              <table className="border-collapse text-xs" style={{ minWidth: allMoments.length * 100 }}>
+              <table className="border-collapse text-xs w-full">
                 <thead>
-                  {/* Song header row */}
                   <tr>
-                    <th className="w-14 shrink-0 sticky left-0 bg-gray-950 z-10 border-b border-gray-800" />
-                    {momentsBySong.map(({ song, moments }) => (
-                      <th key={song.id}
-                        colSpan={moments.length}
-                        className="px-2 py-1 text-left text-xs text-gray-500 font-medium border-b border-gray-800 border-l border-gray-800 bg-gray-900">
-                        <Link to={`/show/${showId}`} className="hover:text-gray-300 truncate block max-w-[200px]">{song.title}</Link>
-                      </th>
-                    ))}
-                  </tr>
-                  {/* Moment header row */}
-                  <tr>
-                    <th className="sticky left-0 bg-gray-950 z-10 border-b border-gray-800 text-xs text-gray-600 font-normal px-2 py-1 text-left">Micro</th>
-                    {allMoments.map((m, idx) => (
-                      <th key={m.id}
-                        className="px-2 py-1 text-xs text-gray-400 font-normal border-b border-gray-800 border-l border-gray-800 whitespace-nowrap max-w-[110px]">
-                        <div className="truncate">{m.title}</div>
-                        {m.subtitle && <div className="text-xs text-gray-600 truncate">{m.subtitle}</div>}
+                    {/* Moment label col + song span cols */}
+                    <th className="sticky left-0 bg-gray-950 z-10 border-b border-gray-800 text-xs text-gray-600 font-normal px-3 py-2 text-left min-w-[160px]">Moment</th>
+                    {mics.map((mic, i) => (
+                      <th key={mic}
+                        className="px-3 py-2 text-center text-sm font-bold text-white border-b border-l border-gray-800 min-w-[120px]">
+                        {displayMic(mic)}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {mics.map(mic => (
-                    <tr key={mic}>
-                      <td className="sticky left-0 bg-gray-950 z-10 px-2 py-1 border-b border-gray-800 font-bold text-white text-xs">
-                        {mic}
-                      </td>
-                      {allMoments.map((m, idx) => {
-                        const memberId = assignments[m.id]?.[mic]
-                        const member = memberId ? members.find(mb => mb.id === memberId) : null
-                        const handoff = isHandoff(mic, idx)
-                        const isActive = activeCell?.momentId === m.id && activeCell?.mic === mic
-                        const c = member ? (VOICE_COLORS[member.voice] ?? VOICE_COLORS.extra) : null
-
+                  {momentsBySong.map(({ song, moments: songMoments }) => (
+                    <>
+                      {/* Song separator row */}
+                      <tr key={`song-${song.id}`}>
+                        <td colSpan={mics.length + 1}
+                          className="px-3 py-1.5 bg-gray-900 border-b border-gray-800 text-xs text-gray-500 font-medium">
+                          <Link to={`/show/${showId}`} className="hover:text-gray-300">{song.title}</Link>
+                        </td>
+                      </tr>
+                      {songMoments.map((m, idx) => {
+                        const globalIdx = allMoments.findIndex(am => am.id === m.id)
                         return (
-                          <td key={m.id}
-                            className={`border-b border-l border-gray-800 p-0 relative ${handoff ? 'bg-amber-500/10' : ''}`}
-                            style={{ minWidth: 100 }}>
-                            {isActive ? (
-                              <select
-                                autoFocus
-                                value={memberId ?? ''}
-                                onChange={e => { assign(m.id, mic, e.target.value); setActiveCell(null) }}
-                                onBlur={() => setActiveCell(null)}
-                                className="w-full h-full bg-gray-800 border border-blue-500 text-white text-xs px-1.5 py-1 focus:outline-none rounded-none">
-                                <option value="">— ningú —</option>
-                                {members.filter(mb => mb.role !== 'director').map(mb => (
-                                  <option key={mb.id} value={mb.id}>{mb.name}</option>
-                                ))}
-                              </select>
-                            ) : (
-                              <button
-                                onClick={() => setActiveCell({ momentId: m.id, mic })}
-                                className="w-full h-full text-left px-1.5 py-1.5 hover:bg-gray-800 transition-colors flex items-center gap-1 min-h-[32px]">
-                                {handoff && (
-                                  <ArrowRight size={9} className="text-amber-400 shrink-0" />
-                                )}
-                                {member ? (
-                                  <>
-                                    <span className="w-4 h-4 rounded-sm shrink-0 flex items-center justify-center text-xs font-bold"
-                                      style={{ background: c.bg, color: c.fg }}>
-                                      {memberInitials(member)}
-                                    </span>
-                                    <span className="text-gray-300 truncate text-xs">{member.name}</span>
-                                  </>
-                                ) : (
-                                  <span className="text-gray-700 text-xs">—</span>
-                                )}
-                              </button>
-                            )}
-                          </td>
+                          <tr key={m.id} className="hover:bg-gray-900/40 transition-colors">
+                            <td className="sticky left-0 bg-gray-950 z-10 px-3 py-2 border-b border-gray-800 text-gray-300 text-xs">
+                              <div className="font-medium">{m.title}</div>
+                              {m.subtitle && <div className="text-gray-600">{m.subtitle}</div>}
+                            </td>
+                            {mics.map((mic) => {
+                              const memberId = assignments[m.id]?.[mic]
+                              const member = memberId ? members.find(mb => mb.id === memberId) : null
+                              const handoff = isHandoff(mic, globalIdx)
+                              const isActive = activeCell?.momentId === m.id && activeCell?.mic === mic
+                              const c = member ? (VOICE_COLORS[member.voice] ?? VOICE_COLORS.extra) : null
+
+                              return (
+                                <td key={mic}
+                                  className={`border-b border-l border-gray-800 p-0 ${handoff ? 'bg-amber-500/10' : ''}`}
+                                  style={{ minWidth: 120 }}>
+                                  {isActive ? (
+                                    <select
+                                      autoFocus
+                                      value={memberId ?? ''}
+                                      onChange={e => { assign(m.id, mic, e.target.value); setActiveCell(null) }}
+                                      onBlur={() => setActiveCell(null)}
+                                      className="w-full h-full bg-gray-800 border border-cyan-500 text-white text-xs px-2 py-2 focus:outline-none rounded-none">
+                                      <option value="">— ningú —</option>
+                                      {members.filter(mb => mb.role !== 'director').map(mb => (
+                                        <option key={mb.id} value={mb.id}>{mb.name || [mb.first_name, mb.last_name].filter(Boolean).join(' ')}</option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <button
+                                      onClick={() => setActiveCell({ momentId: m.id, mic })}
+                                      className="w-full h-full text-left px-2 py-2 hover:bg-gray-800 transition-colors flex items-center gap-1.5 min-h-[40px]">
+                                      {handoff && <ArrowRight size={9} className="text-amber-400 shrink-0" />}
+                                      {member ? (
+                                        <>
+                                          <span className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-xs font-bold"
+                                            style={{ background: c.bg, color: c.fg }}>
+                                            {memberInitials(member)}
+                                          </span>
+                                          <span className="text-gray-300 truncate text-xs">{member.name || [member.first_name, member.last_name].filter(Boolean).join(' ')}</span>
+                                        </>
+                                      ) : (
+                                        <span className="text-gray-700 text-xs">—</span>
+                                      )}
+                                    </button>
+                                  )}
+                                </td>
+                              )
+                            })}
+                          </tr>
                         )
                       })}
-                    </tr>
+                    </>
                   ))}
                 </tbody>
               </table>

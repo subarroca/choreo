@@ -16,7 +16,7 @@ function PermToggle({ active, onChange, label }) {
     <button type="button" onClick={() => onChange(!active)}
       className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors ${
         active
-          ? 'bg-blue-900/30 border-blue-700 text-blue-400'
+          ? 'bg-cyan-900/30 border-cyan-700 text-cyan-400'
           : 'bg-gray-800 border-gray-700 text-gray-600 hover:text-gray-400'
       }`}>
       {active ? <Check size={11} /> : <X size={11} />}
@@ -95,7 +95,7 @@ export default function Admin() {
     <Layout narrow>
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Shield size={20} className="text-blue-400" />
+          <Shield size={20} className="text-cyan-400" />
           <h1 className="text-2xl font-bold text-white">Gestió d'usuaris</h1>
         </div>
 
