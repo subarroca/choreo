@@ -1,0 +1,79 @@
+import { formatCueNumber, cueSummary, sideColorHex, cueEffects, TRIGGER_TYPES } from '../../lib/lights'
+
+// Vista taula: tots els cues del show en ordre de número,
+// amb separadors quan canvia la cançó (com la graella de micros).
+export default function CueTable({ cues, songs, selectedCueId, onSelectCue }) {
+  const songMap = Object.fromEntries(songs.map(s => [s.id, s]))
+
+  const rows = []
+  let lastSongKey
+  for (const cue of cues) {
+    const key = cue.song_id ?? '__none__'
+    if (key !== lastSongKey) {
+      rows.push({ type: 'header', key: `h-${cue.id}`, title: cue.song_id ? (songMap[cue.song_id]?.title ?? '?') : 'Estructura (teló, diàlegs, tracks…)' })
+      lastSongKey = key
+    }
+    rows.push({ type: 'cue', key: cue.id, cue })
+  }
+
+  if (!cues.length) {
+    return <div className="text-gray-600 text-sm mt-8 text-center">Encara no hi ha cap cue. Crea el primer des de la vista partitura o amb «+ Cue».</div>
+  }
+
+  return (
+    <table className="border-collapse text-xs w-full">
+      <thead>
+        <tr className="text-left text-gray-600">
+          <th className="px-3 py-2 border-b border-gray-800 font-normal w-16">Cue</th>
+          <th className="px-3 py-2 border-b border-gray-800 font-normal w-24">Tipus</th>
+          <th className="px-3 py-2 border-b border-gray-800 font-normal">Disparador</th>
+          <th className="px-3 py-2 border-b border-gray-800 font-normal">Llums</th>
+          <th className="px-3 py-2 border-b border-gray-800 font-normal hidden md:table-cell">Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(row => {
+          if (row.type === 'header') {
+            return (
+              <tr key={row.key}>
+                <td colSpan={5} className="px-3 py-1.5 bg-gray-900 border-b border-gray-800 text-xs text-gray-500 font-medium">
+                  {row.title}
+                </td>
+              </tr>
+            )
+          }
+          const { cue } = row
+          const frontHex = sideColorHex(cue, 'front')
+          const backHex = sideColorHex(cue, 'back')
+          const fosc = cueEffects(cue).includes('fosc')
+          const selected = cue.id === selectedCueId
+          return (
+            <tr key={row.key} onClick={() => onSelectCue(cue)}
+              className={`cursor-pointer transition-colors ${selected ? 'bg-cyan-900/20' : 'hover:bg-gray-900/60'} ${fosc ? 'opacity-70' : ''}`}>
+              <td className="px-3 py-2.5 border-b border-gray-800">
+                <span className={`inline-block min-w-[34px] text-center font-bold rounded-md px-1.5 py-1 ${
+                  fosc ? 'bg-gray-950 text-gray-400 border border-gray-700' : 'bg-gray-700 text-white'}`}>
+                  {formatCueNumber(cue.cue_number)}
+                </span>
+              </td>
+              <td className="px-3 py-2.5 border-b border-gray-800 text-gray-500">
+                {TRIGGER_TYPES.find(t => t.value === cue.trigger_type)?.label ?? ''}
+              </td>
+              <td className={`px-3 py-2.5 border-b border-gray-800 ${cue.trigger_type === 'lyric' ? 'italic text-gray-300' : 'text-gray-300'}`}>
+                {cue.trigger_type === 'lyric' && cue.trigger_text ? `«${cue.trigger_text}»` : cue.trigger_text}
+              </td>
+              <td className="px-3 py-2.5 border-b border-gray-800 text-gray-400">
+                <span className="inline-flex items-center gap-1.5">
+                  {frontHex && <span className="w-3 h-3 rounded-full shrink-0 border border-gray-600" style={{ background: frontHex }} />}
+                  {backHex && <span className="w-3 h-3 rounded-full shrink-0 border border-gray-600 ring-1 ring-gray-500" style={{ background: backHex }} />}
+                  {cueSummary(cue)}
+                </span>
+              </td>
+              <td className="px-3 py-2.5 border-b border-gray-800 text-gray-600 hidden md:table-cell">{cue.notes}</td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+  )
+}

@@ -7,7 +7,7 @@ import {
 import {
   arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { Pencil, X, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, MicVocal, Music } from 'lucide-react'
+import { Pencil, X, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, MicVocal, Music, Lightbulb } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 import PersonProfileOverlay from '../components/PersonProfileOverlay'
@@ -241,6 +241,10 @@ export default function Setlist() {
             <Link to={`/show/${showId}/mics`}
               className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
               <MicVocal size={14} /> Micros
+            </Link>
+            <Link to={`/show/${showId}/llums`}
+              className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+              <Lightbulb size={14} /> Llums
             </Link>
             <button onClick={() => setShowCast(v => !v)}
               className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border transition-colors ${showCast ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800'}`}>

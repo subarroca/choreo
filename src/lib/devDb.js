@@ -3,6 +3,7 @@
 
 import { SEED_MEMBERS, SEED_SHOWS, SEED_PARTS, SEED_SONGS, SEED_REPERTOIRE, SEED_MOMENTS } from './devSeedData.js'
 import { SEED_POSITIONS } from './devSeedPositions.js'
+import { SEED_LIGHT_CUES, SEED_LIGHT_PRESETS } from './devSeedLights.js'
 
 export const DEV_USER = {
   id: 'dev-user-001',
@@ -116,10 +117,64 @@ function ensureSeedData() {
   // ── Repertori ────────────────────────────────────────────────
   const existingRepertoire = load('repertoire_songs')
   const existingRepIds = new Set(existingRepertoire.map(s => s.id))
+  // Migrate: sync lyrics from seed onto legacy localStorage rows
+  const migratedRep = existingRepertoire.map(s => {
+    if (s.lyrics) return s
+    const seed = SEED_REPERTOIRE.find(r => r.id === s.id)
+    return seed?.lyrics ? { ...s, lyrics: seed.lyrics } : s
+  })
+  const repChanged = JSON.stringify(migratedRep) !== JSON.stringify(existingRepertoire)
   const toAddRep = SEED_REPERTOIRE
     .filter(s => !existingRepIds.has(s.id))
     .map(s => ({ ...s, created_at: new Date().toISOString(), created_by: DEV_USER.id }))
-  if (toAddRep.length) save('repertoire_songs', [...existingRepertoire, ...toAddRep])
+  if (toAddRep.length || repChanged) save('repertoire_songs', [...migratedRep, ...toAddRep])
+
+  // ── Cues de llum ─────────────────────────────────────────────
+  const existingCues = load('light_cues')
+  const existingCueIds = new Set(existingCues.map(c => c.id))
+  // Migrate: seed rows re-sync from seed; user rows get the new shape
+  // (color → front_color; nivell únic + franges → 3 focus per banda)
+  const ZONES = ['esquerra', 'centre', 'dreta']
+  const toLevels = (level, zonesJson) => {
+    let zones = []
+    try { zones = JSON.parse(zonesJson || '[]') } catch { zones = [] }
+    const active = zones.length ? zones : ZONES
+    const v = Math.min(4, level ?? 0)
+    return JSON.stringify(Object.fromEntries(ZONES.map(z => [z, active.includes(z) ? v : 0])))
+  }
+  const migrateLightShape = (c) => {
+    if (c.front_levels !== undefined) return c
+    const { color, front_level, back_level, front_zones, back_zones, ...rest } = c
+    return {
+      ...rest,
+      front_levels: toLevels(front_level, front_zones),
+      back_levels: toLevels(back_level, back_zones),
+      front_color: c.front_color ?? color ?? null,
+      back_color: c.back_color ?? null,
+    }
+  }
+  const migratedCues = existingCues.map(c => {
+    const seed = SEED_LIGHT_CUES.find(s => s.id === c.id)
+    return seed ? { ...c, ...seed } : migrateLightShape(c)
+  })
+  const cuesChanged = JSON.stringify(migratedCues) !== JSON.stringify(existingCues)
+  const toAddCues = SEED_LIGHT_CUES
+    .filter(c => !existingCueIds.has(c.id))
+    .map(c => ({ ...c, created_at: new Date().toISOString() }))
+  if (toAddCues.length || cuesChanged) save('light_cues', [...migratedCues, ...toAddCues])
+
+  // ── Presets de llum ──────────────────────────────────────────
+  const existingPresets = load('light_presets')
+  const existingPresetIds = new Set(existingPresets.map(p => p.id))
+  const migratedPresets = existingPresets.map(p => {
+    const seed = SEED_LIGHT_PRESETS.find(s => s.id === p.id)
+    return seed ? { ...p, ...seed } : migrateLightShape(p)
+  })
+  const presetsChanged = JSON.stringify(migratedPresets) !== JSON.stringify(existingPresets)
+  const toAddPresets = SEED_LIGHT_PRESETS
+    .filter(p => !existingPresetIds.has(p.id))
+    .map(p => ({ ...p, created_at: new Date().toISOString() }))
+  if (toAddPresets.length || presetsChanged) save('light_presets', [...migratedPresets, ...toAddPresets])
 
   // ── Profiles (dev user) ──────────────────────────────────────
   const existingProfiles = load('profiles')

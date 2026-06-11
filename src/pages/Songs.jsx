@@ -137,6 +137,7 @@ function SongForm({ initial, onSave, onCancel }) {
   const [title, setTitle]           = useState(initial?.title ?? '')
   const [composer, setComposer]     = useState(initial?.composer ?? '')
   const [notes, setNotes]           = useState(initial?.notes ?? '')
+  const [lyrics, setLyrics]         = useState(initial?.lyrics ?? '')
   const [isPublic, setIsPublic]     = useState(initial?.is_public ?? false)
   const [attachments, setAttachments] = useState(() => {
     // Migrate legacy URL fields → attachments array
@@ -156,6 +157,7 @@ function SongForm({ initial, onSave, onCancel }) {
       title: title.trim(),
       composer: composer.trim() || null,
       notes: notes.trim() || null,
+      lyrics: lyrics.trim() || null,
       is_public: isPublic,
       attachments: JSON.stringify(attachments),
       // Keep legacy fields null (migration)
@@ -181,6 +183,12 @@ function SongForm({ initial, onSave, onCancel }) {
         <label className={labelCls}>Notes</label>
         <input value={notes} onChange={e => setNotes(e.target.value)}
           placeholder="Observacions, arranjador…" className={inputCls} />
+      </div>
+      <div>
+        <label className={labelCls}>Lletra</label>
+        <textarea value={lyrics} onChange={e => setLyrics(e.target.value)} rows={6}
+          placeholder={'Una línia per vers. Serveix per ancorar els cues de llum.'}
+          className={inputCls + ' resize-y leading-relaxed'} />
       </div>
 
       <div className="border-t border-gray-800 pt-4 space-y-2">

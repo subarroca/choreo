@@ -17,6 +17,7 @@ import { autoPlaceByArrangement as _autoPlace } from '../lib/editorArrange'
 import EditorSidebar from '../components/editor/EditorSidebar'
 import EditorCanvas from '../components/editor/EditorCanvas'
 import EditorToolbar from '../components/editor/EditorToolbar'
+import MomentLightsBar from '../components/editor/MomentLightsBar'
 import EditorContextMenu from '../components/editor/EditorContextMenu'
 import EditorRadialMenu from '../components/editor/EditorRadialMenu'
 import { isTouchUI } from '../lib/touch'
@@ -417,6 +418,8 @@ export default function Editor() {
           navigate={navigate}
           VOICE_GROUPS={VOICE_GROUPS} ARRANGEMENT_PATTERNS={ARRANGEMENT_PATTERNS} VOICE_COLORS={VOICE_COLORS}
         />
+
+        <MomentLightsBar showId={showId} momentId={momentId} />
 
         <div className="flex flex-1 min-h-0 relative overflow-hidden">
           {sidebarOpen && <div className="absolute inset-0 bg-black/60 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />}
