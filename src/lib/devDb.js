@@ -1,7 +1,7 @@
 // Mock Supabase client for local development (VITE_DEV_MODE=true)
 // Persists data to localStorage. Auth is bypassed — always signed in as director.
 
-import { SEED_MEMBERS, SEED_SHOWS, SEED_PARTS, SEED_SONGS, SEED_REPERTOIRE, SEED_MOMENTS } from './devSeedData.js'
+import { SEED_MEMBERS, SEED_SHOWS, SEED_PARTS, SEED_SONGS, SEED_REPERTOIRE, SEED_MOMENTS, SEED_SECTIONS } from './devSeedData.js'
 import { SEED_POSITIONS } from './devSeedPositions.js'
 import { SEED_LIGHT_CUES, SEED_LIGHT_PRESETS } from './devSeedLights.js'
 
@@ -117,16 +117,18 @@ function ensureSeedData() {
   // ── Repertori ────────────────────────────────────────────────
   const existingRepertoire = load('repertoire_songs')
   const existingRepIds = new Set(existingRepertoire.map(s => s.id))
-  // Migrate: sync lyrics from seed onto legacy localStorage rows
+  // Migrate: sync lyrics from seed, ensure type field
+  const allSeedRep = [...SEED_REPERTOIRE, ...SEED_SECTIONS]
   const migratedRep = existingRepertoire.map(s => {
-    if (s.lyrics) return s
-    const seed = SEED_REPERTOIRE.find(r => r.id === s.id)
-    return seed?.lyrics ? { ...s, lyrics: seed.lyrics } : s
+    const seed = allSeedRep.find(r => r.id === s.id)
+    const patched = { ...s, type: s.type ?? (seed?.type ?? 'song') }
+    if (!patched.lyrics && seed?.lyrics) patched.lyrics = seed.lyrics
+    return patched
   })
   const repChanged = JSON.stringify(migratedRep) !== JSON.stringify(existingRepertoire)
-  const toAddRep = SEED_REPERTOIRE
+  const toAddRep = allSeedRep
     .filter(s => !existingRepIds.has(s.id))
-    .map(s => ({ ...s, created_at: new Date().toISOString(), created_by: DEV_USER.id }))
+    .map(s => ({ type: 'song', ...s, created_at: new Date().toISOString(), created_by: DEV_USER.id }))
   if (toAddRep.length || repChanged) save('repertoire_songs', [...migratedRep, ...toAddRep])
 
   // ── Cues de llum ─────────────────────────────────────────────
@@ -155,7 +157,8 @@ function ensureSeedData() {
   }
   const migratedCues = existingCues.map(c => {
     const seed = SEED_LIGHT_CUES.find(s => s.id === c.id)
-    return seed ? { ...c, ...seed } : migrateLightShape(c)
+    const migrated = seed ? { ...c, ...seed } : migrateLightShape(c)
+    return { preset_id: null, ...migrated }
   })
   const cuesChanged = JSON.stringify(migratedCues) !== JSON.stringify(existingCues)
   const toAddCues = SEED_LIGHT_CUES
@@ -168,7 +171,8 @@ function ensureSeedData() {
   const existingPresetIds = new Set(existingPresets.map(p => p.id))
   const migratedPresets = existingPresets.map(p => {
     const seed = SEED_LIGHT_PRESETS.find(s => s.id === p.id)
-    return seed ? { ...p, ...seed } : migrateLightShape(p)
+    const migrated = seed ? { ...p, ...seed } : migrateLightShape(p)
+    return { code: null, ...migrated }
   })
   const presetsChanged = JSON.stringify(migratedPresets) !== JSON.stringify(existingPresets)
   const toAddPresets = SEED_LIGHT_PRESETS

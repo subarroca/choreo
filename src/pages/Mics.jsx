@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { X, Plus, MicVocal, ArrowRight, Menu } from 'lucide-react'
+import { X, Plus, ArrowRight, Menu } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { VOICE_COLORS } from '../lib/constants'
 import Layout from '../components/Layout'
+import ShowToolbar from '../components/ShowToolbar'
 
 // ─── Helpers ──────────────────────────────────────────────────
 function memberInitials(m) {
@@ -126,19 +127,15 @@ export default function Mics() {
     <Layout fullWidth>
       <div className="flex flex-col h-[calc(100vh-57px)]">
         {/* Header */}
-        <div className="flex items-center gap-3 flex-wrap px-4 py-3 bg-gray-900 border-b border-gray-800 shrink-0">
+        <div className="flex items-center shrink-0">
           <button onClick={() => setSidebarOpen(v => !v)}
-            className="lg:hidden p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors shrink-0">
+            className="lg:hidden p-2.5 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors shrink-0 self-stretch flex items-center border-b border-gray-800 bg-gray-900">
             <Menu size={18} />
           </button>
-          <nav className="flex items-center gap-1.5 text-sm text-gray-500">
-            <Link to="/" className="hover:text-gray-300">Espectacles</Link>
-            <span>/</span>
-            <Link to={`/show/${showId}`} className="hover:text-gray-300">{show?.name ?? '…'}</Link>
-            <span>/</span>
-            <span className="text-gray-300 flex items-center gap-1"><MicVocal size={13} /> Micròfons</span>
-          </nav>
-          {saving && <span className="text-xs text-gray-600 ml-auto">Guardant…</span>}
+          <div className="flex-1 min-w-0 flex items-center">
+            <ShowToolbar showId={showId} showName={show?.name} />
+            {saving && <span className="text-xs text-gray-600 pr-4 bg-gray-900 border-b border-gray-800 py-2.5 shrink-0">Guardant…</span>}
+          </div>
         </div>
 
         <div className="flex flex-1 min-h-0 relative overflow-hidden">

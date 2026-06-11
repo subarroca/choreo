@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
   DragOverlay,
@@ -7,9 +7,10 @@ import {
 import {
   arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { Pencil, X, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, MicVocal, Music, Lightbulb } from 'lucide-react'
+import { Pencil, X, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, MicVocal, Music } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
+import ShowToolbar from '../components/ShowToolbar'
 import PersonProfileOverlay from '../components/PersonProfileOverlay'
 import DroppableSongZone from '../components/setlist/DroppableSongZone'
 import SortableSong from '../components/setlist/SortableSong'
@@ -56,7 +57,7 @@ export default function Setlist() {
         supabase.from('songs').select('*').eq('show_id', showId).order('order_index'),
         supabase.from('members').select('*').order('name'),
         supabase.from('show_exclusions').select('member_id').eq('show_id', showId),
-        supabase.from('repertoire_songs').select('id, title, composer').order('title'),
+        supabase.from('repertoire_songs').select('id, title, composer, type').order('title'),
       ])
       setRepertoire(repRes.data ?? [])
       const showData = showRes.data
@@ -217,52 +218,37 @@ export default function Setlist() {
     <>
     <Layout>
       <div className="space-y-5">
-        {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-              <Link to="/" className="hover:text-gray-300">Espectacles</Link>
-              <span>/</span>
-              <span className="text-gray-300">{show?.name ?? '…'}</span>
-            </div>
-            <h1 className="text-2xl font-bold text-white">{show?.name ?? 'Carregant…'}</h1>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <button onClick={() => {
-              const next = !allExpanded
-              setAllExpanded(next)
-              const expAll = {}; for (const s of songs) expAll[s.id] = next
-              setExpandedSongs(expAll)
-            }}
-              className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-              title={allExpanded ? 'Replegar tot' : 'Expandir tot'}>
-              {allExpanded ? <ChevronsUp size={14} /> : <ChevronsDown size={14} />}
+        {/* Toolbar */}
+        <ShowToolbar showId={showId} showName={show?.name} />
+
+        {/* Action bar */}
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => {
+            const next = !allExpanded
+            setAllExpanded(next)
+            const expAll = {}; for (const s of songs) expAll[s.id] = next
+            setExpandedSongs(expAll)
+          }}
+            className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+            title={allExpanded ? 'Replegar tot' : 'Expandir tot'}>
+            {allExpanded ? <ChevronsUp size={14} /> : <ChevronsDown size={14} />}
+          </button>
+          <button onClick={() => setShowCast(v => !v)}
+            className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border transition-colors ${showCast ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800'}`}>
+            <MicVocal size={14} /> Membres {exclusions.size > 0 && <span className="ml-1 text-xs text-yellow-500">({allMembers.length - exclusions.size}/{allMembers.length})</span>}
+          </button>
+          {!creatingPart && (
+            <button onClick={() => setCreatingPart(true)}
+              className="text-sm text-purple-400 hover:text-purple-300 px-4 py-2 rounded-lg hover:bg-gray-800 border border-purple-800 transition-colors">
+              + Nova part
             </button>
-            <Link to={`/show/${showId}/mics`}
-              className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
-              <MicVocal size={14} /> Micros
-            </Link>
-            <Link to={`/show/${showId}/llums`}
-              className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
-              <Lightbulb size={14} /> Llums
-            </Link>
-            <button onClick={() => setShowCast(v => !v)}
-              className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border transition-colors ${showCast ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800'}`}>
-              <MicVocal size={14} /> Membres {exclusions.size > 0 && <span className="ml-1 text-xs text-yellow-500">({allMembers.length - exclusions.size}/{allMembers.length})</span>}
+          )}
+          {!creating && (
+            <button onClick={() => setCreating(true)}
+              className="bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors">
+              + Nova cançó
             </button>
-            {!creatingPart && (
-              <button onClick={() => setCreatingPart(true)}
-                className="text-sm text-purple-400 hover:text-purple-300 px-4 py-2 rounded-lg hover:bg-gray-800 border border-purple-800 transition-colors">
-                + Nova part
-              </button>
-            )}
-            {!creating && (
-              <button onClick={() => setCreating(true)}
-                className="bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-                + Nova cançó
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Cast panel */}

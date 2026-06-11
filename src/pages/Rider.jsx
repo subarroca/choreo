@@ -1,7 +1,8 @@
-import { useParams, Link } from 'react-router-dom'
-import { Printer, ArrowLeft } from 'lucide-react'
+import { useParams } from 'react-router-dom'
+import { Printer } from 'lucide-react'
 import { useLightCues } from '../hooks/useLightCues'
 import { formatCueNumber, cueSummary, sideColorHex, cueEffects, sortCues } from '../lib/lights'
+import ShowToolbar from '../components/ShowToolbar'
 
 // Rider tècnic imprimible: portada + cue sheet de llums per cançó
 // (amb plànols d'escenari) + annex de micròfons.
@@ -55,15 +56,15 @@ export default function Rider() {
       `}</style>
 
       {/* Barra superior (no s'imprimeix) */}
-      <div className="no-print sticky top-0 z-10 bg-gray-900 text-white px-4 py-3 flex items-center gap-3">
-        <Link to={`/show/${showId}/llums`} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors">
-          <ArrowLeft size={15} /> Llums
-        </Link>
-        <span className="text-sm text-gray-500 flex-1 truncate">Rider tècnic — {show?.name}</span>
-        <button onClick={() => window.print()}
-          className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-          <Printer size={14} /> Imprimir / PDF
-        </button>
+      <div className="no-print sticky top-0 z-10 bg-gray-900 text-white">
+        <ShowToolbar showId={showId} showName={show?.name} />
+        <div className="flex items-center justify-between px-4 py-2 border-t border-gray-800">
+          <span className="text-sm text-gray-500 truncate">Rider tècnic</span>
+          <button onClick={() => window.print()}
+            className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors">
+            <Printer size={14} /> Imprimir / PDF
+          </button>
+        </div>
       </div>
 
       <div className="rider-sheet max-w-3xl mx-auto my-6 bg-white shadow-xl px-10 py-12 print:px-0 print:py-0">

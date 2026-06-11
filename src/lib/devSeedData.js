@@ -85,6 +85,8 @@ export const SEED_PARTS = [
 
 // ─── Seed: Setlist Condal 2026 ────────────────────────────────
 export const SEED_SONGS = [
+  // OBERTURA
+  { id: 'dev-song-00', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-1', repertoire_song_id: 'rep-sec-obertura', title: 'Obertura', notes: '', order: 0 },
   // PRIMERA PART
   { id: 'dev-song-01', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-1', repertoire_song_id: 'rep-01', title: 'Medley Rey León',        notes: '', order: 1 },
   { id: 'dev-song-02', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-1', repertoire_song_id: 'rep-02', title: 'The Seal Lullaby',        notes: '', order: 2 },
@@ -94,7 +96,10 @@ export const SEED_SONGS = [
   { id: 'dev-song-06', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-1', repertoire_song_id: 'rep-06', title: 'Defying Gravity',         notes: '', order: 6 },
   { id: 'dev-song-07', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-1', repertoire_song_id: 'rep-07', title: 'Medley Rent',             notes: '', order: 7 },
   { id: 'dev-song-08', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-1', repertoire_song_id: 'rep-08', title: "You Can't Stop the Beat", notes: '', order: 8 },
+  // MITJA PART
+  { id: 'dev-song-mp', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-1', repertoire_song_id: 'rep-sec-mitja', title: 'Mitja part', notes: '', order: 8.5 },
   // SEGONA PART
+  { id: 'dev-song-op2', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-2', repertoire_song_id: 'rep-sec-obertura2', title: 'Obertura 2a part', notes: '', order: 8.7 },
   { id: 'dev-song-09', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-2', repertoire_song_id: 'rep-09', title: 'The Greatest Show',       notes: '', order: 9 },
   { id: 'dev-song-10', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-2', repertoire_song_id: 'rep-10', title: 'Baba Yetu',               notes: '', order: 10 },
   { id: 'dev-song-11', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-2', repertoire_song_id: 'rep-11', title: 'Hallelujah',              notes: '', order: 11 },
@@ -103,6 +108,17 @@ export const SEED_SONGS = [
   { id: 'dev-song-14', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-2', repertoire_song_id: 'rep-14', title: 'Believe',                 notes: '', order: 14 },
   { id: 'dev-song-15', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-2', repertoire_song_id: 'rep-15', title: 'Titanium',                notes: '', order: 15 },
   { id: 'dev-song-16', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-2', repertoire_song_id: 'rep-16', title: 'Medley Beyoncé',          notes: '', order: 16 },
+  // TANCAMENT
+  { id: 'dev-song-tc', show_id: CONDAL_SHOW_ID, part_id: 'dev-part-2', repertoire_song_id: 'rep-sec-tancament', title: 'Tancament', notes: '', order: 17 },
+]
+
+// ─── Seed: Seccions no-musicals (Condal 2026) ────────────────
+// Tipus: 'section', 'transition', 'intermission', 'announcement'
+export const SEED_SECTIONS = [
+  { id: 'rep-sec-obertura',   title: 'Obertura',    type: 'section',      notes: 'Teló tancat, veus en off, "Què comenci la (R)Evolució!"' },
+  { id: 'rep-sec-mitja',      title: 'Mitja part',   type: 'intermission', notes: 'Baixa teló. Track 5 + compte enrere Track 6.' },
+  { id: 'rep-sec-obertura2',  title: 'Obertura 2a part', type: 'section', notes: 'Obrim teló per a The Greatest Show.' },
+  { id: 'rep-sec-tancament',  title: 'Tancament',    type: 'section',      notes: 'Salutacions finals. Teló.' },
 ]
 
 // ─── Seed: Repertori global (Condal 2026) ────────────────────

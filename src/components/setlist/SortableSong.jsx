@@ -9,6 +9,7 @@ import {
 import { GripVertical, Pencil, X, ChevronDown, ChevronRight, Plus } from 'lucide-react'
 import SortableMomentRow from './SortableMomentRow'
 import { formatDuration } from './SongForm'
+import { repertoireType, isSongType } from '../../lib/repertoireTypes'
 
 export default function SortableSong({ song, moments, expanded, onToggle, onEdit, onDelete, onAddMoment, onDeleteMoment, onReorderMoments, showId, activeDragId, repSong, micAssignments }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: song.id })
@@ -42,6 +43,11 @@ export default function SortableSong({ song, moments, expanded, onToggle, onEdit
         <button onClick={onToggle} className="text-gray-500 hover:text-white p-2 transition-colors shrink-0">
           {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
+        {repSong && !isSongType(repSong.type) && (() => {
+          const rt = repertoireType(repSong.type)
+          const Icon = rt.icon
+          return <Icon size={14} className={`${rt.color} shrink-0`} />
+        })()}
         <button onClick={onToggle}
           className="flex-1 text-left min-w-0 py-2">
           <span className="text-sm font-medium text-white block truncate">

@@ -30,9 +30,9 @@ const cue = (id, cue_number, fields) => ({
 })
 
 export const SEED_LIGHT_CUES = [
-  // ── Preshow ──
-  cue('001', 1, { trigger_type: 'structural', trigger_text: 'TELÓ TANCAT — Track 1 veus en off', notes: 'Peu: "Què comenci la (R)Evolució!"' }),
-  cue('002', 2, { trigger_type: 'structural', trigger_text: 'OBRIM TELÓ' }),
+  // ── Obertura (secció) ──
+  cue('001', 1, { song_id: 'dev-song-00', trigger_type: 'action', trigger_text: 'TELÓ TANCAT — Track 1 veus en off', lyric_line: 0, notes: 'Peu: "Què comenci la (R)Evolució!"' }),
+  cue('002', 2, { song_id: 'dev-song-00', trigger_type: 'action', trigger_text: 'OBRIM TELÓ', lyric_line: 1 }),
 
   // ── 1. Medley Rey León ──
   cue('003', 3,    { song_id: 'dev-song-01', moment_id: 'dev-m-01-1', trigger_text: 'Is the circle of life', lyric_line: 21, front_levels: lv(2), front_color: 'calid' }),
@@ -63,10 +63,11 @@ export const SEED_LIGHT_CUES = [
   cue('047', 47,   { song_id: 'dev-song-08', moment_id: 'dev-m-08-2', trigger_text: 'Ever since this whole world began', front_levels: lv(2), front_color: 'calid' }),
   cue('048', 48,   { song_id: 'dev-song-08', moment_id: 'dev-m-08-4', trigger_text: 'Zazaza — solista al mig', front_levels: lv(1, 3, 1), effects: '["chase","mobils"]', front_color: 'rosa' }),
   cue('0485', 48.5,{ song_id: 'dev-song-08', trigger_text: 'You can\'t stop the beat! (final)', back_levels: lv(2), back_color: 'vermell' }),
-  cue('049', 49,   { song_id: 'dev-song-08', trigger_type: 'structural', trigger_text: 'BAIXA TELÓ — Mitja part', notes: 'Abans d\'obrir teló: Track 5 + compte enrere (Track 6)' }),
+  // ── Mitja part (secció) ──
+  cue('049', 49,   { song_id: 'dev-song-mp', trigger_type: 'action', trigger_text: 'BAIXA TELÓ', lyric_line: 0, notes: 'Abans d\'obrir teló: Track 5 + compte enrere (Track 6)' }),
 
-  // ── 9. The Greatest Show ──
-  cue('050', 50,   { trigger_type: 'structural', trigger_text: 'OBRIM TELÓ' }),
+  // ── Obertura 2a part (secció) ──
+  cue('050', 50,   { song_id: 'dev-song-op2', trigger_type: 'action', trigger_text: 'OBRIM TELÓ', lyric_line: 0 }),
   cue('051', 51,   { song_id: 'dev-song-09', moment_id: 'dev-m-09-1', trigger_text: 'Ohohoooh', lyric_line: 0, front_levels: lv(1), front_color: 'ambre' }),
   cue('052', 52,   { song_id: 'dev-song-09', trigger_type: 'action', trigger_text: 'PUM — Solista 1 frase', followspots: '[{"label":"Canó 1","position":"centre"}]' }),
   cue('055', 55,   { song_id: 'dev-song-09', moment_id: 'dev-m-09-2', trigger_text: 'So tell me do you wanna go', front_levels: lv(3), front_color: 'calid', effects: '["mobils"]' }),
@@ -80,8 +81,8 @@ export const SEED_LIGHT_CUES = [
 ]
 
 export const SEED_LIGHT_PRESETS = [
-  { id: 'dev-lp-1', show_id: SHOW, name: 'Tornada càlida 100%', front_levels: lv(4), back_levels: OFF,   front_color: 'calid', back_color: null,   scope: 'tots', effects: '[]', transition: 'tall', transition_seconds: null },
-  { id: 'dev-lp-2', show_id: SHOW, name: 'Solista amb canó',    front_levels: lv(1), back_levels: OFF,   front_color: null,    back_color: null,   scope: 'cor',  effects: '[]', transition: 'tall', transition_seconds: null },
-  { id: 'dev-lp-3', show_id: SHOW, name: 'Fosc',                front_levels: OFF,   back_levels: OFF,   front_color: null,    back_color: null,   scope: 'tots', effects: '["fosc"]', transition: 'tall', transition_seconds: null },
-  { id: 'dev-lp-4', show_id: SHOW, name: 'Ambient blau contra', front_levels: OFF,   back_levels: lv(2), front_color: null,    back_color: 'blau', scope: 'tots', effects: '[]', transition: 'prog', transition_seconds: 4 },
+  { id: 'dev-lp-1', show_id: SHOW, code: 'A', name: 'Tornada càlida 100%', front_levels: lv(4), back_levels: OFF,   front_color: 'calid', back_color: null,   scope: 'tots', effects: '[]', transition: 'tall', transition_seconds: null },
+  { id: 'dev-lp-2', show_id: SHOW, code: 'B', name: 'Solista amb canó',    front_levels: lv(1), back_levels: OFF,   front_color: null,    back_color: null,   scope: 'cor',  effects: '[]', transition: 'tall', transition_seconds: null },
+  { id: 'dev-lp-3', show_id: SHOW, code: 'C', name: 'Fosc',                front_levels: OFF,   back_levels: OFF,   front_color: null,    back_color: null,   scope: 'tots', effects: '["fosc"]', transition: 'tall', transition_seconds: null },
+  { id: 'dev-lp-4', show_id: SHOW, code: 'D', name: 'Ambient blau contra', front_levels: OFF,   back_levels: lv(2), front_color: null,    back_color: 'blau', scope: 'tots', effects: '[]', transition: 'prog', transition_seconds: 4 },
 ]

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { Lightbulb, Plus, Menu, FileText, ListOrdered, AlignLeft, X, Play } from 'lucide-react'
+import { useParams } from 'react-router-dom'
+import { Plus, Menu, ListOrdered, AlignLeft, X, Play } from 'lucide-react'
 import Layout from '../components/Layout'
+import ShowToolbar from '../components/ShowToolbar'
 import { useLightCues } from '../hooks/useLightCues'
 import { nextCueNumber, sortCues, lyricsLines } from '../lib/lights'
 import ScoreView from '../components/lights/ScoreView'
@@ -123,41 +124,32 @@ export default function Lights() {
   return (
     <Layout fullWidth>
       <div className="flex flex-col h-[calc(100vh-57px)]">
-        {/* Header */}
-        <div className="flex items-center gap-3 flex-wrap px-4 py-3 bg-gray-900 border-b border-gray-800 shrink-0">
+        <ShowToolbar showId={showId} showName={show?.name} />
+
+        {/* View controls */}
+        <div className="flex items-center gap-2 px-4 py-2 bg-gray-900 border-b border-gray-800 shrink-0">
           <button onClick={() => setSidebarOpen(v => !v)}
             className="lg:hidden p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors shrink-0">
             <Menu size={18} />
           </button>
-          <nav className="flex items-center gap-1.5 text-sm text-gray-500 min-w-0">
-            <Link to="/" className="hover:text-gray-300">Espectacles</Link>
-            <span>/</span>
-            <Link to={`/show/${showId}`} className="hover:text-gray-300 truncate">{show?.name ?? '…'}</Link>
-            <span>/</span>
-            <span className="text-gray-300 flex items-center gap-1 shrink-0"><Lightbulb size={13} /> Llums</span>
-          </nav>
-          <div className="flex items-center gap-2 ml-auto">
-            {saving && <span className="text-xs text-gray-600">Guardant…</span>}
-            <div className="flex rounded-lg border border-gray-700 overflow-hidden">
-              <button onClick={() => setView('score')}
-                className={`flex items-center gap-1.5 px-3 py-2 text-xs transition-colors ${view === 'score' ? 'bg-cyan-700/40 text-cyan-300' : 'text-gray-400 hover:text-white'}`}>
-                <AlignLeft size={13} /> Partitura
-              </button>
-              <button onClick={() => setView('table')}
-                className={`flex items-center gap-1.5 px-3 py-2 text-xs transition-colors border-l border-gray-700 ${view === 'table' ? 'bg-cyan-700/40 text-cyan-300' : 'text-gray-400 hover:text-white'}`}>
-                <ListOrdered size={13} /> Taula
-              </button>
-            </div>
+          <div className="flex rounded-lg border border-gray-700 overflow-hidden">
+            <button onClick={() => setView('score')}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs transition-colors ${view === 'score' ? 'bg-cyan-700/40 text-cyan-300' : 'text-gray-400 hover:text-white'}`}>
+              <AlignLeft size={13} /> Partitura
+            </button>
+            <button onClick={() => setView('table')}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs transition-colors border-l border-gray-700 ${view === 'table' ? 'bg-cyan-700/40 text-cyan-300' : 'text-gray-400 hover:text-white'}`}>
+              <ListOrdered size={13} /> Taula
+            </button>
+          </div>
+          {saving && <span className="text-xs text-gray-600">Guardant…</span>}
+          <div className="ml-auto flex items-center gap-2">
             {selectedSong && (
               <button onClick={() => setPlayerOpen(true)}
                 className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
                 <Play size={13} /> Reproduir
               </button>
             )}
-            <Link to={`/show/${showId}/rider`}
-              className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
-              <FileText size={13} /> Rider
-            </Link>
             <button onClick={handleCreateCue}
               className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-300 text-white text-xs px-3 py-2 rounded-lg transition-colors">
               <Plus size={13} /> Cue
