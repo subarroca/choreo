@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth.jsx'
+import { ConfirmHost } from './components/ui/ConfirmDialog'
 import Login from './pages/Login'
 import Shows from './pages/Shows'
 import Setlist from './pages/Setlist'
@@ -40,6 +41,7 @@ export default function App() {
   return (
     <AuthProvider>
       <AppRoutes />
+      <ConfirmHost />
     </AuthProvider>
   )
 }

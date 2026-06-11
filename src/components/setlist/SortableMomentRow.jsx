@@ -15,8 +15,8 @@ export default function SortableMomentRow({ moment, index, showId, songId, onDel
     <div ref={setNodeRef} style={style}
       className="flex items-center gap-2 pl-8 pr-3 py-2 border-b border-gray-800/50 bg-black/20 hover:bg-black/40 border-l-2 border-l-gray-700/60 group transition-colors">
       <button {...attributes} {...listeners}
-        className="text-gray-700 hover:text-gray-500 cursor-grab active:cursor-grabbing p-1 -ml-1 touch-none shrink-0">
-        <GripVertical size={13} />
+        className="text-gray-700 hover:text-gray-500 cursor-grab active:cursor-grabbing p-2 -ml-2 touch-none shrink-0">
+        <GripVertical size={16} />
       </button>
       <span className="text-xs text-gray-600 w-5 text-center shrink-0 tabular-nums">{index + 1}</span>
       <Link to={`/show/${showId}/song/${songId}/moment/${moment.id}`} className="flex-1 min-w-0 py-0.5">
@@ -30,12 +30,12 @@ export default function SortableMomentRow({ moment, index, showId, songId, onDel
         </span>
       )}
       <Link to={`/show/${showId}/song/${songId}/moment/${moment.id}`}
-        className="flex items-center gap-1 text-xs text-cyan-600 hover:text-cyan-400 px-2 py-1.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
-        <ArrowRight size={13} />
+        className="flex items-center gap-1 text-xs text-cyan-600 hover:text-cyan-400 px-2.5 py-2.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+        <ArrowRight size={16} />
       </Link>
       <button onClick={() => onDelete(moment.id)}
-        className="text-gray-700 hover:text-red-500 p-1.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
-        <X size={13} />
+        className="text-gray-700 hover:text-red-500 p-2.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+        <X size={16} />
       </button>
     </div>
   )

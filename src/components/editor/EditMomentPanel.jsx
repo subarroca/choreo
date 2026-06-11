@@ -19,7 +19,7 @@ export default function EditMomentPanel({
         </div>
         <div className="flex gap-1.5 self-end">
           <button onClick={onSave}
-            className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">Guardar</button>
+            className="bg-cyan-600 hover:bg-cyan-300 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">Guardar</button>
           <button onClick={onDelete}
             className="bg-red-900/50 hover:bg-red-800 text-red-400 hover:text-red-300 text-xs px-3 py-1.5 rounded-lg transition-colors">Eliminar</button>
           <button onClick={onCancel}

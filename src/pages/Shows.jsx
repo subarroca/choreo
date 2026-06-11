@@ -4,6 +4,8 @@ import { Clapperboard, Pencil, Trash2, MapPin, ImageIcon, X } from 'lucide-react
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import Layout from '../components/Layout'
+import { confirmDialog } from '../components/ui/ConfirmDialog'
+import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
 
 function ShowForm({ initial, onSave, onCancel }) {
   const [name, setName] = useState(initial?.name ?? '')
@@ -45,17 +47,17 @@ function ShowForm({ initial, onSave, onCancel }) {
         <div className="space-y-1">
           <label className="text-xs text-gray-400">Nom *</label>
           <input value={name} onChange={e => setName(e.target.value)} required placeholder="Condal 2026"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500" />
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-300" />
         </div>
         <div className="space-y-1">
           <label className="text-xs text-gray-400">Data</label>
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500" />
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-300" />
         </div>
         <div className="space-y-1">
           <label className="text-xs text-gray-400">Sala</label>
           <input value={venue} onChange={e => setVenue(e.target.value)} placeholder="Gran Teatre del Liceu"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500" />
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-300" />
         </div>
       </div>
 
@@ -65,12 +67,12 @@ function ShowForm({ initial, onSave, onCancel }) {
           <label className="text-xs text-gray-400">Poster</label>
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => fileRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-700 text-xs text-gray-400 hover:text-white hover:border-gray-600 transition-colors">
-              <ImageIcon size={12} /> {uploading ? 'Pujant…' : 'Triar imatge'}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-700 text-xs text-gray-400 hover:text-white hover:border-gray-600 transition-colors">
+              <ImageIcon size={14} /> {uploading ? 'Pujant…' : 'Triar imatge'}
             </button>
             {posterPreview && (
               <button type="button" onClick={() => { setPosterUrl(''); setPosterPreview('') }}
-                className="text-gray-600 hover:text-red-400 transition-colors"><X size={13} /></button>
+                className="text-gray-600 hover:text-red-400 transition-colors p-2"><X size={14} /></button>
             )}
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePosterChange} />
           </div>
@@ -81,7 +83,7 @@ function ShowForm({ initial, onSave, onCancel }) {
       </div>
 
       <div className="flex gap-2">
-        <button type="submit" className="bg-cyan-600 hover:bg-cyan-500 text-white text-sm px-4 py-1.5 rounded-lg transition-colors">
+        <button type="submit" className="bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-1.5 rounded-lg transition-colors">
           Guardar
         </button>
         <button type="button" onClick={onCancel} className="text-gray-400 hover:text-white text-sm px-4 py-1.5 rounded-lg transition-colors">
@@ -96,26 +98,23 @@ export default function Shows() {
   const { user, permissions, role } = useAuth()
   const canEdit = role === 'admin' || role === 'director' || permissions?.shows?.edit
   const navigate = useNavigate()
-  const [shows, setShows] = useState([])
-  const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState(null)
 
-  useEffect(() => { fetchShows() }, [])
-
-  async function fetchShows() {
+  const { data: shows = [], setData: setShows, loading } = useSupabaseQuery(async () => {
     const { data } = await supabase
       .from('shows')
       .select('*')
       .order('created_at', { ascending: false })
-    const list = data ?? []
-    setShows(list)
-    setLoading(false)
-    // Auto-navigate when there is exactly one show and the user isn't an editor
-    if (list.length === 1 && !canEdit) {
-      navigate(`/show/${list[0].id}`, { replace: true })
+    return data ?? []
+  }, [])
+
+  // Auto-navigate when there is exactly one show and the user isn't an editor
+  useEffect(() => {
+    if (!loading && shows.length === 1 && !canEdit) {
+      navigate(`/show/${shows[0].id}`, { replace: true })
     }
-  }
+  }, [loading])
 
   async function handleCreate(fields) {
     const { data, error } = await supabase
@@ -143,7 +142,7 @@ export default function Shows() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Eliminar aquest espectacle?')) return
+    if (!(await confirmDialog('Eliminar aquest espectacle?'))) return
     await supabase.from('shows').delete().eq('id', id)
     setShows(prev => prev.filter(s => s.id !== id))
   }
@@ -156,7 +155,7 @@ export default function Shows() {
           {!creating && canEdit && (
             <button
               onClick={() => setCreating(true)}
-              className="bg-cyan-600 hover:bg-cyan-500 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+              className="bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors"
             >
               + Nou espectacle
             </button>
@@ -205,8 +204,8 @@ export default function Shows() {
                             <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(show.venue)}`}
                               target="_blank" rel="noopener noreferrer"
                               onClick={e => e.stopPropagation()}
-                              className="text-gray-600 hover:text-cyan-400 transition-colors" title="Veure al mapa">
-                              <MapPin size={11} />
+                              className="text-gray-600 hover:text-cyan-400 transition-colors p-1.5 -m-1" title="Veure al mapa">
+                              <MapPin size={13} />
                             </a>
                           </span>
                         )}

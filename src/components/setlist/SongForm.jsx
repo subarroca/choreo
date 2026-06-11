@@ -48,7 +48,7 @@ function RepPicker({ repertoire, value, onChange }) {
     <div ref={ref} className="relative">
       {/* Trigger */}
       {open ? (
-        <div className="flex items-center gap-2 bg-gray-800 border border-cyan-500 rounded-lg px-3 py-2">
+        <div className="flex items-center gap-2 bg-gray-800 border border-cyan-300 rounded-lg px-3 py-2">
           <Search size={13} className="text-gray-500 shrink-0" />
           <input
             ref={inputRef}
@@ -140,7 +140,7 @@ export default function SongForm({ initial, parts, repertoire = [], onSave, onCa
           <label className="text-xs text-gray-400">Títol *</label>
           <input value={customTitle} onChange={e => setCustomTitle(e.target.value)}
             required={!repId} placeholder="Títol de la cançó"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500" />
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-300" />
         </div>
       )}
       {/* Preview of selected rep title */}
@@ -158,18 +158,18 @@ export default function SongForm({ initial, parts, repertoire = [], onSave, onCa
         <div className="space-y-1">
           <label className="text-xs text-gray-400">Notes</label>
           <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Opcional"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500" />
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-300" />
         </div>
         <div className="space-y-1">
           <label className="text-xs text-gray-400">Durada</label>
           <input value={durationStr} onChange={e => setDurationStr(e.target.value)} placeholder="3:45"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500" />
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-300" />
         </div>
         {parts.length > 0 && (
           <div className="space-y-1">
             <label className="text-xs text-gray-400">Part</label>
             <select value={partId} onChange={e => setPartId(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500">
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-300">
               <option value="">Sense part</option>
               {parts.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
             </select>
@@ -177,7 +177,7 @@ export default function SongForm({ initial, parts, repertoire = [], onSave, onCa
         )}
       </div>
       <div className="flex gap-2">
-        <button type="submit" className="bg-cyan-600 hover:bg-cyan-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">Guardar</button>
+        <button type="submit" className="bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors">Guardar</button>
         <button type="button" onClick={onCancel} className="text-gray-400 hover:text-white text-sm px-4 py-2 rounded-lg transition-colors">Cancel·lar</button>
       </div>
     </form>

@@ -20,11 +20,11 @@ export default function EditorSidebar({
       <div className="p-2.5 space-y-3">
 
         <SidebarSection title="Mode" open={isPanelOpen('mode')} onToggle={() => togglePanel('mode')}>
-          <div className="flex rounded-lg border border-gray-700 overflow-hidden">
+          <div className="grid grid-cols-2 gap-px rounded-lg border border-gray-700 overflow-hidden bg-gray-800">
             {MODES.map(({ id, Icon, label }) => (
               <button key={id} onClick={() => onChangeMode(id)} title={label}
-                className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 text-xs transition-colors ${mode === id ? 'bg-cyan-600 text-white' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
-                <Icon size={12} /><span className="text-xs leading-none">{label}</span>
+                className={`flex flex-col items-center gap-1 py-2.5 min-h-[56px] text-xs transition-colors ${mode === id ? 'bg-cyan-600 text-white' : 'bg-gray-950 text-gray-500 hover:text-white hover:bg-gray-800'}`}>
+                <Icon size={18} /><span className="text-xs leading-none">{label}</span>
               </button>
             ))}
           </div>
@@ -42,15 +42,15 @@ export default function EditorSidebar({
                 ))}
               </SortableContext>
             </DndContext>
-            <button onClick={onAddRow} className="flex items-center gap-1 text-xs text-cyan-500 hover:text-cyan-400 transition-colors mt-0.5">
-              <Plus size={9} /> Fila
+            <button onClick={onAddRow} className="flex items-center gap-1 text-xs text-cyan-300 hover:text-cyan-400 transition-colors mt-0.5 py-2 px-1 -mx-1 rounded hover:bg-gray-800">
+              <Plus size={12} /> Fila
             </button>
           </div>
           <div className="flex items-center gap-1.5 mt-1.5">
             <span className="text-xs text-gray-500">Col.</span>
-            <button onClick={() => onUpdateCols(COLS - 1)} className="w-5 h-5 text-gray-400 hover:text-white bg-gray-800 rounded text-xs">−</button>
+            <button onClick={() => onUpdateCols(COLS - 1)} className="w-9 h-9 text-gray-400 hover:text-white bg-gray-800 rounded-lg text-base">−</button>
             <span className="text-xs text-gray-300 w-5 text-center tabular-nums">{COLS}</span>
-            <button onClick={() => onUpdateCols(COLS + 1)} className="w-5 h-5 text-gray-400 hover:text-white bg-gray-800 rounded text-xs">+</button>
+            <button onClick={() => onUpdateCols(COLS + 1)} className="w-9 h-9 text-gray-400 hover:text-white bg-gray-800 rounded-lg text-base">+</button>
           </div>
         </SidebarSection>
 

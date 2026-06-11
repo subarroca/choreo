@@ -167,7 +167,7 @@ export function useEditorDrag(ctx) {
         } else {
           member = memberAtPixel(x, y)
         }
-        if (member) { vibrate(30); setContextMenu({ x: startCX, y: startCY, member }) }
+        if (member) { vibrate(30); setContextMenu({ x: startCX, y: startCY, member, source: 'canvas' }) }
       }, 500)
     }
 

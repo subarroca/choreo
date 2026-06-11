@@ -52,7 +52,7 @@ export default function AddMomentPanel({
         )}
         <div className="flex gap-1.5 self-end">
           <button onClick={onCreate}
-            className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">Crear</button>
+            className="bg-cyan-600 hover:bg-cyan-300 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">Crear</button>
           <button onClick={onCancel}
             className="text-gray-500 hover:text-white text-xs px-2 py-1.5 transition-colors">Cancel·lar</button>
         </div>

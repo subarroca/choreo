@@ -39,8 +39,8 @@ export default function SortableSong({ song, moments, expanded, onToggle, onEdit
           className="text-gray-600 hover:text-gray-400 cursor-grab active:cursor-grabbing p-2 touch-none shrink-0">
           <GripVertical size={15} />
         </button>
-        <button onClick={onToggle} className="text-gray-500 hover:text-white p-1.5 transition-colors shrink-0">
-          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        <button onClick={onToggle} className="text-gray-500 hover:text-white p-2 transition-colors shrink-0">
+          {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
         <button onClick={onToggle}
           className="flex-1 text-left min-w-0 py-2">
@@ -60,12 +60,12 @@ export default function SortableSong({ song, moments, expanded, onToggle, onEdit
           {moments.length}m
         </span>
         <button onClick={() => onEdit(song)}
-          className="text-gray-500 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
-          <Pencil size={13} />
+          className="text-gray-500 hover:text-white p-2.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+          <Pencil size={15} />
         </button>
         <button onClick={() => onDelete(song.id)}
-          className="text-gray-600 hover:text-red-500 p-2 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
-          <X size={13} />
+          className="text-gray-600 hover:text-red-500 p-2.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+          <X size={15} />
         </button>
       </div>
 

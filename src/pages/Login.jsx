@@ -75,7 +75,7 @@ export default function Login() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-300"
               />
             </div>
             <div className="space-y-1">
@@ -85,13 +85,13 @@ export default function Login() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-300"
               />
             </div>
             <button
               type="submit"
               disabled={loading || googleLoading}
-              className="w-full bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-medium py-2 rounded-lg transition-colors"
+              className="w-full bg-cyan-600 hover:bg-cyan-300 disabled:opacity-50 text-white font-medium py-2 rounded-lg transition-colors"
             >
               {loading ? 'Entrant...' : 'Entrar'}
             </button>

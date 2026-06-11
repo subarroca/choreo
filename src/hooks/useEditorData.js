@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { confirmDialog } from '../components/ui/ConfirmDialog'
 
 export function useEditorData({ showId, songId, momentId, navigate }) {
   const [show, setShow] = useState(null)
@@ -86,7 +87,7 @@ export function useEditorData({ showId, songId, momentId, navigate }) {
     return error ? null : data
   }
   async function handleMemberDelete(id) {
-    if (!confirm('Eliminar definitivament aquesta persona?')) return false
+    if (!(await confirmDialog('Eliminar definitivament aquesta persona?'))) return false
     await supabase.from('members').delete().eq('id', id)
     setMembers(prev => prev.filter(m => m.id !== id))
     return true
@@ -105,7 +106,7 @@ export function useEditorData({ showId, songId, momentId, navigate }) {
   }
 
   async function handleDeleteMoment(mId) {
-    if (!confirm('Eliminar aquest moment i totes les seves posicions?')) return
+    if (!(await confirmDialog('Eliminar aquest moment i totes les seves posicions?'))) return
     await supabase.from('moments').delete().eq('id', mId)
     const remaining = moments.filter(m => m.id !== mId)
     setMoments(remaining)

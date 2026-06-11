@@ -22,7 +22,7 @@ function deriveName(fn, ln) { return [fn, ln].filter(Boolean).join(' ') }
 
 const ALL_VOICES = ['soprano1','soprano2','alto1','alto2','tenor1','tenor2','baritone','bass']
 const ROLES = Object.keys(ROLE_LABELS)
-const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 placeholder-gray-600'
+const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-300 placeholder-gray-600'
 const labelCls = 'text-xs text-gray-500 mb-1 block'
 
 // ─── Voice dropdown ───────────────────────────────────────────
@@ -278,7 +278,7 @@ function EditForm({ member, isNew, onSave, onBack, onSetActive, onDelete }) {
       {/* Fixed footer */}
       <div className="shrink-0 border-t border-gray-800 px-4 py-3 flex items-center gap-2">
         <button type="submit"
-          className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium py-2 rounded-lg transition-colors">
+          className="flex-1 bg-cyan-600 hover:bg-cyan-300 text-white text-sm font-medium py-2 rounded-lg transition-colors">
           {isNew ? 'Crear persona' : 'Desar'}
         </button>
         {!isNew && onSetActive && onDelete && (
@@ -354,8 +354,8 @@ export default function PersonProfileOverlay({ member, isNew, readOnly = false, 
 
         {/* Close button (top-right) */}
         <button onClick={onClose}
-          className="absolute top-3 right-3 z-10 text-gray-600 hover:text-white transition-colors p-1">
-          <X size={14} />
+          className="absolute top-2 right-2 z-10 text-gray-600 hover:text-white transition-colors p-2.5 rounded-lg hover:bg-gray-800">
+          <X size={18} />
         </button>
 
         {editing ? (

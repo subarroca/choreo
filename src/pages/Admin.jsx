@@ -14,12 +14,12 @@ const SECTIONS = [
 function PermToggle({ active, onChange, label }) {
   return (
     <button type="button" onClick={() => onChange(!active)}
-      className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors ${
+      className={`flex items-center gap-1.5 text-xs px-2.5 py-2 rounded-lg border transition-colors ${
         active
           ? 'bg-cyan-900/30 border-cyan-700 text-cyan-400'
           : 'bg-gray-800 border-gray-700 text-gray-600 hover:text-gray-400'
       }`}>
-      {active ? <Check size={11} /> : <X size={11} />}
+      {active ? <Check size={13} /> : <X size={13} />}
       {label}
     </button>
   )

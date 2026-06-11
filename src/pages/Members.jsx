@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Mic, ChevronDown, ChevronUp, Plus, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
 import Layout from '../components/Layout'
 import PersonProfileOverlay from '../components/PersonProfileOverlay'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { confirmDialog } from '../components/ui/ConfirmDialog'
+import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
 
 const VOICE_ORDER = ['soprano1','soprano2','alto1','alto2','tenor1','tenor2','baritone','bass']
 const ALL_VOICES = VOICE_ORDER
@@ -25,20 +27,15 @@ function deriveInitials(fn, ln) {
 export default function Members() {
   const { permissions, role } = useAuth()
   const canEdit = role === 'admin' || role === 'director' || permissions?.members?.edit
-  const [members, setMembers]         = useState([])
-  const [loading, setLoading]         = useState(true)
   const [showInactive, setShowInactive] = useState(false)
   const [filterVoice, setFilterVoice] = useState('')
   const [search, setSearch]           = useState('')
   const [overlayMember, setOverlayMember] = useState(null)   // member obj or 'new'
 
-  useEffect(() => {
-    supabase.from('members').select('*').order('last_name').order('first_name')
-      .then(({ data }) => {
-        const sorted = (data ?? []).sort((a, b) =>
-          ((a.last_name || a.name) + '').localeCompare((b.last_name || b.name) + '', 'ca'))
-        setMembers(sorted); setLoading(false)
-      })
+  const { data: members = [], setData: setMembers, loading } = useSupabaseQuery(async () => {
+    const { data } = await supabase.from('members').select('*').order('last_name').order('first_name')
+    return (data ?? []).sort((a, b) =>
+      ((a.last_name || a.name) + '').localeCompare((b.last_name || b.name) + '', 'ca'))
   }, [])
 
   async function handleCreate(fields) {
@@ -71,7 +68,7 @@ export default function Members() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Eliminar definitivament aquesta persona?')) return
+    if (!(await confirmDialog('Eliminar definitivament aquesta persona?'))) return
     await supabase.from('members').delete().eq('id', id)
     setMembers(prev => prev.filter(m => m.id !== id))
     setOverlayMember(null)
@@ -104,11 +101,11 @@ export default function Members() {
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
               <input value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Cerca per nom…"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500" />
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-300" />
             </div>
             {canEdit && (
               <button onClick={() => setOverlayMember('new')}
-                className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-sm px-4 py-2 rounded-lg transition-colors shrink-0">
+                className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors shrink-0">
                 <Plus size={14} /> Afegir
               </button>
             )}

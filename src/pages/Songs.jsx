@@ -1,12 +1,14 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { BookOpen, Plus, Pencil, ExternalLink, Music, Globe, Lock, FileText, Upload, X, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import Layout from '../components/Layout'
+import { confirmDialog } from '../components/ui/ConfirmDialog'
+import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
 
 const DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true'
 
-const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 placeholder-gray-600'
+const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-300 placeholder-gray-600'
 const labelCls = 'text-xs text-gray-400 mb-1 block'
 
 const ATTACHMENT_TYPES = [
@@ -67,8 +69,8 @@ function AttachmentEditor({ attachments, onChange }) {
                 {a.url.replace(/^https?:\/\//, '').slice(0, 30)}…
               </a>
               <button type="button" onClick={() => removeAttachment(i)}
-                className="text-gray-600 hover:text-red-500 transition-colors shrink-0">
-                <X size={12} />
+                className="text-gray-600 hover:text-red-500 transition-colors shrink-0 p-2 -my-1.5 -mr-1.5">
+                <X size={14} />
               </button>
             </div>
           ))}
@@ -81,7 +83,7 @@ function AttachmentEditor({ attachments, onChange }) {
             <div>
               <label className={labelCls}>Tipus</label>
               <select value={type} onChange={e => setType(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-cyan-500">
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-cyan-300">
                 {ATTACHMENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
@@ -111,7 +113,7 @@ function AttachmentEditor({ attachments, onChange }) {
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={addAttachment}
-              className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
+              className="bg-cyan-600 hover:bg-cyan-300 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
               Afegir
             </button>
             <button type="button" onClick={() => { setAdding(false); setLabel(''); setUrl(''); setType('reference') }}
@@ -196,7 +198,7 @@ function SongForm({ initial, onSave, onCancel }) {
 
       <div className="flex gap-2">
         <button type="submit"
-          className="bg-cyan-600 hover:bg-cyan-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">
+          className="bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors">
           Guardar
         </button>
         <button type="button" onClick={onCancel}
@@ -243,18 +245,13 @@ function SongSheet({ song, isNew, onSave, onDelete, onClose }) {
 // ── Main page ─────────────────────────────────────────────────
 export default function Songs() {
   const { user } = useAuth()
-  const [songs, setSongs]       = useState([])
-  const [loading, setLoading]   = useState(true)
   const [sheetSong, setSheetSong] = useState(null) // song obj | 'new' | null
   const [search, setSearch]     = useState('')
 
-  useEffect(() => { fetchSongs() }, [])
-
-  async function fetchSongs() {
+  const { data: songs = [], setData: setSongs, loading } = useSupabaseQuery(async () => {
     const { data } = await supabase.from('repertoire_songs').select('*').order('title')
-    setSongs(data ?? [])
-    setLoading(false)
-  }
+    return data ?? []
+  }, [])
 
   async function handleCreate(fields) {
     const { data, error } = await supabase
@@ -277,7 +274,7 @@ export default function Songs() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Eliminar aquesta cançó del repertori?')) return
+    if (!(await confirmDialog('Eliminar aquesta cançó del repertori?'))) return
     await supabase.from('repertoire_songs').delete().eq('id', id)
     setSongs(prev => prev.filter(s => s.id !== id))
     setSheetSong(null)
@@ -308,7 +305,7 @@ export default function Songs() {
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold text-white">Repertori</h1>
           <button onClick={() => setSheetSong('new')}
-            className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-sm px-4 py-2 rounded-lg transition-colors shrink-0">
+            className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors shrink-0">
             <Plus size={14} /> Nova cançó
           </button>
         </div>
@@ -318,7 +315,7 @@ export default function Songs() {
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Cerca per títol o compositor…"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500" />
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-300" />
         </div>
 
         {loading ? (

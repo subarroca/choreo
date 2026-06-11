@@ -18,9 +18,9 @@ function MemberChip({ member, excluded, onToggle, onEdit }) {
         <span className={`truncate ${excluded ? 'text-gray-600 line-through' : 'text-gray-200'}`}>{member.name}</span>
       </button>
       <button onClick={() => onEdit(member)}
-        className="text-gray-600 hover:text-white p-1.5 rounded-r-lg hover:bg-gray-700 transition-colors shrink-0"
+        className="text-gray-600 hover:text-white p-2.5 rounded-r-lg hover:bg-gray-700 transition-colors shrink-0"
         title="Editar perfil">
-        <Pencil size={10} />
+        <Pencil size={13} />
       </button>
     </div>
   )
@@ -36,7 +36,7 @@ export default function CastPanel({ showId, allMembers, exclusions, onToggle, on
     <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-gray-300">Membres d'aquest espectacle</h3>
-        <Link to="/members" className="text-xs text-cyan-500 hover:text-cyan-400 transition-colors">Gestionar cor →</Link>
+        <Link to="/members" className="text-xs text-cyan-300 hover:text-cyan-400 transition-colors">Gestionar cor →</Link>
       </div>
       <p className="text-xs text-gray-600">Clica el nom per incloure/excloure · <Pencil size={9} className="inline" /> per editar el perfil.</p>
       <div className="space-y-4">

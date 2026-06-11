@@ -16,6 +16,7 @@ import SortableSong from '../components/setlist/SortableSong'
 import SongForm from '../components/setlist/SongForm'
 import PartForm from '../components/setlist/PartForm'
 import CastPanel from '../components/setlist/CastPanel'
+import { confirmDialog } from '../components/ui/ConfirmDialog'
 
 // ─── Main component ───────────────────────────────────────────
 export default function Setlist() {
@@ -101,7 +102,7 @@ export default function Setlist() {
   }
 
   async function handleDeletePart(partId) {
-    if (!confirm('Eliminar aquesta part? Les cançons quedaran sense part.')) return
+    if (!(await confirmDialog('Eliminar aquesta part? Les cançons quedaran sense part.'))) return
     await supabase.from('parts').delete().eq('id', partId)
     setSongs(prev => prev.map(s => s.part_id === partId ? { ...s, part_id: null } : s))
     setParts(prev => prev.filter(p => p.id !== partId))
@@ -120,7 +121,7 @@ export default function Setlist() {
   }
 
   async function handleDeleteSong(songId) {
-    if (!confirm('Eliminar aquesta cançó i tots els seus moments?')) return
+    if (!(await confirmDialog('Eliminar aquesta cançó i tots els seus moments?'))) return
     await supabase.from('songs').delete().eq('id', songId)
     setSongs(prev => prev.filter(s => s.id !== songId))
     setMoments(prev => { const n = { ...prev }; delete n[songId]; return n })
@@ -185,7 +186,7 @@ export default function Setlist() {
   }
 
   async function handleDeleteMoment(momentId) {
-    if (!confirm('Eliminar aquest moment?')) return
+    if (!(await confirmDialog('Eliminar aquest moment?'))) return
     await supabase.from('moments').delete().eq('id', momentId)
     setMoments(prev => {
       const next = {}
@@ -253,7 +254,7 @@ export default function Setlist() {
             )}
             {!creating && (
               <button onClick={() => setCreating(true)}
-                className="bg-cyan-600 hover:bg-cyan-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">
+                className="bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors">
                 + Nova cançó
               </button>
             )}
@@ -317,9 +318,9 @@ export default function Setlist() {
                         <span className="font-semibold text-sm text-gray-200 flex-1">{part.title}</span>
                         <span className="text-xs text-gray-600">{sectionSongs.length} cançó{sectionSongs.length !== 1 ? 'ns' : ''}</span>
                         <button onClick={e => { e.stopPropagation(); setEditingPart(part) }}
-                          className="text-gray-500 hover:text-white p-1.5 rounded-lg hover:bg-gray-800 transition-colors"><Pencil size={13} /></button>
+                          className="text-gray-500 hover:text-white p-2.5 rounded-lg hover:bg-gray-800 transition-colors"><Pencil size={15} /></button>
                         <button onClick={e => { e.stopPropagation(); handleDeletePart(part.id) }}
-                          className="text-gray-600 hover:text-red-500 p-1.5 rounded-lg hover:bg-gray-800 transition-colors"><X size={13} /></button>
+                          className="text-gray-600 hover:text-red-500 p-2.5 rounded-lg hover:bg-gray-800 transition-colors"><X size={15} /></button>
                       </div>
                     ) : (
                       sectionSongs.length > 0 && (
@@ -374,7 +375,7 @@ export default function Setlist() {
                 const s = songs.find(s => s.id === activeDragId)
                 if (!s) return null
                 return (
-                  <div className="bg-gray-900 border-2 border-cyan-500 rounded-xl px-4 py-3 shadow-2xl opacity-95 pointer-events-none">
+                  <div className="bg-gray-900 border-2 border-cyan-300 rounded-xl px-4 py-3 shadow-2xl opacity-95 pointer-events-none">
                     <p className="text-sm font-medium text-white">{s.title}</p>
                     {s.notes && <p className="text-xs text-gray-500 mt-0.5">{s.notes}</p>}
                   </div>
@@ -405,7 +406,7 @@ export default function Setlist() {
           if (!error) { setAllMembers(prev => prev.map(m => m.id === id ? data : m)); setEditingMember(data) }
         }}
         onDelete={async (id) => {
-          if (!confirm('Eliminar definitivament?')) return
+          if (!(await confirmDialog('Eliminar definitivament?'))) return
           await supabase.from('members').delete().eq('id', id)
           setAllMembers(prev => prev.filter(m => m.id !== id))
           setEditingMember(null)

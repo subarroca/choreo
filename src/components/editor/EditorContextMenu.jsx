@@ -1,4 +1,5 @@
 import { X, Crosshair, MicVocal, UserRound, Waypoints } from 'lucide-react'
+import { isTouchUI } from '../../lib/touch'
 
 export default function EditorContextMenu({
   contextMenu, members, highlightId, momentSoloists,
@@ -14,17 +15,17 @@ export default function EditorContextMenu({
   const isSoloist = !!momentSoloists.find(s => s.member_id === m.id)
   const soloistEntry = momentSoloists.find(s => s.member_id === m.id)
   const isPlaced = !!placements[m.id]
-  const isMobile = window.innerWidth < 768
+  const isMobile = isTouchUI()
 
   const menuItems = (itemCls) => (
     <>
       <button className={itemCls + (isMe ? ' text-cyan-400' : ' text-gray-300')}
         onClick={() => { const v = isMe ? '' : m.id; onSetHighlight(v); localStorage.setItem('highlightMemberId', v); onClose() }}>
-        <Crosshair size={13} /> {isMe ? '✓ Focus' : 'Focus'}
+        <Crosshair size={16} /> {isMe ? '✓ Focus' : 'Focus'}
       </button>
       <button className={itemCls + (isSoloist ? ' text-amber-400' : ' text-gray-300')}
         onClick={() => onToggleSoloist(m.id)}>
-        <MicVocal size={13} /> {isSoloist ? '✓ Solista' : 'Marcar com solista'}
+        <MicVocal size={16} /> {isSoloist ? '✓ Solista' : 'Marcar com solista'}
       </button>
       {isSoloist && (
         <div className="flex items-center gap-2 px-4 py-2 text-xs text-gray-400">
@@ -39,19 +40,19 @@ export default function EditorContextMenu({
       )}
       <button className={itemCls + ' text-gray-300'}
         onClick={() => { onSetProfile(m); onClose() }}>
-        <UserRound size={13} /> Veure perfil
+        <UserRound size={16} /> Veure perfil
       </button>
       {m.role !== 'director' && (
         <button className={itemCls + ' text-gray-300'}
           onClick={() => { onEnterTrajectory(m.id); onClose() }}>
-          <Waypoints size={13} /> Trajectòria
+          <Waypoints size={16} /> Trajectòria
         </button>
       )}
       {isPlaced && <>
         <div className="border-t border-gray-800 my-1" />
         <button className={itemCls + ' text-red-400'}
           onClick={() => { onRemovePlacement(m.id); onClose() }}>
-          <X size={13} /> Eliminar posició
+          <X size={16} /> Eliminar posició
         </button>
       </>}
     </>
@@ -87,7 +88,7 @@ export default function EditorContextMenu({
             <span className="w-3.5 h-3.5 rounded-sm shrink-0" style={{ background: c.bg }} />
             <span className="text-xs text-white font-medium truncate">{m.name}</span>
           </div>
-          {menuItems('w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-gray-800 transition-colors text-left')}
+          {menuItems('w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-800 transition-colors text-left')}
         </div>
       )}
     </>

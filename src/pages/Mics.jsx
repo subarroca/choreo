@@ -120,7 +120,7 @@ export default function Mics() {
     return prevMember && currMember && prevMember !== currMember
   }
 
-  const inputCls = 'bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-cyan-500'
+  const inputCls = 'bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-cyan-300'
 
   return (
     <Layout fullWidth>
@@ -155,7 +155,7 @@ export default function Mics() {
                 {mics.map(mic => (
                   <div key={mic} className="flex items-center gap-1.5">
                     <span className="flex-1 text-xs text-white font-medium">{mic}</span>
-                    <button onClick={() => removeMic(mic)} className="text-gray-600 hover:text-red-400 transition-colors"><X size={10} /></button>
+                    <button onClick={() => removeMic(mic)} className="text-gray-600 hover:text-red-400 transition-colors p-2 -my-1.5 -mr-1"><X size={14} /></button>
                   </div>
                 ))}
               </div>
@@ -164,8 +164,8 @@ export default function Mics() {
                   onKeyDown={e => e.key === 'Enter' && addMic()}
                   placeholder={String(mics.length + 1)} className={inputCls + ' flex-1 min-w-0'} />
                 <button onClick={addMic}
-                  className="w-6 h-6 flex items-center justify-center bg-cyan-600 hover:bg-cyan-500 rounded text-white transition-colors shrink-0">
-                  <Plus size={11} />
+                  className="w-9 h-9 flex items-center justify-center bg-cyan-600 hover:bg-cyan-300 rounded-lg text-white transition-colors shrink-0">
+                  <Plus size={15} />
                 </button>
               </div>
             </div>
@@ -236,7 +236,7 @@ export default function Mics() {
                                       value={memberId ?? ''}
                                       onChange={e => { assign(m.id, mic, e.target.value); setActiveCell(null) }}
                                       onBlur={() => setActiveCell(null)}
-                                      className="w-full h-full bg-gray-800 border border-cyan-500 text-white text-xs px-2 py-2 focus:outline-none rounded-none">
+                                      className="w-full h-full bg-gray-800 border border-cyan-300 text-white text-xs px-2 py-2 focus:outline-none rounded-none">
                                       <option value="">— ningú —</option>
                                       {members.filter(mb => mb.role !== 'director').map(mb => (
                                         <option key={mb.id} value={mb.id}>{mb.name || [mb.first_name, mb.last_name].filter(Boolean).join(' ')}</option>

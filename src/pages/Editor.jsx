@@ -18,6 +18,8 @@ import EditorSidebar from '../components/editor/EditorSidebar'
 import EditorCanvas from '../components/editor/EditorCanvas'
 import EditorToolbar from '../components/editor/EditorToolbar'
 import EditorContextMenu from '../components/editor/EditorContextMenu'
+import EditorRadialMenu from '../components/editor/EditorRadialMenu'
+import { isTouchUI } from '../lib/touch'
 import EditMomentPanel from '../components/editor/EditMomentPanel'
 import AddMomentPanel from '../components/editor/AddMomentPanel'
 import { useEditorDrag } from '../hooks/useEditorDrag'
@@ -385,7 +387,7 @@ export default function Editor() {
     { id: 'square', Icon: LayoutGrid, label: 'Quadrat' }, { id: 'alternate', Icon: Hexagon, label: 'Alternat' },
     { id: 'free', Icon: Move, label: 'Lliure' }, { id: 'semicircle', Icon: Disc, label: 'Semicercle' },
   ]
-  const inputCls = 'bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-cyan-500'
+  const inputCls = 'bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-cyan-300'
 
   // ─── Render ───────────────────────────────────────────────
   return (
@@ -475,14 +477,25 @@ export default function Editor() {
           onDelete={id => handleMemberDelete(id).then(ok => { if (ok) setProfileMember(null) })} />
       )}
 
-      <EditorContextMenu
-        contextMenu={contextMenu} members={members} highlightId={highlightId}
-        momentSoloists={momentSoloists} placements={placements} showMics={showMics}
-        onClose={() => setContextMenu(null)} onSetHighlight={setHighlightId}
-        onToggleSoloist={toggleSoloist} onUpdateSoloistMic={updateSoloistMic}
-        onRemovePlacement={removePlacement} onSetProfile={setProfileMember}
-        onEnterTrajectory={enterTrajectoryMode}
-        VOICE_COLORS={VOICE_COLORS} VOICE_LABELS={VOICE_LABELS} />
+      {contextMenu?.source === 'canvas' && isTouchUI() ? (
+        <EditorRadialMenu
+          contextMenu={contextMenu} highlightId={highlightId}
+          momentSoloists={momentSoloists} placements={placements}
+          onClose={() => setContextMenu(null)} onSetHighlight={setHighlightId}
+          onToggleSoloist={toggleSoloist} onSetProfile={setProfileMember}
+          onEnterTrajectory={enterTrajectoryMode} onRemovePlacement={removePlacement}
+          onMore={() => setContextMenu(cm => ({ ...cm, source: 'sheet' }))}
+          VOICE_COLORS={VOICE_COLORS} />
+      ) : (
+        <EditorContextMenu
+          contextMenu={contextMenu} members={members} highlightId={highlightId}
+          momentSoloists={momentSoloists} placements={placements} showMics={showMics}
+          onClose={() => setContextMenu(null)} onSetHighlight={setHighlightId}
+          onToggleSoloist={toggleSoloist} onUpdateSoloistMic={updateSoloistMic}
+          onRemovePlacement={removePlacement} onSetProfile={setProfileMember}
+          onEnterTrajectory={enterTrajectoryMode}
+          VOICE_COLORS={VOICE_COLORS} VOICE_LABELS={VOICE_LABELS} />
+      )}
     </Layout>
   )
 }

@@ -15,11 +15,11 @@ export default function MembersList({
           <div key={voice}>
             <button
               onClick={() => setCollapsedVoices(prev => { const n = new Set(prev); n.has(voice) ? n.delete(voice) : n.add(voice); return n })}
-              className="flex items-center gap-1.5 w-full py-0.5 hover:opacity-80 select-none">
+              className="flex items-center gap-1.5 w-full py-1.5 hover:opacity-80 select-none">
               <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: c.bg }} />
               <span className="text-xs text-gray-400 font-medium flex-1 text-left">{VOICE_LABELS[voice]}</span>
               {unplacedInGroup > 0 && <span className="text-xs text-gray-600">{unplacedInGroup}</span>}
-              {collapsed ? <ChevronDown size={8} className="text-gray-700" /> : <ChevronUp size={8} className="text-gray-700" />}
+              {collapsed ? <ChevronDown size={12} className="text-gray-700" /> : <ChevronUp size={12} className="text-gray-700" />}
             </button>
             {!collapsed && grpMembers.map(m => {
               const placed = !!placements[m.id]
@@ -29,7 +29,7 @@ export default function MembersList({
                   onDragStart={e => e.dataTransfer.setData('memberId', m.id)}
                   onContextMenu={e => onContextMenu(e, m)}
                   onClick={!placed ? () => setPendingMemberId(prev => prev === m.id ? null : m.id) : undefined}
-                  className={`flex items-center gap-1.5 px-1.5 py-1 rounded text-xs select-none ml-3 transition-colors ${isPending ? 'bg-cyan-900/40 ring-1 ring-cyan-500' : placed ? 'opacity-40 hover:opacity-100' : 'cursor-pointer hover:bg-gray-800'}`}>
+                  className={`flex items-center gap-1.5 px-1.5 py-1.5 rounded text-xs select-none ml-3 transition-colors ${isPending ? 'bg-cyan-900/40 ring-1 ring-cyan-300' : placed ? 'opacity-40 hover:opacity-100' : 'cursor-pointer hover:bg-gray-800'}`}>
                   <span className="w-5 h-5 rounded flex items-center justify-center font-bold shrink-0 text-xs"
                     style={{ backgroundColor: c.bg, color: c.fg }}>
                     {(m.initials || m.name.slice(0, 2)).toUpperCase()}

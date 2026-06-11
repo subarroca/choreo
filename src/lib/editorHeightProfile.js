@@ -43,88 +43,35 @@ export function drawSilhouette(ctx, px, yTop, yFloor, figW, headFill, bodyFill, 
     return
   }
 
-  // ── Body path — human proportions ──
+  // ── Body path — pictogram style: rounded-shoulder torso + single tapered leg block ──
   const hw      = figW / 2
 
-  // Y landmarks (fractions of totalPx from yTop)
-  const neckY   = headCy + headR * 0.85
-  const shldrY  = yTop + totalPx * 0.22
-  const waistY  = yTop + totalPx * 0.50
-  const hipY    = yTop + totalPx * 0.60
-  const crotchY = yTop + totalPx * 0.65
+  const bodyTop = headCy + headR + Math.max(1, totalPx * 0.025)  // small gap below head
+  const hipY    = yTop + totalPx * 0.62
 
-  // Half-widths
-  const neckHW  = hw * 0.22
-  const shldrHW = hw
-  const waistHW = hw * 0.58
-  const hipHW   = hw * 0.78
-  const legHW   = hw * 0.38
-  const legGap  = hw * 0.06
+  const footHW    = hw * 0.38
+  const shoulderR = Math.min(hw * 0.95, (hipY - bodyTop) * 0.45)
+  const hipR      = Math.min(hw * 0.35, (yFloor - hipY) * 0.3)
+  const footR     = Math.min(footHW * 0.6, 2.5)
 
   ctx.beginPath()
-
-  // Left neck top → expand to left shoulder (S-curve)
-  ctx.moveTo(px - neckHW, neckY)
-  ctx.bezierCurveTo(
-    px - neckHW,  neckY  + (shldrY - neckY) * 0.3,
-    px - shldrHW, shldrY - (shldrY - neckY) * 0.2,
-    px - shldrHW, shldrY
-  )
-
-  // Left shoulder → taper to waist
-  ctx.bezierCurveTo(
-    px - shldrHW, waistY - (waistY - shldrY) * 0.3,
-    px - waistHW, shldrY + (waistY - shldrY) * 0.6,
-    px - waistHW, waistY
-  )
-
-  // Left waist → flare to left hip
-  ctx.bezierCurveTo(
-    px - waistHW, waistY + (hipY - waistY) * 0.5,
-    px - hipHW,   hipY   - (hipY - waistY) * 0.1,
-    px - hipHW,   hipY
-  )
-
-  // Left hip → down outer left leg
-  ctx.lineTo(px - legGap - legHW, crotchY)
-  ctx.lineTo(px - legGap - legHW, yFloor)
-
-  // Inner left leg
-  ctx.lineTo(px - legGap, yFloor)
-  ctx.lineTo(px - legGap, crotchY + (yFloor - crotchY) * 0.08)
-
-  // Jump inner gap (crotch curve)
-  ctx.lineTo(px + legGap, crotchY + (yFloor - crotchY) * 0.08)
-
-  // Inner right leg
-  ctx.lineTo(px + legGap, yFloor)
-  ctx.lineTo(px + legGap + legHW, yFloor)
-
-  // Outer right leg up
-  ctx.lineTo(px + legGap + legHW, crotchY)
-  ctx.lineTo(px + hipHW, hipY)
-
-  // Right hip → waist (mirror)
-  ctx.bezierCurveTo(
-    px + hipHW,   hipY   - (hipY - waistY) * 0.1,
-    px + waistHW, waistY + (hipY - waistY) * 0.5,
-    px + waistHW, waistY
-  )
-
-  // Right waist → shoulder
-  ctx.bezierCurveTo(
-    px + waistHW, shldrY + (waistY - shldrY) * 0.6,
-    px + shldrHW, waistY - (waistY - shldrY) * 0.3,
-    px + shldrHW, shldrY
-  )
-
-  // Right shoulder → neck
-  ctx.bezierCurveTo(
-    px + shldrHW, shldrY - (shldrY - neckY) * 0.2,
-    px + neckHW,  neckY  + (shldrY - neckY) * 0.3,
-    px + neckHW,  neckY
-  )
-
+  // left side up from hip
+  ctx.moveTo(px - hw, hipY - hipR)
+  ctx.lineTo(px - hw, bodyTop + shoulderR)
+  ctx.arcTo(px - hw, bodyTop, px - hw + shoulderR, bodyTop, shoulderR)   // left shoulder
+  ctx.lineTo(px + hw - shoulderR, bodyTop)
+  ctx.arcTo(px + hw, bodyTop, px + hw, bodyTop + shoulderR, shoulderR)   // right shoulder
+  ctx.lineTo(px + hw, hipY - hipR)
+  // right hip → taper down to right foot
+  ctx.arcTo(px + hw, hipY, px + footHW, yFloor, hipR)
+  ctx.lineTo(px + footHW, yFloor - footR)
+  ctx.arcTo(px + footHW, yFloor, px + footHW - footR, yFloor, footR)
+  // flat bottom
+  ctx.lineTo(px - footHW + footR, yFloor)
+  ctx.arcTo(px - footHW, yFloor, px - footHW, yFloor - footR, footR)
+  // left taper back up to hip
+  ctx.lineTo(px - footHW, yFloor - footR)
+  ctx.arcTo(px - hw, hipY, px - hw, hipY - hipR, hipR)
   ctx.closePath()
   ctx.fillStyle = bodyFill
   ctx.fill()

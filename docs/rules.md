@@ -18,8 +18,8 @@ All list pages must follow exactly this pattern:
 | Element | Rule |
 |---|---|
 | Title | `text-2xl font-bold text-white` — always visible, never hidden |
-| "New" button | Right-aligned next to title, `bg-cyan-600 hover:bg-cyan-500`, `Plus` icon + short text |
-| Search bar | Full container width, `Search` icon on the left, `border-gray-700 focus:border-cyan-500` |
+| "New" button | Right-aligned next to title, `bg-cyan-600 hover:bg-cyan-300`, `Plus` icon + short text |
+| Search bar | Full container width, `Search` icon on the left, `border-gray-700 focus:border-cyan-300` |
 | Container width | `max-w-2xl` for simple lists (`narrow`), `max-w-5xl` for complex views |
 | Empty state | Entity icon (40px, `opacity-30`) + two explanatory text lines, centered |
 | Loading state | `"Carregant..."` text in `text-gray-500` |
@@ -35,7 +35,7 @@ All list pages must follow exactly this pattern:
 ## Buttons
 | Type | Classes |
 |---|---|
-| Primary action | `bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg px-4 py-2 text-sm` |
+| Primary action | `bg-cyan-600 hover:bg-cyan-300 text-white rounded-lg px-4 py-2 text-sm` |
 | Destructive action | `text-gray-600 hover:text-red-500` (icon-only) or `bg-red-700 hover:bg-red-600` if confirmation needed |
 | Cancel | `text-gray-400 hover:text-white` no background |
 | Icon-only action | `w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-700 transition-colors` |
