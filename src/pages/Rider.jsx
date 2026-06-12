@@ -1,8 +1,13 @@
 import { useParams } from 'react-router-dom'
-import { Printer } from 'lucide-react'
+import { Printer, Moon, Wind, Sparkles, Move, Pause, Home, Users } from 'lucide-react'
 import { useLightCues } from '../hooks/useLightCues'
-import { formatCueNumber, cueSummary, sideColorHex, cueEffects, sortCues } from '../lib/lights'
+import { formatCueNumber, cueSummary, sideColorHexes, cueEffects, effectIcon, sortCues } from '../lib/lights'
 import ShowToolbar from '../components/ShowToolbar'
+
+// Mapa d'icones per efectes
+const EFFECT_ICONS = {
+  Moon, Wind, Sparkles, Move, Pause, Home, Users
+}
 
 // Rider tècnic imprimible: portada + cue sheet de llums per cançó
 // (amb plànols d'escenari) + annex de micròfons.
@@ -10,7 +15,7 @@ import ShowToolbar from '../components/ShowToolbar'
 export default function Rider() {
   const { id: showId } = useParams()
   const {
-    show, songs, members, cues, loading,
+    show, songs, members, cues, presets, loading,
   } = useLightCues(showId)
 
   if (loading) {
@@ -81,6 +86,95 @@ export default function Rider() {
           </div>
         </div>
 
+        {/* Llegenda d'efectes */}
+        <div className="mb-10 grid grid-cols-2 gap-x-8 gap-y-1 text-xs">
+          <div className="flex items-center gap-2">
+            <Moon size={12} className="text-gray-500" />
+            <span className="text-gray-600">Blackout</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Wind size={12} className="text-gray-500" />
+            <span className="text-gray-600">Sweep</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Sparkles size={12} className="text-gray-500" />
+            <span className="text-gray-600">Chase</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Move size={12} className="text-gray-500" />
+            <span className="text-gray-600">Movers</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Pause size={12} className="text-gray-500" />
+            <span className="text-gray-600">Freeze</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Home size={12} className="text-gray-500" />
+            <span className="text-gray-600">Llums de sala</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Users size={12} className="text-gray-500" />
+            <span className="text-gray-600">Públic</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold text-gray-600 border border-gray-400 rounded px-1">F</span>
+            <span className="text-gray-600">Frontal</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold text-gray-600 border border-gray-400 rounded px-1">C</span>
+            <span className="text-gray-600">Contra</span>
+          </div>
+        </div>
+
+        {/* Definició de presets */}
+        {presets.length > 0 && (
+          <div className="mb-10">
+            <h2 className="text-lg font-bold mb-4">Presets de llum</h2>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b-2 border-gray-900">
+                  <th className="text-left py-1.5 px-2 w-12">Codi</th>
+                  <th className="text-left py-1.5 px-2">Nom</th>
+                  <th className="text-left py-1.5 px-2">Descripció</th>
+                </tr>
+              </thead>
+              <tbody>
+                {presets.map(p => {
+                  const frontHexes = sideColorHexes(p, 'front')
+                  const backHexes = sideColorHexes(p, 'back')
+                  return (
+                    <tr key={p.id} className="border-b border-gray-200">
+                      <td className="py-2 px-2"><span className="font-bold">{p.code ?? '—'}</span></td>
+                      <td className="py-2 px-2 font-medium">{p.name}</td>
+                      <td className="py-2 px-2">
+                        <div className="flex items-center gap-2">
+                          {frontHexes.length > 0 && (
+                            <div className="inline-flex items-center gap-0.5">
+                              <span className="text-[9px] font-bold text-gray-600 mr-0.5">F</span>
+                              {frontHexes.map((hex, i) => (
+                                <span key={i} className="w-3 h-3 rounded-full border border-gray-400" style={{ background: hex }} />
+                              ))}
+                            </div>
+                          )}
+                          {backHexes.length > 0 && (
+                            <div className="inline-flex items-center gap-0.5">
+                              <span className="text-[9px] font-bold text-gray-600 mr-0.5">C</span>
+                              {backHexes.map((hex, i) => (
+                                <span key={i} className="w-3 h-3 rounded-full border border-gray-400" style={{ background: hex }} />
+                              ))}
+                            </div>
+                          )}
+                          <span className="text-gray-600">{cueSummary(p)}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {/* Cue sheet */}
         <h2 className="text-lg font-bold mb-4">Memòries de llum</h2>
         {groups.length === 0 && <p className="text-sm text-gray-500">Encara no hi ha cues definits.</p>}
@@ -92,9 +186,10 @@ export default function Rider() {
             <table className="w-full text-xs mt-1">
               <tbody>
                 {g.cues.map(cue => {
-                  const frontHex = sideColorHex(cue, 'front')
-                  const backHex = sideColorHex(cue, 'back')
-                  const fosc = cueEffects(cue).includes('fosc')
+                  const frontHexes = sideColorHexes(cue, 'front')
+                  const backHexes = sideColorHexes(cue, 'back')
+                  const effects = cueEffects(cue)
+                  const fosc = effects.includes('fosc')
                   return (
                     <tr key={cue.id} className="border-b border-gray-200 align-top">
                       <td className="py-2 pr-2 w-12">
@@ -109,11 +204,36 @@ export default function Rider() {
                         {cue.notes && <span className="block text-gray-500 mt-0.5">{cue.notes}</span>}
                       </td>
                       <td className="py-2">
-                        <span className="inline-flex items-center gap-1.5 font-medium">
-                          {frontHex && <span className="w-3 h-3 rounded-full inline-block border border-gray-400" style={{ background: frontHex }} />}
-                          {backHex && <span className="w-3 h-3 rounded-full inline-block border border-gray-400" style={{ background: backHex }} />}
-                          {cueSummary(cue)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="inline-flex items-center gap-1.5 font-medium">
+                            {frontHexes.length > 0 && (
+                              <div className="inline-flex items-center gap-0.5">
+                                <span className="text-[9px] font-bold text-gray-600 mr-0.5">F</span>
+                                {frontHexes.map((hex, i) => (
+                                  <span key={i} className="w-3 h-3 rounded-full border border-gray-400" style={{ background: hex }} />
+                                ))}
+                              </div>
+                            )}
+                            {backHexes.length > 0 && (
+                              <div className="inline-flex items-center gap-0.5">
+                                <span className="text-[9px] font-bold text-gray-600 mr-0.5">C</span>
+                                {backHexes.map((hex, i) => (
+                                  <span key={i} className="w-3 h-3 rounded-full border border-gray-400 ring-1 ring-gray-300" style={{ background: hex }} />
+                                ))}
+                              </div>
+                            )}
+                            <span>{cueSummary(cue)}</span>
+                          </div>
+                          {effects.length > 0 && (
+                            <div className="inline-flex items-center gap-1 ml-1">
+                              {effects.map((eff, i) => {
+                                const iconName = effectIcon(eff)
+                                const Icon = iconName ? EFFECT_ICONS[iconName] : null
+                                return Icon ? <Icon key={i} size={12} className="text-gray-500" title={eff} /> : null
+                              })}
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )

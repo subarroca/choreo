@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Trash2, Plus, Save, ChevronDown, RotateCcw } from 'lucide-react'
+import { X, Trash2, Plus, Save, ChevronDown, RotateCcw, Moon, Wind, Sparkles, Move, Pause, Home, Users } from 'lucide-react'
 import {
   LIGHT_EFFECTS, LIGHT_COLORS, LIGHT_ZONES, AUDIENCE_OPTIONS,
   FOLLOWSPOT_POSITIONS, cueEffects, cueFollowspots, cueLevels, sideMax,
@@ -8,19 +8,23 @@ import {
 } from '../../lib/lights'
 import StageSim from './StageSim'
 
+const EFFECT_ICONS = { Moon, Wind, Sparkles, Move, Pause, Home, Users }
+
 const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-300 placeholder-gray-600'
 const labelCls = 'text-xs text-gray-500 uppercase tracking-wider font-medium mb-1.5 block'
 
-function ChipRow({ options, value, onSelect, multi = false }) {
+function ChipRow({ options, value, onSelect, multi = false, showIcons = false }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {options.map(opt => {
         const active = multi ? value.includes(opt.value) : value === opt.value
+        const Icon = showIcons && opt.icon ? EFFECT_ICONS[opt.icon] : null
         return (
           <button key={opt.value} onClick={() => onSelect(opt.value)}
-            className={`px-2.5 py-1.5 rounded-lg text-xs min-h-[34px] border transition-colors ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs min-h-[34px] border transition-colors ${
               active ? 'bg-cyan-700/40 border-cyan-500 text-cyan-200' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white'
             }`}>
+            {Icon && <Icon size={14} />}
             {opt.label}
           </button>
         )
@@ -238,12 +242,12 @@ export default function CueEditPanel({
 
         <div>
           <span className={labelCls}>Efectes</span>
-          <ChipRow options={LIGHT_EFFECTS} value={effects} multi onSelect={toggleEffect} />
+          <ChipRow options={LIGHT_EFFECTS} value={effects} multi onSelect={toggleEffect} showIcons />
         </div>
 
         <div>
           <span className={labelCls}>Sala i públic</span>
-          <ChipRow options={AUDIENCE_OPTIONS} value={effects} multi onSelect={toggleEffect} />
+          <ChipRow options={AUDIENCE_OPTIONS} value={effects} multi onSelect={toggleEffect} showIcons />
         </div>
 
         <div className="space-y-1.5">
@@ -300,35 +304,51 @@ export default function CueEditPanel({
 
         {/* Presets + eliminar */}
         <div className="border-t border-gray-800 pt-3 space-y-2">
-          <div className="flex flex-wrap gap-1.5 items-center">
-            <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium mr-1">Presets</span>
+          <span className={labelCls}>Presets</span>
+          {cue.preset_id && (() => {
+            const linked = presets.find(p => p.id === cue.preset_id)
+            return linked ? (
+              <div className="flex items-center gap-2 bg-purple-900/20 border border-purple-800/40 rounded-lg px-3 py-2">
+                {linked.code && <span className="text-xs font-bold text-purple-300 bg-purple-800/40 rounded px-1.5 py-0.5">{linked.code}</span>}
+                <span className="text-xs text-purple-200 flex-1 truncate">{linked.name}</span>
+                <button onClick={() => onChange({ preset_id: null })}
+                  className="text-[10px] text-gray-500 hover:text-white transition-colors shrink-0">Desenllaçar</button>
+              </div>
+            ) : null
+          })()}
+          <div className="flex flex-wrap gap-1.5">
             {presets.map(p => (
-              <span key={p.id} className="inline-flex items-center rounded-md border border-gray-700 bg-gray-800 overflow-hidden">
+              <span key={p.id} className={`inline-flex items-center rounded-lg border overflow-hidden transition-colors ${
+                cue.preset_id === p.id ? 'border-purple-500 bg-purple-900/30' : 'border-gray-700 bg-gray-800'
+              }`}>
                 <button onClick={() => onChange(presetToCueFields(p))}
-                  className="px-2 py-1 text-xs text-gray-300 hover:text-cyan-300 hover:bg-gray-700 transition-colors">
-                  {p.name}
+                  className={`flex items-center gap-1 px-2 py-1.5 text-xs transition-colors ${
+                    cue.preset_id === p.id ? 'text-purple-200' : 'text-gray-400 hover:text-white'
+                  }`}>
+                  {p.code && <span className="font-bold">{p.code}</span>}
+                  <span className="truncate max-w-[100px]">{p.name}</span>
                 </button>
                 <button onClick={() => onDeletePreset(p.id)}
-                  className="px-1 py-1 text-gray-600 hover:text-red-400 transition-colors"><X size={11} /></button>
+                  className="px-1 py-1.5 text-gray-600 hover:text-red-400 transition-colors"><X size={10} /></button>
               </span>
             ))}
-            {savingPreset ? (
-              <div className="flex gap-1.5 items-center">
-                <input value={presetName} onChange={e => setPresetName(e.target.value)} autoFocus
-                  onKeyDown={e => e.key === 'Enter' && savePreset()}
-                  placeholder="Nom…" className="w-28 bg-gray-800 border border-gray-700 rounded-md px-2 py-1 text-xs text-white focus:outline-none focus:border-cyan-300" />
-                <button onClick={savePreset} className="bg-cyan-600 hover:bg-cyan-300 text-white text-xs px-2 py-1 rounded-md transition-colors">
-                  <Save size={12} />
-                </button>
-                <button onClick={() => setSavingPreset(false)} className="text-gray-500 hover:text-white"><X size={12} /></button>
-              </div>
-            ) : (
-              <button onClick={() => setSavingPreset(true)}
-                className="text-[11px] text-gray-600 hover:text-cyan-300 transition-colors">
-                <Plus size={11} className="inline -mt-0.5" /> desa
-              </button>
-            )}
           </div>
+          {savingPreset ? (
+            <div className="flex gap-1.5 items-center">
+              <input value={presetName} onChange={e => setPresetName(e.target.value)} autoFocus
+                onKeyDown={e => e.key === 'Enter' && savePreset()}
+                placeholder="Nom…" className="w-28 bg-gray-800 border border-gray-700 rounded-md px-2 py-1 text-xs text-white focus:outline-none focus:border-cyan-300" />
+              <button onClick={savePreset} className="bg-cyan-600 hover:bg-cyan-300 text-white text-xs px-2 py-1 rounded-md transition-colors">
+                <Save size={12} />
+              </button>
+              <button onClick={() => setSavingPreset(false)} className="text-gray-500 hover:text-white"><X size={12} /></button>
+            </div>
+          ) : (
+            <button onClick={() => setSavingPreset(true)}
+              className="text-[11px] text-gray-600 hover:text-cyan-300 transition-colors">
+              <Plus size={11} className="inline -mt-0.5" /> Desa com a preset
+            </button>
+          )}
           <button onClick={onDelete}
             className="flex items-center gap-1 text-xs text-red-500/70 hover:text-red-400 transition-colors">
             <Trash2 size={12} /> Eliminar cue

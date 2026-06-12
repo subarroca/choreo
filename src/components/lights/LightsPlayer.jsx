@@ -115,9 +115,22 @@ export default function LightsPlayer({
         </button>
       </div>
 
-      {/* Progrés */}
-      <div className="h-1 bg-gray-900 shrink-0">
-        <div className="h-full bg-cyan-600 transition-all duration-300" style={{ width: `${progress * 100}%` }} />
+      {/* Progrés — clicable amb indicadors de cues */}
+      <div className="h-3 bg-gray-900 shrink-0 relative cursor-pointer group"
+        onClick={e => {
+          e.stopPropagation()
+          const rect = e.currentTarget.getBoundingClientRect()
+          const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+          setStepIdx(Math.round(pct * (steps.length - 1)))
+        }}>
+        <div className="absolute inset-y-0 left-0 bg-cyan-600 transition-all duration-300" style={{ width: `${progress * 100}%` }} />
+        {steps.map((s, i) => s.cue ? (
+          <div key={i} className="absolute top-0 bottom-0 w-0.5 bg-amber-400/70"
+            title={`Cue ${formatCueNumber(s.cue.cue_number)}: ${s.cue.trigger_text || ''}`}
+            style={{ left: `${steps.length > 1 ? (i / (steps.length - 1)) * 100 : 0}%` }} />
+        ) : null)}
+        <div className="absolute top-0 h-full w-1.5 -translate-x-1/2 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          style={{ left: `${progress * 100}%` }} />
       </div>
 
       {/* Escenari (tap = GO) */}

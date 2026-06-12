@@ -314,14 +314,15 @@ function drawFollowspots(app, W, Y_BACK, Y_FRONT, followspots, tokens, FS_X) {
       faceY = feetY - 30
     }
     const apexX = W / 2 + (i - (followspots.length - 1) / 2) * 90
+    const apexY = -8  // Posició dels canons fora del canvas (simulant sostre)
 
     const cone = new Graphics()
-    cone.poly([apexX - 6, FRAME, apexX + 6, FRAME, tx + 30, faceY + 12, tx - 30, faceY + 12])
+    cone.poly([apexX - 6, apexY, apexX + 6, apexY, tx + 30, faceY + 12, tx - 30, faceY + 12])
     cone.fill({ color: 0xfef3c7, alpha: 0.16 })
     app.stage.addChild(cone)
 
     const cg = new Graphics()
-    cg.poly([apexX - 3, FRAME, apexX + 3, FRAME, tx + 20, faceY + 8, tx - 20, faceY + 8])
+    cg.poly([apexX - 3, apexY, apexX + 3, apexY, tx + 20, faceY + 8, tx - 20, faceY + 8])
     cg.fill({ color: 0xfef3c7, alpha: 0.10 })
     cg.filters = [new BlurFilter({ strength: 10, quality: 3 })]
     app.stage.addChild(cg)

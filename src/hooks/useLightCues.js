@@ -85,12 +85,42 @@ export function useLightCues(showId) {
     await supabase.from('light_cues').delete().eq('id', id)
   }
 
+  async function renumberCues() {
+    const sorted = sortCues(cues)
+    const updates = sorted.map((cue, index) => ({
+      id: cue.id,
+      cue_number: index + 1
+    }))
+
+    // Actualització optimista
+    setCues(sorted.map((cue, index) => ({ ...cue, cue_number: index + 1 })))
+
+    // Actualització a la base de dades
+    setSaving(true)
+    for (const { id, cue_number } of updates) {
+      await supabase.from('light_cues').update({ cue_number }).eq('id', id)
+    }
+    setSaving(false)
+  }
+
   // ─── Presets CRUD ─────────────────────────────────────────
   async function createPreset(fields) {
+    if (!fields.code) {
+      const used = new Set(presets.map(p => p.code).filter(Boolean))
+      for (let i = 0; i < 26; i++) {
+        const c = String.fromCharCode(65 + i)
+        if (!used.has(c)) { fields = { ...fields, code: c }; break }
+      }
+    }
     const { data, error } = await supabase.from('light_presets')
       .insert({ show_id: showId, ...fields }).select().single()
-    if (!error && data) setPresets(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name, 'ca')))
+    if (!error && data) setPresets(prev => [...prev, data].sort((a, b) => (a.code ?? '').localeCompare(b.code ?? '')))
     return error ? null : data
+  }
+
+  async function updatePreset(id, fields) {
+    setPresets(prev => prev.map(p => p.id === id ? { ...p, ...fields } : p))
+    await supabase.from('light_presets').update(fields).eq('id', id)
   }
 
   async function deletePreset(id) {
@@ -109,6 +139,6 @@ export function useLightCues(showId) {
   return {
     show, songs, repertoire, momentsBySong, positionsByMoment, members, cues, presets,
     loading, saving,
-    loadMomentPositions, createCue, updateCue, deleteCue, createPreset, deletePreset, saveLyrics,
+    loadMomentPositions, createCue, updateCue, deleteCue, renumberCues, createPreset, updatePreset, deletePreset, saveLyrics,
   }
 }

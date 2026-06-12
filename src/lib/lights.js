@@ -31,18 +31,24 @@ export const EMPTY_LEVELS = { esquerra: 0, centre: 0, dreta: 0 }
 
 // ─── Efectes ──────────────────────────────────────────────────
 export const LIGHT_EFFECTS = [
-  { value: 'fosc',     label: 'Blackout' },
-  { value: 'barrido',  label: 'Sweep' },
-  { value: 'chase',    label: 'Chase' },
-  { value: 'mobils',   label: 'Movers' },
-  { value: 'stop_mov', label: 'Freeze' },
+  { value: 'fosc',     label: 'Blackout', icon: 'Moon' },
+  { value: 'barrido',  label: 'Sweep', icon: 'Wind' },
+  { value: 'chase',    label: 'Chase', icon: 'Sparkles' },
+  { value: 'mobils',   label: 'Movers', icon: 'Move' },
+  { value: 'stop_mov', label: 'Freeze', icon: 'Pause' },
 ]
 
 // Sala i públic: opcions pròpies, fora dels efectes d'escenari
 export const AUDIENCE_OPTIONS = [
-  { value: 'sala',   label: 'Llums de sala' },
-  { value: 'public', label: 'Públic' },
+  { value: 'sala',   label: 'Llums de sala', icon: 'Home' },
+  { value: 'public', label: 'Públic', icon: 'Users' },
 ]
+
+// Mapa d'icones per efectes (nom de lucide-react)
+export function effectIcon(effectValue) {
+  const effect = [...LIGHT_EFFECTS, ...AUDIENCE_OPTIONS].find(e => e.value === effectValue)
+  return effect?.icon ?? null
+}
 
 // ─── Paleta de colors (gelatines habituals) ───────────────────
 export const LIGHT_COLORS = [
@@ -58,6 +64,14 @@ export const LIGHT_COLORS = [
 ]
 
 export const lightColor = (id) => LIGHT_COLORS.find(c => c.id === id) ?? null
+
+// Retorna tots els colors únics d'una banda (esquerra, centre, dreta) com a array
+export function sideColorHexes(cue, side) {
+  const zc = cueZoneColors(cue, side)
+  const colors = ZONE_KEYS.map(z => zc[z]).filter(Boolean)
+  const unique = [...new Set(colors)]
+  return unique.map(id => lightColor(id)?.hex).filter(Boolean)
+}
 
 // ─── Tipus de disparador ──────────────────────────────────────
 export const TRIGGER_TYPES = [
@@ -115,14 +129,14 @@ export function formatCueNumber(n) {
   return String(Number(n))
 }
 
-// "FR 75% càlid" si els tres focus van iguals;
-// "FR esq25 · cen100 càlid" si van diferents.
+// "F 75% càlid" si els tres focus van iguals;
+// "F esq25 · cen100 càlid" si van diferents.
 function sideSummary(cue, side) {
   const levels = cueLevels(cue, side)
   const vals = ZONE_KEYS.map(z => levels[z])
   const max = Math.max(...vals)
-  const name = side === 'front' ? 'FR' : 'contra'
-  if (max === 0) return side === 'front' ? 'NO FR' : null
+  const name = side === 'front' ? 'F' : 'C'
+  if (max === 0) return side === 'front' ? 'NO F' : null
   const active = ZONE_KEYS.filter(z => levels[z] > 0)
   const uniform = active.length === 3 && vals.every(v => v === vals[0])
   let txt = uniform
@@ -137,7 +151,7 @@ function sideSummary(cue, side) {
 }
 
 // Resum compacte de l'estat de llum:
-// "FR 75% càlid · contra cen50 lila · mòbils · sala · prog. 3s"
+// "F 75% càlid · C cen50 lila · mòbils · sala · prog. 3s"
 export function cueSummary(cue) {
   const parts = []
   const effects = cueEffects(cue)
@@ -156,6 +170,29 @@ export function cueSummary(cue) {
   for (const fs of cueFollowspots(cue)) parts.push(`${fs.label ?? 'canó'} ${fs.position ?? ''}`.trim().toLowerCase())
   if (cue.transition === 'prog') parts.push(cue.transition_seconds ? `prog. ${cue.transition_seconds}s` : 'prog.')
   return parts.join(' · ')
+}
+
+// Resum ultra-compacte per als chips (només efectes i transicions,
+// sense info de colors/nivells que ja es veuen visualment)
+export function cueSummaryCompact(cue) {
+  const parts = []
+  const effects = cueEffects(cue)
+
+  if (effects.includes('fosc')) {
+    parts.push('FOSC')
+  }
+
+  for (const e of effects) {
+    if (e === 'fosc') continue
+    const label = LIGHT_EFFECTS.find(x => x.value === e)?.label ?? AUDIENCE_OPTIONS.find(x => x.value === e)?.label
+    parts.push((label ?? e).toLowerCase())
+  }
+
+  if (cue.transition === 'prog') {
+    parts.push(cue.transition_seconds ? `prog. ${cue.transition_seconds}s` : 'prog.')
+  }
+
+  return parts.length > 0 ? parts.join(' · ') : ''
 }
 
 // Següent número de cue lliure (enter següent al màxim)
@@ -223,5 +260,6 @@ export function presetToCueFields(preset) {
   f.back_levels ??= JSON.stringify(EMPTY_LEVELS)
   f.scope ??= 'tots'
   f.effects ??= '[]'; f.transition ??= 'tall'
+  f.preset_id = preset.id
   return f
 }

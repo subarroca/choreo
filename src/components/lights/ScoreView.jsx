@@ -1,12 +1,39 @@
+import { useState } from 'react'
 import { Plus, Pencil } from 'lucide-react'
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+} from '@dnd-kit/core'
 import { lyricsLines } from '../../lib/lights'
+import { repertoireType, isSongType } from '../../lib/repertoireTypes'
 import CueChip from './CueChip'
 
-// Vista "partitura": la lletra de la cançó amb els cues ancorats a línies.
-// Tocar el «+» d'una línia crea un cue disparat per aquella lletra.
-export default function ScoreView({ song, repSong, cues, selectedCueId, onSelectCue, onCreateCueAtLine, onEditLyrics }) {
-  const lines = lyricsLines(repSong?.lyrics)
-  const hasLyrics = !!repSong?.lyrics?.trim()
+function DraggableCueChip({ cue, onDelete, ...props }) {
+  const [dragging, setDragging] = useState(false)
+
+  return (
+    <div
+      draggable
+      onDragStart={e => {
+        e.dataTransfer.setData('cue-id', cue.id)
+        e.dataTransfer.effectAllowed = 'move'
+        setDragging(true)
+      }}
+      onDragEnd={() => setDragging(false)}
+      className={`cursor-grab active:cursor-grabbing ${dragging ? 'opacity-40' : ''}`}
+    >
+      <CueChip cue={cue} onDelete={onDelete} {...props} />
+    </div>
+  )
+}
+
+export default function ScoreView({ song, repSong, cues, moments, selectedCueId, onSelectCue, onDuplicateCue, onDeleteCue, onMoveCueToLine, onCreateCueAtLine, onEditLyrics }) {
+  const isSong = isSongType(repSong?.type)
+  const lines = isSong ? lyricsLines(repSong?.lyrics) : ['Inici', 'Final']
+  const hasContent = isSong ? !!repSong?.lyrics?.trim() : true
+  const rt = !isSong ? repertoireType(repSong?.type) : null
+  const [dropTarget, setDropTarget] = useState(null)
+  const momentMap = Object.fromEntries((moments ?? []).map(m => [m.id, m]))
+
   const anchored = {}
   const unanchored = []
   for (const c of cues) {
@@ -14,53 +41,91 @@ export default function ScoreView({ song, repSong, cues, selectedCueId, onSelect
     else unanchored.push(c)
   }
 
+  function handleDrop(e, lineIdx) {
+    e.preventDefault()
+    setDropTarget(null)
+    const cueId = e.dataTransfer.getData('cue-id')
+    if (cueId && onMoveCueToLine) {
+      onMoveCueToLine(cueId, lineIdx, lines[lineIdx]?.trim() ?? '')
+    }
+  }
+
+  function handleDropUnanchor(e) {
+    e.preventDefault()
+    setDropTarget(null)
+    const cueId = e.dataTransfer.getData('cue-id')
+    if (cueId && onMoveCueToLine) {
+      onMoveCueToLine(cueId, null, '')
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-white">{song.title}</h3>
-        <button onClick={onEditLyrics}
-          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-cyan-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-gray-800">
-          <Pencil size={12} /> {hasLyrics ? 'Edita lletra' : 'Afegeix lletra'}
-        </button>
+        <div className="flex items-center gap-2">
+          {rt && (() => { const Icon = rt.icon; return <Icon size={15} className={rt.color} /> })()}
+          <h3 className="text-sm font-semibold text-white">{song.title}</h3>
+          {rt && <span className={`text-xs ${rt.color}`}>{rt.label}</span>}
+        </div>
+        {isSong && (
+          <button onClick={onEditLyrics}
+            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-cyan-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-gray-800">
+            <Pencil size={12} /> {hasContent ? 'Edita lletra' : 'Afegeix lletra'}
+          </button>
+        )}
       </div>
 
-      {unanchored.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="text-xs text-gray-600 uppercase tracking-wider">Cues d'acció / estructura</p>
-          <div className="flex flex-wrap gap-1.5">
+      {(unanchored.length > 0 || cues.length > 0) && (
+        <div className="space-y-1.5"
+          onDragOver={e => { e.preventDefault(); setDropTarget('unanchored') }}
+          onDragLeave={() => setDropTarget(null)}
+          onDrop={handleDropUnanchor}>
+          <p className="text-xs text-gray-600 uppercase tracking-wider">Cues sense ancorar</p>
+          <div className={`flex flex-wrap gap-1.5 min-h-[32px] rounded-lg border border-dashed transition-colors px-1.5 py-1 ${
+            dropTarget === 'unanchored' ? 'border-cyan-500 bg-cyan-900/10' : unanchored.length > 0 ? 'border-transparent' : 'border-gray-800'
+          }`}>
             {unanchored.map(c => (
               <div key={c.id} className="flex flex-col gap-0.5">
-                <CueChip cue={c} selected={c.id === selectedCueId} onClick={() => onSelectCue(c)} />
+                <DraggableCueChip cue={c} selected={c.id === selectedCueId} onClick={() => onSelectCue(c)} onDuplicate={onDuplicateCue} onDelete={onDeleteCue} momentName={momentMap[c.moment_id]?.title} />
                 {c.trigger_text && <span className="text-xs text-gray-600 px-1 max-w-[260px] truncate">{c.trigger_text}</span>}
               </div>
             ))}
+            {unanchored.length === 0 && <span className="text-xs text-gray-700 py-1">Arrossega aquí per desancorar</span>}
           </div>
         </div>
       )}
 
-      {hasLyrics ? (
+      {hasContent ? (
         <div className="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 space-y-0">
           {lines.map((line, i) => {
             const lineCues = anchored[i] ?? []
             const isSelectedLine = lineCues.some(c => c.id === selectedCueId)
+            const isDropLine = dropTarget === i
             return (
-              <div key={i} className={`group flex items-center gap-1.5 rounded-md px-1.5 -mx-1.5 ${isSelectedLine ? 'bg-cyan-900/20' : ''}`}>
-                <button onClick={() => onCreateCueAtLine(i, line)} title="Crear cue en aquesta línia"
-                  className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-gray-700 opacity-30 md:opacity-0 md:group-hover:opacity-100 hover:!opacity-100 hover:text-cyan-300 hover:bg-gray-800 transition-all">
-                  <Plus size={11} />
-                </button>
+              <div key={i}
+                onDragOver={e => { e.preventDefault(); setDropTarget(i) }}
+                onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null) }}
+                onDrop={e => handleDrop(e, i)}
+                className={`group flex items-center gap-1.5 rounded-md px-1.5 -mx-1.5 transition-colors ${
+                  isDropLine ? 'bg-cyan-900/30 ring-1 ring-cyan-500/50' : isSelectedLine ? 'bg-cyan-900/20' : ''
+                }`}>
                 <div className="flex-1 min-w-0 py-0.5">
                   {line.trim() === '' ? <div className="h-2" /> : (
-                    <span className={`text-xs leading-snug ${lineCues.length ? 'text-white font-medium' : 'text-gray-400'}`}>{line}</span>
+                    <span className={`text-xs leading-snug ${
+                      !isSong ? 'text-gray-300 font-medium uppercase tracking-wider' :
+                      lineCues.length ? 'text-white font-medium' : 'text-gray-400'
+                    }`}>{line}</span>
                   )}
                 </div>
-                {lineCues.length > 0 && (
-                  <div className="flex flex-wrap gap-1 shrink-0 justify-end">
-                    {lineCues.map(c => (
-                      <CueChip key={c.id} cue={c} compact selected={c.id === selectedCueId} onClick={() => onSelectCue(c)} />
-                    ))}
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-1 shrink-0 justify-end items-center">
+                  <button onClick={() => onCreateCueAtLine(i, line)} title="Crear cue en aquest punt"
+                    className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-gray-700 opacity-30 md:opacity-0 md:group-hover:opacity-100 hover:!opacity-100 hover:text-cyan-300 hover:bg-gray-800 transition-all">
+                    <Plus size={11} />
+                  </button>
+                  {lineCues.map(c => (
+                    <DraggableCueChip key={c.id} cue={c} compact selected={c.id === selectedCueId} onClick={() => onSelectCue(c)} onDuplicate={onDuplicateCue} onDelete={onDeleteCue} />
+                  ))}
+                </div>
               </div>
             )
           })}
