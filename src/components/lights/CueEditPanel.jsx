@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Trash2, Plus, Save, ChevronDown, RotateCcw, Moon, Wind, Sparkles, Move, Pause, Home, Users } from 'lucide-react'
+import { X, Trash2, Plus, Save, ChevronDown, RotateCcw, Moon, Wind, Sparkles, Move, Pause, Theater, ScanFace } from 'lucide-react'
 import {
   LIGHT_EFFECTS, LIGHT_COLORS, LIGHT_ZONES, AUDIENCE_OPTIONS,
   FOLLOWSPOT_POSITIONS, cueEffects, cueFollowspots, cueLevels, sideMax,
@@ -8,7 +8,7 @@ import {
 } from '../../lib/lights'
 import StageSim from './StageSim'
 
-const EFFECT_ICONS = { Moon, Wind, Sparkles, Move, Pause, Home, Users }
+const EFFECT_ICONS = { Moon, Wind, Sparkles, Move, Pause, Theater, ScanFace }
 
 const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-300 placeholder-gray-600'
 const labelCls = 'text-xs text-gray-500 uppercase tracking-wider font-medium mb-1.5 block'

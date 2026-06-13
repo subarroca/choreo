@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { Crosshair, Users, Copy, Trash2 } from 'lucide-react'
+import { Spotlight, Copy, Trash2 } from 'lucide-react'
 import { formatCueNumber, cueSummaryCompact, sideColorHexes, cueEffects, cueFollowspots } from '../../lib/lights'
 
-export default function CueChip({ cue, selected, onClick, onDuplicate, onDelete, compact = false, momentName }) {
+export default function CueChip({ cue, selected, onClick, onDuplicate, onDelete, compact = false }) {
   const frontHexes = sideColorHexes(cue, 'front')
   const backHexes = sideColorHexes(cue, 'back')
   const fosc = cueEffects(cue).includes('fosc')
@@ -57,17 +57,14 @@ export default function CueChip({ cue, selected, onClick, onDuplicate, onDelete,
         </div>
       )}
       {followspots.length > 0 && (
-        <div className="flex items-center gap-0.5 shrink-0 text-amber-400">
-          <Crosshair size={12} />
+        <div className="flex items-center gap-0.5 shrink-0 text-gray-400">
+          <Spotlight size={12} />
           {followspots.map((fs, i) => {
             const pos = fs.position ?? 'centre'
             const initial = pos === 'esquerra' ? 'E' : pos === 'dreta' ? 'D' : 'C'
             return <span key={i} className="text-[9px] font-bold">{initial}</span>
           })}
         </div>
-      )}
-      {cue.moment_id && (
-        <Users size={11} className="shrink-0 text-green-500" title={momentName ? `Posició: ${momentName}` : 'Canvi de posicions'} />
       )}
       {!compact && summary && <span className="text-xs text-gray-400 truncate max-w-[220px]">{summary}</span>}
     </button>

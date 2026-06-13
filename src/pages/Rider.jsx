@@ -1,12 +1,12 @@
 import { useParams } from 'react-router-dom'
-import { Printer, Moon, Wind, Sparkles, Move, Pause, Home, Users } from 'lucide-react'
+import { Printer, Moon, Wind, Sparkles, Move, Pause, Theater, ScanFace, Spotlight } from 'lucide-react'
 import { useLightCues } from '../hooks/useLightCues'
 import { formatCueNumber, cueSummary, sideColorHexes, cueEffects, effectIcon, sortCues } from '../lib/lights'
 import ShowToolbar from '../components/ShowToolbar'
 
 // Mapa d'icones per efectes
 const EFFECT_ICONS = {
-  Moon, Wind, Sparkles, Move, Pause, Home, Users
+  Moon, Wind, Sparkles, Move, Pause, Theater, ScanFace
 }
 
 // Rider tècnic imprimible: portada + cue sheet de llums per cançó
@@ -109,11 +109,11 @@ export default function Rider() {
             <span className="text-gray-600">Freeze</span>
           </div>
           <div className="flex items-center gap-2">
-            <Home size={12} className="text-gray-500" />
+            <Theater size={12} className="text-gray-500" />
             <span className="text-gray-600">Llums de sala</span>
           </div>
           <div className="flex items-center gap-2">
-            <Users size={12} className="text-gray-500" />
+            <ScanFace size={12} className="text-gray-500" />
             <span className="text-gray-600">Públic</span>
           </div>
           <div className="flex items-center gap-2">

@@ -40,8 +40,8 @@ export const LIGHT_EFFECTS = [
 
 // Sala i públic: opcions pròpies, fora dels efectes d'escenari
 export const AUDIENCE_OPTIONS = [
-  { value: 'sala',   label: 'Llums de sala', icon: 'Home' },
-  { value: 'public', label: 'Públic', icon: 'Users' },
+  { value: 'sala',   label: 'Llums de sala', icon: 'Theater' },
+  { value: 'public', label: 'Públic', icon: 'ScanFace' },
 ]
 
 // Mapa d'icones per efectes (nom de lucide-react)
@@ -65,12 +65,15 @@ export const LIGHT_COLORS = [
 
 export const lightColor = (id) => LIGHT_COLORS.find(c => c.id === id) ?? null
 
-// Retorna tots els colors únics d'una banda (esquerra, centre, dreta) com a array
+// Retorna tots els colors únics d'una banda com a array de hex.
+// Si hi ha nivells actius però cap color assignat, retorna gris (neutre).
 export function sideColorHexes(cue, side) {
   const zc = cueZoneColors(cue, side)
   const colors = ZONE_KEYS.map(z => zc[z]).filter(Boolean)
   const unique = [...new Set(colors)]
-  return unique.map(id => lightColor(id)?.hex).filter(Boolean)
+  const hexes = unique.map(id => lightColor(id)?.hex).filter(Boolean)
+  if (hexes.length === 0 && sideMax(cueLevels(cue, side)) > 0) return ['#9ca3af']
+  return hexes
 }
 
 // ─── Tipus de disparador ──────────────────────────────────────

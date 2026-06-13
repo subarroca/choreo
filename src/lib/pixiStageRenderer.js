@@ -201,9 +201,9 @@ function drawFrontBeams(app, W, H, Y_BACK, Y_FRONT, frontLevels, frontZoneColors
     for (let b = 0; b < 3; b++) {
       const frac = (b + 0.5) / 3
       const barX = zoneX0 + zoneW * frac
-      const targetX = zoneCX + (barX - zoneCX) * 0.5
+      const targetX = barX
       const halfTop = 3
-      const halfBot = zoneW * 0.16
+      const halfBot = zoneW * 0.22
 
       const beam = new Graphics()
       beam.poly([
