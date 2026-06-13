@@ -6,10 +6,14 @@ const VARIANTS = {
 }
 
 // Touch-friendly button (≥44px tall) with the app's standard variants.
-export default function Button({ variant = 'primary', className = '', ...props }) {
+// `stacked` lays the icon above the label — for touch action bars on tablet/mobile.
+export default function Button({ variant = 'primary', stacked = false, className = '', ...props }) {
+  const layout = stacked
+    ? 'flex-col gap-1 px-3 py-2 text-xs'
+    : 'gap-1.5 px-4 py-2 text-sm'
   return (
     <button
-      className={`inline-flex items-center justify-center gap-1.5 text-sm px-4 py-2 min-h-[44px] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${VARIANTS[variant] ?? VARIANTS.primary} ${className}`}
+      className={`inline-flex items-center justify-center min-h-[44px] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${layout} ${VARIANTS[variant] ?? VARIANTS.primary} ${className}`}
       {...props} />
   )
 }

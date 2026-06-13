@@ -46,7 +46,7 @@ export default function Poster() {
 
   return (
     <Layout fullWidth>
-      <div className="flex flex-col h-[calc(100vh-57px)]">
+      <div className="flex flex-col h-full">
         <ShowToolbar showId={showId} showName={show?.name} />
 
         <div className="flex-1 overflow-y-auto flex flex-col items-center p-6 gap-6">

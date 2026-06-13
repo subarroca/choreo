@@ -15,7 +15,7 @@
     --c-body:   17  24  39;    /* gray-900 */
     --c-soft:   55  65  81;    /* gray-700 */
     --c-muted:  107 114 128;   /* gray-500 */
-    --c-faint:  107 114 128;   /* gray-500 */
+    --c-faint:  134 142 153;   /* between gray-400/500 — distinct from muted */
     --c-ghost:  156 163 175;   /* gray-400 */
   }
 
@@ -32,7 +32,7 @@
     --c-soft:   209 213 219;   /* gray-300 */
     --c-muted:  156 163 175;   /* gray-400 */
     --c-faint:  107 114 128;   /* gray-500 */
-    --c-ghost:  75  85  99;    /* gray-600 */
+    --c-ghost:  107 114 128;   /* gray-500 — raised from gray-600 for AA legibility */
   }
 
   html {

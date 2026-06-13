@@ -125,7 +125,7 @@ export default function Mics() {
 
   return (
     <Layout fullWidth>
-      <div className="flex flex-col h-[calc(100vh-57px)]">
+      <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center shrink-0">
           <button onClick={() => setSidebarOpen(v => !v)}

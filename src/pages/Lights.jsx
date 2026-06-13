@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { Plus, Menu, ListOrdered, AlignLeft, X, Play, Hash } from 'lucide-react'
+import { Plus, Menu, ListOrdered, AlignLeft, Play, Hash } from 'lucide-react'
 import Layout from '../components/Layout'
 import ShowToolbar from '../components/ShowToolbar'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
+import Sheet from '../components/ui/Sheet'
 import { useLightCues } from '../hooks/useLightCues'
 import { nextCueNumber, sortCues, lyricsLines } from '../lib/lights'
 import { isSongType, repertoireType } from '../lib/repertoireTypes'
@@ -20,32 +21,25 @@ const NEW_CUE_DEFAULTS = {
   effects: '[]', followspots: '[]', transition: 'tall', transition_seconds: null, notes: '',
 }
 
-// Editor de lletra d'una cançó del repertori (modal)
 function LyricsEditor({ repSong, onSave, onClose }) {
   const [text, setText] = useState(repSong?.lyrics ?? '')
   return (
-    <>
-      <div className="fixed inset-0 bg-black/60 z-40" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-page border-l border-rim flex flex-col shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-rim shrink-0">
-          <h2 className="text-base font-semibold text-body">Lletra — {repSong.title}</h2>
-          <button onClick={onClose} className="text-faint hover:text-body p-1.5 rounded-lg hover:bg-fill transition-colors">
-            <X size={18} />
-          </button>
+    <Sheet open onClose={onClose} title={`Lletra — ${repSong.title}`} width="lg"
+      footer={
+        <div className="flex gap-2">
+          <button onClick={() => { onSave(text); onClose() }}
+            className="bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors">Guardar</button>
+          <button onClick={onClose} className="text-muted hover:text-body text-sm px-4 py-2 rounded-lg transition-colors">Cancel·lar</button>
         </div>
-        <div className="flex-1 p-5 flex flex-col gap-3">
-          <textarea value={text} onChange={e => setText(e.target.value)} autoFocus
-            placeholder={'Una línia per vers.\nLes línies buides separen estrofes.'}
-            className="flex-1 w-full bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300 placeholder-gray-600 resize-none leading-relaxed" />
-          <p className="text-xs text-ghost">Els cues queden ancorats al número de línia: si afegeixes o esborres línies enmig, revisa els ancoratges.</p>
-          <div className="flex gap-2">
-            <button onClick={() => { onSave(text); onClose() }}
-              className="bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors">Guardar</button>
-            <button onClick={onClose} className="text-muted hover:text-body text-sm px-4 py-2 rounded-lg transition-colors">Cancel·lar</button>
-          </div>
-        </div>
+      }
+    >
+      <div className="flex flex-col gap-3 h-full">
+        <textarea value={text} onChange={e => setText(e.target.value)} autoFocus
+          placeholder={'Una línia per vers.\nLes línies buides separen estrofes.'}
+          className="flex-1 min-h-[400px] w-full bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300 placeholder-gray-600 resize-none leading-relaxed" />
+        <p className="text-xs text-ghost">Els cues queden ancorats al número de línia: si afegeixes o esborres línies enmig, revisa els ancoratges.</p>
       </div>
-    </>
+    </Sheet>
   )
 }
 
@@ -145,7 +139,7 @@ export default function Lights() {
 
   return (
     <Layout fullWidth>
-      <div className="flex flex-col h-[calc(100vh-57px)]">
+      <div className="flex flex-col h-full">
         <ShowToolbar showId={showId} showName={show?.name} />
 
         {/* View controls */}

@@ -415,7 +415,7 @@ export default function Editor() {
   // ─── Render ───────────────────────────────────────────────
   return (
     <Layout fullWidth>
-      <div className="flex flex-col h-[calc(100vh-57px)]">
+      <div className="flex flex-col h-full">
 
         <EditorToolbar
           moments={moments} momentId={momentId} show={show} song={song}
