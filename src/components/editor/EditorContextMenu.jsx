@@ -81,8 +81,8 @@ export default function EditorContextMenu({
         </div>
       ) : (
         /* Floating menu — tablet and desktop */
-        <div className="fixed z-50 bg-pane border border-line rounded-xl shadow-2xl py-1.5 min-w-[190px]"
-          style={{ left: Math.min(contextMenu.x, window.innerWidth - 210), top: Math.min(contextMenu.y, window.innerHeight - 270) }}
+        <div className="fixed z-50 bg-pane border border-line rounded-xl shadow-2xl py-1.5 min-w-[200px]"
+          style={{ left: Math.min(contextMenu.x, window.innerWidth - 220), top: Math.min(contextMenu.y, window.innerHeight - 340) }}
           onContextMenu={e => e.preventDefault()}>
           <div className="flex items-center gap-2 px-3 py-1.5 border-b border-rim mb-1">
             <span className="w-3.5 h-3.5 rounded-sm shrink-0" style={{ background: c.bg }} />

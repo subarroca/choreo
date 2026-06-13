@@ -7,7 +7,8 @@ export function isCoarsePointer() {
 }
 
 // True when the UI should use touch-first affordances (bottom sheets,
-// radial menus, large targets): coarse pointer or narrow viewport.
+// radial menus, large targets): coarse pointer, narrow viewport, or any
+// device with a touch screen (covers tablets that report fine pointer via stylus).
 export function isTouchUI() {
-  return isCoarsePointer() || window.innerWidth < 768
+  return isCoarsePointer() || window.innerWidth < 1024 || navigator.maxTouchPoints > 1
 }

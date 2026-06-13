@@ -39,9 +39,9 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: 'Choir Positions',
-        short_name: 'Choir',
-        description: 'Gestió de posicions i membres del cor',
+        name: 'Choreo',
+        short_name: 'Choreo',
+        description: 'Gestió escènica i membres del cor',
         id: '/',
         start_url: '/',
         display: 'standalone',

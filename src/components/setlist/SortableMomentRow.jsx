@@ -4,13 +4,22 @@ import { GripVertical, MicVocal, ArrowRight, X, Copy } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import MomentThumbnail from './MomentThumbnail'
 
-export default function SortableMomentRow({ moment, index, showId, songId, onDelete, onCopy, micAssignments, positions, changedMembers, gridRows, gridCols }) {
+function deriveInitials(m) {
+  if (m.last_name) return (m.last_name[0] + (m.first_name?.[0] ?? '')).toUpperCase()
+  return ((m.name || '').trim().split(' ').map(w => w[0]).join('').slice(0, 2)).toUpperCase() || '?'
+}
+
+export default function SortableMomentRow({ moment, index, showId, songId, onDelete, onCopy, micAssignments, positions, changedMembers, soloists, allMembers, gridRows, gridCols }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: moment.id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }
 
   const activeMicCount = micAssignments
     ? Object.values(micAssignments[moment.id] ?? {}).filter(Boolean).length
     : 0
+
+  const soloistMembers = (soloists ?? [])
+    .map(s => (allMembers ?? []).find(m => m.id === s.member_id))
+    .filter(Boolean)
 
   return (
     <div ref={setNodeRef} style={style}
@@ -24,6 +33,14 @@ export default function SortableMomentRow({ moment, index, showId, songId, onDel
         <span className="text-sm text-gray-200 font-medium block truncate">{moment.title}</span>
         {moment.subtitle && <span className="text-xs text-faint block truncate">{moment.subtitle}</span>}
       </Link>
+      {soloistMembers.length > 0 && (
+        <span className="flex items-center gap-1 shrink-0" title={soloistMembers.map(m => m.name || `${m.first_name} ${m.last_name}`).join(', ')}>
+          <MicVocal size={10} className="text-amber-500" />
+          <span className="text-xs text-amber-400 font-medium">
+            {soloistMembers.map(m => deriveInitials(m)).join(' ')}
+          </span>
+        </span>
+      )}
       {positions?.length > 0 && (
         <MomentThumbnail positions={positions} changedMembers={changedMembers} gridRows={gridRows} gridCols={gridCols} />
       )}

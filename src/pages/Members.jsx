@@ -99,7 +99,10 @@ export default function Members() {
   return (
     <Layout narrow>
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold text-body">Persones</h1>
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-2xl font-bold text-body">Persones</h1>
+          <span className="text-xs text-ghost">ordenades per cognom</span>
+        </div>
 
         {/* ── Header ── */}
         <div className="space-y-3">
@@ -160,8 +163,11 @@ export default function Members() {
                     {(m.initials || deriveInitials(m.first_name, m.last_name)).slice(0, 3)}
                   </span>
                   <div className="flex-1 min-w-0 py-3">
-                    <div className="text-sm text-body font-medium truncate">
-                      {m.first_name} <span className="font-semibold">{m.last_name}</span>
+                    <div className="text-sm text-body truncate">
+                      {m.last_name
+                        ? <><span className="font-semibold">{m.last_name}</span>{m.first_name ? `, ${m.first_name}` : ''}</>
+                        : <span className="font-medium">{m.name}</span>
+                      }
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-xs font-medium" style={{ color: c.bg }}>
@@ -196,8 +202,11 @@ export default function Members() {
                           {(m.initials || deriveInitials(m.first_name, m.last_name)).slice(0, 3)}
                         </span>
                         <div className="flex-1 min-w-0 py-3">
-                          <div className="text-sm text-body font-medium truncate line-through">
-                            {m.first_name} <span className="font-semibold">{m.last_name}</span>
+                          <div className="text-sm text-body truncate line-through">
+                            {m.last_name
+                              ? <><span className="font-semibold">{m.last_name}</span>{m.first_name ? `, ${m.first_name}` : ''}</>
+                              : <span className="font-medium">{m.name}</span>
+                            }
                           </div>
                           <div className="text-xs text-yellow-700">De baixa</div>
                         </div>

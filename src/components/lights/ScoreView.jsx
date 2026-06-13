@@ -13,13 +13,14 @@ function DraggableCueChip({ cue, onDelete, ...props }) {
   return (
     <div
       draggable
+      onContextMenu={e => e.preventDefault()}
       onDragStart={e => {
         e.dataTransfer.setData('cue-id', cue.id)
         e.dataTransfer.effectAllowed = 'move'
         setDragging(true)
       }}
       onDragEnd={() => setDragging(false)}
-      className={`cursor-grab active:cursor-grabbing ${dragging ? 'opacity-40' : ''}`}
+      className={`cursor-grab active:cursor-grabbing touch-none select-none ${dragging ? 'opacity-40' : ''}`}
     >
       <CueChip cue={cue} onDelete={onDelete} {...props} />
     </div>

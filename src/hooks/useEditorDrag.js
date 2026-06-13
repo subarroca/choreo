@@ -157,6 +157,8 @@ export function useEditorDrag(ctx) {
       longPressStartRef.current = { x: startCX, y: startCY }
       longPressTimerRef.current = setTimeout(() => {
         longPressTimerRef.current = null; longPressStartRef.current = null
+        // Don't show context menu if user has already started dragging a member
+        if (dragRef.current?.type === 'member' || dragRef.current?.type === 'group') return
         dragRef.current = null
         const d = dimsRef.current
         const dirMember = membersRef.current.find(m => m.role === 'director')
@@ -168,7 +170,7 @@ export function useEditorDrag(ctx) {
           member = memberAtPixel(x, y)
         }
         if (member) { vibrate(30); setContextMenu({ x: startCX, y: startCY, member, source: 'canvas' }) }
-      }, 500)
+      }, 600)
     }
 
     if (trajectoryMode) {
@@ -238,7 +240,7 @@ export function useEditorDrag(ctx) {
     // ── Long-press: cancel only if moved > 8px ──
     if (longPressTimerRef.current && longPressStartRef.current) {
       const moved = Math.hypot(e.clientX - longPressStartRef.current.x, e.clientY - longPressStartRef.current.y)
-      if (moved > 8) {
+      if (moved > 15) {
         clearTimeout(longPressTimerRef.current)
         longPressTimerRef.current = null; longPressStartRef.current = null
       }

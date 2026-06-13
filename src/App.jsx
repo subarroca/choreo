@@ -16,6 +16,7 @@ import Lights from './pages/Lights'
 import Rider from './pages/Rider'
 import Poster from './pages/Poster'
 import Rehearsal from './pages/Rehearsal'
+import Attendance from './pages/Attendance'
 
 function RequireAuth({ children }) {
   const { session, loading } = useAuth()
@@ -41,6 +42,7 @@ function AppRoutes() {
       <Route path="/show/:id/rider" element={<RequireAuth><Rider /></RequireAuth>} />
       <Route path="/show/:id/poster" element={<RequireAuth><Poster /></RequireAuth>} />
       <Route path="/show/:id/assaig" element={<RequireAuth><Rehearsal /></RequireAuth>} />
+      <Route path="/show/:id/assistencia" element={<RequireAuth><Attendance /></RequireAuth>} />
       <Route path="/songs" element={<RequireAuth><Songs /></RequireAuth>} />
       <Route path="/admin" element={<RequireAuth><Admin /></RequireAuth>} />
       <Route path="*" element={<Navigate to="/" replace />} />

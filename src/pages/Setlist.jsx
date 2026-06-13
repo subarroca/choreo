@@ -46,6 +46,7 @@ export default function Setlist() {
   const [copiedMoment, setCopiedMoment] = useState(null)
   const [positionsByMoment, setPositionsByMoment] = useState({})
   const [diffByMoment, setDiffByMoment] = useState({})
+  const [soloistsByMoment, setSoloistsByMoment] = useState({})
 
   const songSensors = useSensors(
     useSensor(PointerSensor),
@@ -123,6 +124,15 @@ export default function Setlist() {
             }
           }
           setDiffByMoment(diffSet)
+
+          // Parse soloists from each moment
+          const soloistsMap = {}
+          for (const m of (momentData ?? [])) {
+            if (m.soloists) {
+              try { soloistsMap[m.id] = JSON.parse(m.soloists) } catch { soloistsMap[m.id] = [] }
+            }
+          }
+          setSoloistsByMoment(soloistsMap)
         }
       }
       setLoading(false)
@@ -404,6 +414,8 @@ export default function Setlist() {
                               onPasteMoment={handlePasteMoment}
                               positionsByMoment={positionsByMoment}
                               diffByMoment={diffByMoment}
+                              soloistsByMoment={soloistsByMoment}
+                              allMembers={allMembers}
                               gridRows={show?.grid_rows?.length ?? 8}
                               gridCols={show?.grid_cols ?? 14} />
                           ))}

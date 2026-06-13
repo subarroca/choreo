@@ -41,12 +41,12 @@ export default function Layout({ children, fullWidth = false, narrow = false }) 
     }`
 
   return (
-    <div className="min-h-screen bg-page text-gray-100 flex flex-col">
+    <div className="min-h-screen bg-page text-body flex flex-col overflow-x-hidden">
       <header className={`border-b px-4 py-3 flex items-center justify-between relative transition-colors ${
         isSimulating ? 'bg-amber-950 border-amber-800/60' : 'bg-pane border-rim'
       }`}>
         <Link to="/" className="flex items-center gap-2 text-lg font-bold tracking-tight text-body hover:text-soft">
-          <Music size={18} /> Choir Positions
+          <Music size={18} /> Choreo
         </Link>
 
         {/* Choir selector */}
@@ -67,7 +67,7 @@ export default function Layout({ children, fullWidth = false, narrow = false }) 
           <nav className="hidden md:flex items-center gap-1 text-sm">
             {canViewRepertoire && (
               <Link to="/songs" className={navLinkCls('/songs')}>
-                <BookOpen size={14} /> Repertori
+                <BookOpen size={14} /> Cançons
               </Link>
             )}
             <Link to="/" className={navLinkCls('/')}>

@@ -6,7 +6,7 @@ import { useChoir } from '../hooks/useChoir.jsx'
 import Layout from '../components/Layout'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
-import { REPERTOIRE_TYPES, repertoireType, isSongType } from '../lib/repertoireTypes'
+import { isSongType } from '../lib/repertoireTypes'
 
 const DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true'
 
@@ -136,14 +136,12 @@ function AttachmentEditor({ attachments, onChange }) {
 
 // ── SongForm ──────────────────────────────────────────────────
 function SongForm({ initial, onSave, onCancel }) {
-  const [type, setType]             = useState(initial?.type ?? 'song')
   const [title, setTitle]           = useState(initial?.title ?? '')
   const [composer, setComposer]     = useState(initial?.composer ?? '')
   const [notes, setNotes]           = useState(initial?.notes ?? '')
   const [lyrics, setLyrics]         = useState(initial?.lyrics ?? '')
   const [isPublic, setIsPublic]     = useState(initial?.is_public ?? false)
   const [attachments, setAttachments] = useState(() => {
-    // Migrate legacy URL fields → attachments array
     if (initial?.attachments) {
       try { return JSON.parse(initial.attachments) } catch { return [] }
     }
@@ -157,42 +155,19 @@ function SongForm({ initial, onSave, onCancel }) {
   function handleSubmit(e) {
     e.preventDefault()
     onSave({
-      type,
+      type: 'song',
       title: title.trim(),
       composer: composer.trim() || null,
       notes: notes.trim() || null,
-      lyrics: isSongType(type) ? (lyrics.trim() || null) : null,
+      lyrics: lyrics.trim() || null,
       is_public: isPublic,
       attachments: JSON.stringify(attachments),
-      // Keep legacy fields null (migration)
       source_url: null, score_url: null, audio_url: null,
     })
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Type selector pills */}
-      <div>
-        <label className={labelCls}>Tipus</label>
-        <div className="flex flex-wrap gap-1.5">
-          {REPERTOIRE_TYPES.map(t => {
-            const Icon = t.icon
-            const active = type === t.value
-            return (
-              <button key={t.value} type="button" onClick={() => setType(t.value)}
-                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                  active
-                    ? 'bg-raised border-gray-500 text-body'
-                    : 'bg-pane border-line text-faint hover:text-soft hover:border-wire'
-                }`}>
-                <Icon size={12} className={active ? t.color : ''} />
-                {t.label}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Títol *</label>
@@ -200,9 +175,9 @@ function SongForm({ initial, onSave, onCancel }) {
             placeholder="El nom de la cançó" className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>{isSongType(type) ? 'Compositor / autor' : 'Descripció'}</label>
+          <label className={labelCls}>Compositor / autor</label>
           <input value={composer} onChange={e => setComposer(e.target.value)}
-            placeholder={isSongType(type) ? 'Bach, Verdi…' : 'Descripció breu…'} className={inputCls} />
+            placeholder="Bach, Verdi…" className={inputCls} />
         </div>
       </div>
       <div>
@@ -210,14 +185,12 @@ function SongForm({ initial, onSave, onCancel }) {
         <input value={notes} onChange={e => setNotes(e.target.value)}
           placeholder="Observacions, arranjador…" className={inputCls} />
       </div>
-      {isSongType(type) && (
-        <div>
-          <label className={labelCls}>Lletra</label>
-          <textarea value={lyrics} onChange={e => setLyrics(e.target.value)} rows={6}
-            placeholder={'Una línia per vers. Serveix per ancorar els cues de llum.'}
-            className={inputCls + ' resize-y leading-relaxed'} />
-        </div>
-      )}
+      <div>
+        <label className={labelCls}>Lletra</label>
+        <textarea value={lyrics} onChange={e => setLyrics(e.target.value)} rows={6}
+          placeholder={'Una línia per vers. Serveix per ancorar els cues de llum.'}
+          className={inputCls + ' resize-y leading-relaxed'} />
+      </div>
 
       <div className="border-t border-rim pt-4 space-y-2">
         <p className="text-xs text-faint uppercase tracking-wider">Recursos</p>
@@ -248,16 +221,13 @@ function SongForm({ initial, onSave, onCancel }) {
 
 // ── SongSheet (sidesheet) ─────────────────────────────────────
 function SongSheet({ song, isNew, onSave, onDelete, onClose }) {
-  const typeLabel = repertoireType(song?.type).label.toLowerCase()
   return (
     <>
-      {/* Backdrop */}
       <div className="fixed inset-0 bg-black/60 z-40" onClick={onClose} />
-      {/* Panel */}
       <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-page border-l border-rim flex flex-col shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-rim shrink-0">
           <h2 className="text-base font-semibold text-body">
-            {isNew ? `Nou element` : `Editar ${typeLabel}`}
+            {isNew ? 'Nova cançó' : 'Editar cançó'}
           </h2>
           <button onClick={onClose} className="text-faint hover:text-body p-1.5 rounded-lg hover:bg-fill transition-colors">
             <X size={18} />
@@ -269,7 +239,7 @@ function SongSheet({ song, isNew, onSave, onDelete, onClose }) {
             <div className="mt-6 pt-4 border-t border-rim">
               <button onClick={onDelete}
                 className="text-sm text-red-500 hover:text-red-400 transition-colors">
-                Eliminar {typeLabel} del repertori
+                Eliminar cançó del repertori
               </button>
             </div>
           )}
@@ -287,7 +257,7 @@ export default function Songs() {
   const [search, setSearch]     = useState('')
 
   const { data: songs = [], setData: setSongs, loading } = useSupabaseQuery(async () => {
-    let q = supabase.from('repertoire_songs').select('*').order('title')
+    let q = supabase.from('repertoire_songs').select('*').eq('type', 'song').order('title')
     if (currentChoirId) q = q.eq('choir_id', currentChoirId)
     const { data } = await q
     return data ?? []
@@ -337,8 +307,7 @@ export default function Songs() {
   const visibleSongs = search
     ? songs.filter(s =>
         s.title?.toLowerCase().includes(searchLower) ||
-        s.composer?.toLowerCase().includes(searchLower) ||
-        repertoireType(s.type).label.toLowerCase().includes(searchLower)
+        s.composer?.toLowerCase().includes(searchLower)
       )
     : songs
 
@@ -349,10 +318,10 @@ export default function Songs() {
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold text-body">Repertori</h1>
+          <h1 className="text-2xl font-bold text-body">Cançons</h1>
           <button onClick={() => setSheetSong('new')}
             className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors shrink-0">
-            <Plus size={14} /> Nou element
+            <Plus size={14} /> Nova cançó
           </button>
         </div>
 
@@ -360,7 +329,7 @@ export default function Songs() {
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Cerca per títol, compositor o tipus…"
+            placeholder="Cerca per títol o compositor…"
             className="w-full bg-fill border border-line rounded-lg pl-8 pr-3 py-2 text-sm text-body placeholder-gray-600 focus:outline-none focus:border-cyan-300" />
         </div>
 
@@ -369,34 +338,23 @@ export default function Songs() {
         ) : visibleSongs.length === 0 ? (
           <div className="text-center py-16 text-faint">
             <BookOpen size={40} className="mx-auto mb-4 opacity-30" />
-            <p>{search ? 'Cap resultat per aquesta cerca.' : 'El repertori és buit.'}</p>
+            <p>{search ? 'Cap resultat per aquesta cerca.' : 'Encara no hi ha cançons.'}</p>
             {!search && <p className="text-sm mt-1">Afegeix la primera cançó amb el botó de dalt.</p>}
           </div>
         ) : (
           <div className="space-y-2">
             {visibleSongs.map(song => {
               const atts = parseAttachments(song)
-              const rt = repertoireType(song.type)
-              const TypeIcon = rt.icon
               return (
                 <button key={song.id} onClick={() => setSheetSong(song)}
                   className="w-full bg-pane border border-rim rounded-xl px-4 py-3 hover:border-line hover:bg-fill/30 transition-colors text-left flex items-center gap-3">
-                  <TypeIcon size={14} className={`${rt.color} shrink-0`} />
+                  <Music size={14} className="text-cyan-500 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <p className="text-body font-medium text-sm">{song.title}</p>
-                      {!isSongType(song.type) && (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full bg-fill ${rt.color}`}>
-                          {rt.label}
-                        </span>
-                      )}
                       {song.is_public
-                        ? <span className="flex items-center gap-1 text-xs text-green-500 px-1.5 py-0.5 rounded shrink-0">
-                            <Globe size={9} /> Pública
-                          </span>
-                        : <span className="flex items-center gap-1 text-xs text-ghost px-1.5 py-0.5 rounded shrink-0">
-                            <Lock size={9} /> Privada
-                          </span>
+                        ? <span className="flex items-center gap-1 text-xs text-green-500 shrink-0"><Globe size={9} /> Pública</span>
+                        : <span className="flex items-center gap-1 text-xs text-ghost shrink-0"><Lock size={9} /> Privada</span>
                       }
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
@@ -406,7 +364,7 @@ export default function Songs() {
                       )}
                     </div>
                   </div>
-                  <Pencil size={12} className="text-gray-700 shrink-0" />
+                  <Pencil size={12} className="text-ghost shrink-0" />
                 </button>
               )
             })}

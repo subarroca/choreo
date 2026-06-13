@@ -34,7 +34,7 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-page flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <h1 className="flex items-center justify-center gap-2 text-2xl font-bold text-body text-center mb-8"><Music size={22} /> Choir Positions</h1>
+        <h1 className="flex items-center justify-center gap-2 text-2xl font-bold text-body text-center mb-8"><Music size={22} /> Choreo</h1>
         <div className="bg-pane rounded-xl p-6 space-y-4 border border-rim">
           <h2 className="text-lg font-semibold text-body">Iniciar sessió</h2>
 
