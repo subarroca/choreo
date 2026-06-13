@@ -11,7 +11,7 @@ export const DEV_USER = {
   user_metadata: { role: 'director', full_name: 'Salvador Subarroca' },
 }
 
-const DEV_SESSION = { user: DEV_USER }
+export const DEV_SESSION = { user: DEV_USER }
 
 function devUuid() {
   return 'dev-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2)
