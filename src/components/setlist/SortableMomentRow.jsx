@@ -1,9 +1,9 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, MicVocal, ArrowRight, X } from 'lucide-react'
+import { GripVertical, MicVocal, ArrowRight, X, Copy } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
-export default function SortableMomentRow({ moment, index, showId, songId, onDelete, micAssignments }) {
+export default function SortableMomentRow({ moment, index, showId, songId, onDelete, onCopy, micAssignments }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: moment.id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }
 
@@ -28,6 +28,13 @@ export default function SortableMomentRow({ moment, index, showId, songId, onDel
           <MicVocal size={10} className="text-gray-600" />
           {activeMicCount}
         </span>
+      )}
+      {onCopy && (
+        <button onClick={() => onCopy(moment)}
+          className="text-gray-700 hover:text-cyan-400 p-2.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0"
+          title="Copiar moment">
+          <Copy size={14} />
+        </button>
       )}
       <Link to={`/show/${showId}/song/${songId}/moment/${moment.id}`}
         className="flex items-center gap-1 text-xs text-cyan-600 hover:text-cyan-400 px-2.5 py-2.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">

@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth.jsx'
+import { ChoirProvider } from './hooks/useChoir.jsx'
 import { ConfirmHost } from './components/ui/ConfirmDialog'
 import Login from './pages/Login'
 import Shows from './pages/Shows'
@@ -48,8 +49,10 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
-      <ConfirmHost />
+      <ChoirProvider>
+        <AppRoutes />
+        <ConfirmHost />
+      </ChoirProvider>
     </AuthProvider>
   )
 }

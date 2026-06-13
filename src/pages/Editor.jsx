@@ -23,8 +23,10 @@ import EditorRadialMenu from '../components/editor/EditorRadialMenu'
 import { isTouchUI } from '../lib/touch'
 import EditMomentPanel from '../components/editor/EditMomentPanel'
 import AddMomentPanel from '../components/editor/AddMomentPanel'
+import ShortcutsModal from '../components/ShortcutsModal'
 import { useEditorDrag } from '../hooks/useEditorDrag'
 import { useEditorData } from '../hooks/useEditorData'
+import { useEditorHistory } from '../hooks/useEditorHistory'
 
 // ─── Component ────────────────────────────────────────────────
 export default function Editor() {
@@ -37,9 +39,15 @@ export default function Editor() {
     members, setMembers, placements, placementsRef, membersRef, momentsRef,
     momentSoloists, setMomentSoloists,
     editMomentTitle, setEditMomentTitle, editMomentSubtitle, setEditMomentSubtitle,
-    applyPlacements, handleMemberUpdate, handleMemberSetActive, handleMemberDelete,
+    applyPlacements: _applyPlacements, handleMemberUpdate, handleMemberSetActive, handleMemberDelete,
     saveMomentMeta: _saveMomentMeta, saveSoloists, handleDeleteMoment, navigateToSong, createMoment: _createMoment,
   } = useEditorData({ showId, songId, momentId, navigate })
+
+  const { applyWithHistory, undo, redo, canUndo, canRedo } = useEditorHistory(_applyPlacements)
+
+  function applyPlacements(next) {
+    applyWithHistory(next, placementsRef.current)
+  }
 
   const [mode, setMode] = useState('alternate')
   const [rotated, setRotated] = useState(() => localStorage.getItem('rotated') === 'true')
@@ -81,6 +89,7 @@ export default function Editor() {
   const [hoverProfileRow, setHoverProfileRow] = useState(null)
   const [hoverZenithInfo, setHoverZenithInfo] = useState(null)
   const [canvasScale, setCanvasScale] = useState(1)
+  const [showShortcuts, setShowShortcuts] = useState(false)
 
   const canvasRef = useRef(null)
   const heightCanvasRef = useRef(null)
@@ -102,6 +111,8 @@ export default function Editor() {
   const dimsRef = useRef(null)
   const gridSaveTimerRef = useRef(null)
   const shiftSelectedRef = useRef(null)
+  const undoRef = useRef(null)
+  const redoRef = useRef(null)
   const allSongPositionsRef = useRef(allSongPositions)
 
   useEffect(() => { modeRef.current = mode }, [mode])
@@ -335,6 +346,8 @@ export default function Editor() {
     applyPlacements(next)
   }
   shiftSelectedRef.current = shiftSelected
+  undoRef.current = () => undo(placementsRef.current)
+  redoRef.current = () => redo(placementsRef.current)
 
   useEffect(() => {
     const MAP = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }
@@ -342,6 +355,14 @@ export default function Editor() {
       const tag = document.activeElement?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if (e.key === 'Escape' && trajectoryMode) { setTrajectoryMode(false); setTrajectoryMemberId(''); return }
+      if (e.key === '?') { setShowShortcuts(v => !v); return }
+      // Undo/redo
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault(); undoRef.current?.(); return
+      }
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault(); redoRef.current?.(); return
+      }
       const dirs = MAP[e.key]; if (!dirs) return
       e.preventDefault(); shiftSelectedRef.current?.(dirs[0], dirs[1])
     }
@@ -416,6 +437,9 @@ export default function Editor() {
           onAutoPlace={(pat, axis, rep) => _autoPlace(pat, axis, rep, placementsRef, membersRef, dimsRef, applyPlacements)}
           onClearSelection={() => setSelectedIds(new Set())}
           onResetDirector={() => setDirectorManualX(null)}
+          canUndo={canUndo} canRedo={canRedo}
+          onUndo={() => undo(placementsRef.current)}
+          onRedo={() => redo(placementsRef.current)}
           navigate={navigate}
           VOICE_GROUPS={VOICE_GROUPS} ARRANGEMENT_PATTERNS={ARRANGEMENT_PATTERNS} VOICE_COLORS={VOICE_COLORS}
         />
@@ -474,6 +498,8 @@ export default function Editor() {
             onCancel={() => setAddingMoment(false)} inputCls={inputCls} />
         )}
       </div>
+
+      {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
 
       {profileMember && (
         <PersonProfileOverlay member={profileMember} onClose={() => setProfileMember(null)}

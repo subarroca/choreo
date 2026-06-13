@@ -6,7 +6,7 @@ import {
 import {
   arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { GripVertical, Pencil, X, ChevronDown, ChevronRight, Plus, MessageSquare, Info } from 'lucide-react'
+import { GripVertical, Pencil, X, ChevronDown, ChevronRight, Plus, MessageSquare, Info, Clipboard } from 'lucide-react'
 import SortableMomentRow from './SortableMomentRow'
 import { formatDuration } from './SongForm'
 import { repertoireType, isSongType } from '../../lib/repertoireTypes'
@@ -78,6 +78,7 @@ function IndicationItem({ song, onEdit, onDelete, listeners, attributes, style }
 export default function SortableSong({
   song, moments, expanded, onToggle, onEdit, onDelete, onAddMoment,
   onDeleteMoment, onReorderMoments, showId, activeDragId, repSong, micAssignments, members,
+  copiedMoment, onCopyMoment, onPasteMoment,
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: song.id })
   const isOtherDragging = activeDragId && activeDragId !== song.id
@@ -172,15 +173,25 @@ export default function SortableSong({
                   {moments.map((m, i) => (
                     <SortableMomentRow key={m.id} moment={m} index={i}
                       showId={showId} songId={song.id}
-                      onDelete={onDeleteMoment} micAssignments={micAssignments} />
+                      onDelete={onDeleteMoment} onCopy={onCopyMoment}
+                      micAssignments={micAssignments} />
                   ))}
                 </SortableContext>
               </DndContext>
             )}
-          <button onClick={() => onAddMoment(song.id, false)}
-            className="flex items-center gap-1.5 w-full px-4 py-3 text-xs text-cyan-600 hover:text-cyan-400 hover:bg-gray-800 transition-colors border-t border-gray-800">
-            <Plus size={12} /> Afegir moment
-          </button>
+          <div className="flex border-t border-gray-800">
+            <button onClick={() => onAddMoment(song.id, false)}
+              className="flex items-center gap-1.5 flex-1 px-4 py-3 text-xs text-cyan-600 hover:text-cyan-400 hover:bg-gray-800 transition-colors">
+              <Plus size={12} /> Afegir moment
+            </button>
+            {copiedMoment && onPasteMoment && (
+              <button onClick={() => onPasteMoment(song.id)}
+                className="flex items-center gap-1.5 px-4 py-3 text-xs text-violet-500 hover:text-violet-300 hover:bg-gray-800 transition-colors border-l border-gray-800"
+                title={`Enganxar "${copiedMoment.title}"`}>
+                <Clipboard size={12} /> Enganxar
+              </button>
+            )}
+          </div>
           {song.lyrics && (
             <details className="border-t border-gray-800 group">
               <summary className="px-4 py-2.5 text-xs text-gray-500 hover:text-gray-300 cursor-pointer list-none flex items-center gap-1.5 select-none">

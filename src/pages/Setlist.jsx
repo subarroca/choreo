@@ -43,6 +43,7 @@ export default function Setlist() {
   const [activeDragId, setActiveDragId] = useState(null)
   const [editingMember, setEditingMember] = useState(null)
   const [repertoire, setRepertoire] = useState([])
+  const [copiedMoment, setCopiedMoment] = useState(null)
 
   const songSensors = useSensors(
     useSensor(PointerSensor),
@@ -196,6 +197,25 @@ export default function Setlist() {
     })
   }
 
+  // ─── Copy/paste moments ──────────────────────────────────
+  async function handlePasteMoment(targetSongId) {
+    if (!copiedMoment) return
+    const existing = moments[targetSongId] ?? []
+    const { data: newMom, error } = await supabase.from('moments')
+      .insert({ song_id: targetSongId, title: copiedMoment.title, order_index: existing.length, grid_mode: copiedMoment.grid_mode ?? 'alternate' })
+      .select().single()
+    if (error || !newMom) return
+    const { data: srcPos } = await supabase.from('positions').select('*').eq('moment_id', copiedMoment.id)
+    if (srcPos?.length) {
+      await supabase.from('positions').insert(srcPos.map(p => ({
+        moment_id: newMom.id, member_id: p.member_id,
+        grid_row: p.grid_row, grid_col: p.grid_col, free_x: p.free_x, free_y: p.free_y,
+      })))
+    }
+    setMoments(prev => ({ ...prev, [targetSongId]: [...(prev[targetSongId] ?? []), newMom] }))
+    setExpandedSongs(prev => ({ ...prev, [targetSongId]: true }))
+  }
+
   // ─── Repertoire map (id → song) ──────────────────────────
   const repMap = Object.fromEntries(repertoire.map(r => [r.id, r]))
 
@@ -339,7 +359,10 @@ export default function Setlist() {
                               activeDragId={activeDragId}
                               repSong={song.repertoire_song_id ? repMap[song.repertoire_song_id] : null}
                               micAssignments={micAssignments}
-                              members={allMembers} />
+                              members={allMembers}
+                              copiedMoment={copiedMoment}
+                              onCopyMoment={setCopiedMoment}
+                              onPasteMoment={handlePasteMoment} />
                           ))}
                         </SortableContext>
                         {sectionSongs.length === 0 && (

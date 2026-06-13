@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Clapperboard, Pencil, Trash2, ImageIcon, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { useChoir } from '../hooks/useChoir.jsx'
 import Layout from '../components/Layout'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
@@ -132,14 +133,17 @@ function ShowCard({ show, canEdit, onEdit, onDelete, onClick }) {
 
 export default function Shows() {
   const { user, permissions, role } = useAuth()
+  const { currentChoirId } = useChoir()
   const canEdit = role === 'admin' || role === 'director' || permissions?.shows?.edit
   const navigate = useNavigate()
   const [formShow, setFormShow] = useState(null) // null | 'new' | show_object
 
   const { data: shows = [], setData: setShows, loading } = useSupabaseQuery(async () => {
-    const { data } = await supabase.from('shows').select('*').order('created_at', { ascending: false })
+    let q = supabase.from('shows').select('*').order('created_at', { ascending: false })
+    if (currentChoirId) q = q.eq('choir_id', currentChoirId)
+    const { data } = await q
     return data ?? []
-  }, [])
+  }, [currentChoirId])
 
   useEffect(() => {
     if (!loading && shows.length === 1 && !canEdit) {
@@ -148,7 +152,9 @@ export default function Shows() {
   }, [loading])
 
   async function handleCreate(fields) {
-    const { data, error } = await supabase.from('shows').insert({ ...fields, created_by: user.id }).select().single()
+    const payload = { ...fields, created_by: user.id }
+    if (currentChoirId) payload.choir_id = currentChoirId
+    const { data, error } = await supabase.from('shows').insert(payload).select().single()
     if (!error) {
       setShows(prev => [data, ...prev])
       setFormShow(null)

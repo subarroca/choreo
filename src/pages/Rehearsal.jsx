@@ -1,63 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, X, List, Crosshair, RotateCcw, BookOpen, ZoomIn, ZoomOut } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, List, Crosshair, RotateCcw, BookOpen, ZoomIn, ZoomOut, Play, Pause } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
 import {
   CELL, LABEL_W, DIRECTOR_H, TOKEN_R, DEFAULT_ROW_LABELS, DEFAULT_COLS,
   VOICE_ORDER, getMemberPixelPos, drawAll,
 } from '../lib/editorCanvas'
+import { computeGuide } from '../lib/rehearsalGuide'
+import RehearsalFocusPicker from '../components/rehearsal/RehearsalFocusPicker'
+import RehearsalGuideSheet from '../components/rehearsal/RehearsalGuideSheet'
+import RehearsalNavMenu from '../components/rehearsal/RehearsalNavMenu'
 
 const LONG_PRESS_MS = 550
 const ZOOM_MIN = 0.5, ZOOM_MAX = 3.0
-
-// ── Guide helpers ──────────────────────────────────────────────────────
-function colPosition(col, COLS) {
-  if (col < COLS / 3) return 'esquerra'
-  if (col > 2 * COLS / 3) return 'dreta'
-  return 'centre'
-}
-
-function computeGuide(memberId, steps, positionsByMoment, members, dims) {
-  const result = []
-  for (const { song, moment } of steps) {
-    const placements = positionsByMoment[moment.id] ?? {}
-    const pos = placements[memberId]
-    if (!pos || pos.free) {
-      result.push({ song, moment, row: null, col: null, posDesc: '—', left: null, right: null, front: [] })
-      continue
-    }
-    const { row, col } = pos
-    const posDesc = `${dims.rowLabels[row] ?? `Fila ${row + 1}`} · ${colPosition(col, dims.COLS)}`
-
-    // Neighbours: build map by {row, col}
-    const byPos = {}
-    for (const m of members) {
-      const p = placements[m.id]
-      if (p && !p.free && m.id !== memberId) byPos[`${p.row},${p.col}`] = m
-    }
-    const mode = moment.grid_mode ?? 'alternate'
-    const shift = mode === 'alternate' && row % 2 === 1 ? 0.5 : 0
-    const prevShift = mode === 'alternate' && (row - 1) % 2 === 1 ? 0.5 : 0
-
-    const leftM = byPos[`${row},${col - 1}`] ?? null
-    const rightM = byPos[`${row},${col + 1}`] ?? null
-    const frontMembers = []
-    if (row > 0) {
-      for (let dc = -1; dc <= 1; dc++) {
-        const frontCol = col + dc + (prevShift - shift)
-        const key1 = `${row - 1},${Math.round(frontCol)}`
-        const key2 = `${row - 1},${Math.floor(frontCol)}`
-        const fm = byPos[key1] ?? byPos[key2]
-        if (fm && !frontMembers.includes(fm)) frontMembers.push(fm)
-      }
-    }
-    result.push({ song, moment, row, col, posDesc, left: leftM, right: rightM, front: frontMembers })
-  }
-  return result
-}
-
-function firstName(m) { return m ? (m.first_name || m.name.split(' ')[0]) : null }
+const RUN_SPEEDS = [3, 5, 8, 12]
 
 export default function Rehearsal() {
   const { id: showId } = useParams()
@@ -65,6 +21,8 @@ export default function Rehearsal() {
   const canvasWrapRef = useRef(null)
   const longPressTimerRef = useRef(null)
   const lastPinchDistRef = useRef(null)
+  const swipeStartRef = useRef(null)
+  const runTimerRef = useRef(null)
 
   const [show, setShow] = useState(null)
   const [members, setMembers] = useState([])
@@ -79,6 +37,8 @@ export default function Rehearsal() {
   const [rotated, setRotated] = useState(() => localStorage.getItem('rotated') === 'true')
   const [zoom, setZoom] = useState(1.0)
   const [pressIndicator, setPressIndicator] = useState(null)
+  const [running, setRunning] = useState(false)
+  const [runSpeed, setRunSpeed] = useState(5)
 
   useEffect(() => {
     async function load() {
@@ -133,7 +93,6 @@ export default function Rehearsal() {
   const CW = LABEL_W + GW, CH = GH + DIRECTOR_H
   const dims = { ROWS, COLS, rowLabels, GW, GH, CW, CH, rowElevations }
 
-  // Refs to avoid stale closures
   const currentRef = useRef(current)
   const membersRef = useRef(members)
   const positionsByMomentRef = useRef(positionsByMoment)
@@ -160,8 +119,20 @@ export default function Rehearsal() {
     })
   }, [positionsByMoment, members, current, show, dims, highlightId, rotated])
 
-  function prev() { if (currentIdx > 0) setCurrentIdx(i => i - 1) }
-  function next() { if (currentIdx < steps.length - 1) setCurrentIdx(i => i + 1) }
+  const prev = useCallback(() => { if (currentIdx > 0) setCurrentIdx(i => i - 1) }, [currentIdx])
+  const next = useCallback(() => { if (currentIdx < steps.length - 1) setCurrentIdx(i => i + 1) }, [currentIdx, steps.length])
+
+  // ── Auto run-through ──────────────────────────────────────────
+  useEffect(() => {
+    if (!running) { clearInterval(runTimerRef.current); return }
+    runTimerRef.current = setInterval(() => {
+      setCurrentIdx(i => {
+        if (i >= steps.length - 1) { setRunning(false); return i }
+        return i + 1
+      })
+    }, runSpeed * 1000)
+    return () => clearInterval(runTimerRef.current)
+  }, [running, runSpeed, steps.length])
 
   useEffect(() => {
     function onKey(e) {
@@ -170,10 +141,11 @@ export default function Rehearsal() {
       if (tag === 'INPUT' || tag === 'SELECT') return
       if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); prev() }
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); next() }
+      if (e.key === ' ') { e.preventDefault(); setRunning(v => !v) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [currentIdx, steps.length, focusOpen, menuOpen, guideOpen])
+  }, [currentIdx, steps.length, focusOpen, menuOpen, guideOpen, prev, next])
 
   function setHighlight(id) {
     setHighlightId(id)
@@ -188,15 +160,13 @@ export default function Rehearsal() {
     localStorage.setItem('rotated', next)
   }
 
-  // ── Long-press to set focus ──────────────────────────────────────────
+  // ── Long-press ───────────────────────────────────────────────
   function hitTestMember(visualX, visualY) {
     const canvas = canvasRef.current
     if (!canvas) return null
     const rect = canvas.getBoundingClientRect()
-    const scaleX = CW / rect.width
-    const scaleY = CH / rect.height
-    let cx = visualX * scaleX
-    let cy = visualY * scaleY
+    const scaleX = CW / rect.width, scaleY = CH / rect.height
+    let cx = visualX * scaleX, cy = visualY * scaleY
     if (rotatedRef.current) { cx = CW - cx; cy = CH - cy }
     const cur = currentRef.current
     if (!cur) return null
@@ -206,8 +176,7 @@ export default function Rehearsal() {
     let best = null, bestDist = TOKEN_R * 2.5
     for (const m of membersRef.current) {
       if (m.role === 'director') continue
-      const pos = placements[m.id]
-      if (!pos) continue
+      const pos = placements[m.id]; if (!pos) continue
       const pt = getMemberPixelPos(pos, mode, d)
       const dist = Math.hypot(cx - pt.x, cy - pt.y)
       if (dist < bestDist) { bestDist = dist; best = m }
@@ -220,8 +189,8 @@ export default function Rehearsal() {
     clearTimeout(longPressTimerRef.current)
     const canvas = canvasRef.current
     const rect = canvas.getBoundingClientRect()
-    const vx = e.clientX - rect.left
-    const vy = e.clientY - rect.top
+    const vx = e.clientX - rect.left, vy = e.clientY - rect.top
+    swipeStartRef.current = { x: e.clientX, y: e.clientY }
     setPressIndicator({ x: vx, y: vy })
     longPressTimerRef.current = setTimeout(() => {
       const m = hitTestMember(vx, vy)
@@ -244,27 +213,34 @@ export default function Rehearsal() {
     if (Math.hypot(dx, dy) > 12) cancelLongPress()
   }
 
-  // ── Pinch-to-zoom ────────────────────────────────────────────────────
+  // ── Swipe to navigate ─────────────────────────────────────────
+  function handlePointerUp(e) {
+    cancelLongPress()
+    const start = swipeStartRef.current
+    if (!start || focusOpen || menuOpen || guideOpen) return
+    const dx = e.clientX - start.x, dy = e.clientY - start.y
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0) next(); else prev()
+    }
+    swipeStartRef.current = null
+  }
+
+  // ── Pinch-to-zoom ────────────────────────────────────────────
   useEffect(() => {
     const wrap = canvasWrapRef.current
     if (!wrap) return
     function onTouchStart(e) {
-      if (e.touches.length === 2) {
+      if (e.touches.length === 2)
         lastPinchDistRef.current = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY,
         )
-      }
     }
     function onTouchMove(e) {
       if (e.touches.length === 2 && lastPinchDistRef.current != null) {
         e.preventDefault()
-        const d = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY,
-        )
-        const ratio = d / lastPinchDistRef.current
-        setZoom(z => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z * ratio)))
+        const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY)
+        setZoom(z => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z * (d / lastPinchDistRef.current))))
         lastPinchDistRef.current = d
       }
     }
@@ -279,27 +255,15 @@ export default function Rehearsal() {
     }
   }, [])
 
-  // ── Voice groups for focus picker ────────────────────────────────────
-  const choirMembers = members.filter(m => m.role !== 'director' && m.role !== 'musician')
-  const allVoices = [...new Set(choirMembers.map(m => m.voice))]
-    .sort((a, b) => {
-      const ia = VOICE_ORDER.indexOf(a), ib = VOICE_ORDER.indexOf(b)
-      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib)
-    })
-  const voiceGroups = allVoices.map(v => ({
-    voice: v, label: VOICE_LABELS[v] ?? v,
-    color: (VOICE_COLORS[v] ?? VOICE_COLORS.extra).bg,
-    members: choirMembers.filter(m => m.voice === v),
-  }))
-
   const highlightedMember = highlightId ? members.find(m => m.id === highlightId) : null
-  const uniqueSongIds = [...new Set(steps.map(s => s.song.id))]
-  const currentSongSteps = current ? steps.filter(s => s.song.id === current.song.id) : []
-
-  // ── Guide data ────────────────────────────────────────────────────────
   const guideData = highlightId && steps.length
     ? computeGuide(highlightId, steps, positionsByMoment, members, dims)
     : []
+
+  const canvasTransform = [
+    zoom !== 1 ? `scale(${zoom})` : '',
+    rotated ? 'rotate(180deg)' : '',
+  ].filter(Boolean).join(' ') || undefined
 
   if (loading) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -314,45 +278,43 @@ export default function Rehearsal() {
     </div>
   )
 
-  const canvasTransform = [
-    zoom !== 1 ? `scale(${zoom})` : '',
-    rotated ? 'rotate(180deg)' : '',
-  ].filter(Boolean).join(' ') || undefined
-
   return (
     <div className="bg-gray-950 flex flex-col overflow-hidden select-none" style={{ height: '100dvh' }}>
 
-      {/* ── Canvas area ── */}
+      {/* Canvas area */}
       <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden p-1 relative"
         ref={canvasWrapRef}>
         <canvas ref={canvasRef} width={CW} height={CH}
-          style={{
-            maxWidth: '100%',
-            maxHeight: '100%',
-            display: 'block',
-            touchAction: 'none',
-            transform: canvasTransform,
-          }}
+          style={{ maxWidth: '100%', maxHeight: '100%', display: 'block', touchAction: 'none', transform: canvasTransform }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
-          onPointerUp={cancelLongPress}
+          onPointerUp={handlePointerUp}
           onPointerCancel={cancelLongPress}
         />
 
-        {/* Long-press ring indicator */}
         {pressIndicator && (
           <div key={`${pressIndicator.x}-${pressIndicator.y}`}
             style={{ position: 'absolute', left: pressIndicator.x, top: pressIndicator.y,
               transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
-            <div style={{
-              width: 52, height: 52, borderRadius: '50%',
+            <div style={{ width: 52, height: 52, borderRadius: '50%',
               border: '3px solid rgba(34, 211, 238, 0.9)',
-              animation: `rehearsal-ring ${LONG_PRESS_MS}ms linear forwards`,
-            }} />
+              animation: `rehearsal-ring ${LONG_PRESS_MS}ms linear forwards` }} />
           </div>
         )}
 
-        {/* Zoom buttons — top-right overlay */}
+        {/* Run-through speed selector (only when running) */}
+        {running && (
+          <div className="absolute top-2 left-2 flex items-center gap-1 bg-gray-800/90 border border-amber-600/60 rounded-lg px-2 py-1">
+            <span className="text-[10px] text-amber-400">Auto</span>
+            <select value={runSpeed} onChange={e => setRunSpeed(Number(e.target.value))}
+              onClick={e => e.stopPropagation()}
+              className="bg-transparent text-[10px] text-amber-300 focus:outline-none">
+              {RUN_SPEEDS.map(s => <option key={s} value={s}>{s}s</option>)}
+            </select>
+          </div>
+        )}
+
+        {/* Zoom buttons */}
         <div className="absolute top-2 right-2 flex flex-col gap-1">
           <button onClick={() => setZoom(z => Math.min(ZOOM_MAX, +(z + 0.25).toFixed(2)))}
             className="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-800/80 border border-gray-700 text-gray-400 hover:text-white active:bg-gray-700 transition-colors">
@@ -371,169 +333,24 @@ export default function Rehearsal() {
         </div>
       </div>
 
-      {/* ── Focus picker bottom sheet ── */}
+      {/* Bottom sheets */}
       {focusOpen && (
-        <>
-          <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setFocusOpen(false)} />
-          <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700 rounded-t-2xl shadow-2xl max-h-[65dvh] flex flex-col">
-            <div className="flex items-center justify-between px-4 pt-3 pb-1 shrink-0">
-              <span className="text-sm font-semibold text-white">Focus persona</span>
-              <div className="flex items-center gap-2">
-                {highlightId && (
-                  <button onClick={() => setHighlight('')}
-                    className="text-xs text-cyan-400 border border-cyan-800 px-2.5 py-1 rounded-lg">
-                    Treure focus
-                  </button>
-                )}
-                <button onClick={() => setFocusOpen(false)}
-                  className="text-gray-500 hover:text-white p-1 rounded-lg hover:bg-gray-800 transition-colors">
-                  <X size={16} />
-                </button>
-              </div>
-            </div>
-            <p className="text-[11px] text-gray-600 px-4 pb-2 shrink-0">
-              O mantén premut sobre una persona al canvas.
-            </p>
-            <div className="overflow-y-auto px-4 pb-6 space-y-3">
-              {voiceGroups.map(({ voice, label, color, members: vMembers }) => (
-                <div key={voice}>
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{label}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 pl-4">
-                    {vMembers.map(m => {
-                      const initials = m.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
-                      const fn = m.first_name || m.name.split(' ')[0]
-                      const active = highlightId === m.id
-                      return (
-                        <button key={m.id} onClick={() => setHighlight(m.id)}
-                          style={active ? { borderColor: color } : {}}
-                          className={`flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl border transition-colors min-h-[44px] ${
-                            active ? 'bg-gray-800' : 'border-gray-700 hover:bg-gray-800'
-                          }`}>
-                          <span className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold text-white"
-                            style={{ background: color }}>
-                            {initials}
-                          </span>
-                          <span className={active ? 'text-white' : 'text-gray-300'}>{fn}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
+        <RehearsalFocusPicker
+          members={members} highlightId={highlightId}
+          onSelect={setHighlight} onClose={() => setFocusOpen(false)} />
       )}
-
-      {/* ── Guide mode bottom sheet ── */}
       {guideOpen && highlightedMember && (
-        <>
-          <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setGuideOpen(false)} />
-          <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700 rounded-t-2xl shadow-2xl max-h-[75dvh] flex flex-col">
-            <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0 border-b border-gray-800">
-              <div className="flex items-center gap-2">
-                <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-                  style={{ background: (VOICE_COLORS[highlightedMember.voice] ?? VOICE_COLORS.extra).bg }}>
-                  {highlightedMember.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()}
-                </span>
-                <span className="text-sm font-semibold text-white">
-                  {firstName(highlightedMember)} — posicions
-                </span>
-              </div>
-              <button onClick={() => setGuideOpen(false)}
-                className="text-gray-500 hover:text-white p-1 rounded-lg hover:bg-gray-800 transition-colors">
-                <X size={16} />
-              </button>
-            </div>
-            <div className="overflow-y-auto px-4 pb-6">
-              {(() => {
-                let lastSongId = null
-                return guideData.map((entry, i) => {
-                  const showSong = entry.song.id !== lastSongId
-                  lastSongId = entry.song.id
-                  return (
-                    <div key={`${entry.moment.id}`}>
-                      {showSong && (
-                        <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mt-4 mb-1">
-                          {entry.song.title}
-                        </p>
-                      )}
-                      <button onClick={() => { setCurrentIdx(i); setGuideOpen(false) }}
-                        className={`w-full text-left rounded-xl px-3 py-2.5 mb-1 transition-colors ${
-                          i === currentIdx ? 'bg-cyan-900/40 border border-cyan-700/50' : 'hover:bg-gray-800/60'
-                        }`}>
-                        <p className="text-xs font-semibold text-white mb-0.5">{entry.moment.title}</p>
-                        {entry.row == null
-                          ? <p className="text-[11px] text-gray-600">Sense posició assignada</p>
-                          : <>
-                              <p className="text-[11px] text-cyan-400 font-medium">{entry.posDesc}</p>
-                              <div className="flex flex-wrap gap-x-4 mt-0.5">
-                                {entry.left && <span className="text-[11px] text-gray-400">← {firstName(entry.left)}</span>}
-                                {entry.right && <span className="text-[11px] text-gray-400">{firstName(entry.right)} →</span>}
-                                {entry.front.length > 0 && (
-                                  <span className="text-[11px] text-gray-500">
-                                    davant: {entry.front.map(m => firstName(m)).join(', ')}
-                                  </span>
-                                )}
-                              </div>
-                            </>
-                        }
-                      </button>
-                    </div>
-                  )
-                })
-              })()}
-            </div>
-          </div>
-        </>
+        <RehearsalGuideSheet
+          highlightedMember={highlightedMember} guideData={guideData}
+          currentIdx={currentIdx} onNavigate={setCurrentIdx} onClose={() => setGuideOpen(false)} />
       )}
-
-      {/* ── Navigation menu drawer ── */}
       {menuOpen && (
-        <>
-          <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setMenuOpen(false)} />
-          <div className="fixed top-0 right-0 bottom-0 z-50 w-72 bg-gray-900 border-l border-gray-800 overflow-y-auto">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-white">Navegar</h3>
-                <button onClick={() => setMenuOpen(false)}
-                  className="text-gray-500 hover:text-white p-1 rounded-lg hover:bg-gray-800 transition-colors">
-                  <X size={16} />
-                </button>
-              </div>
-              {uniqueSongIds.map(songId => {
-                const songSteps = steps.filter(s => s.song.id === songId)
-                const song = songSteps[0].song
-                return (
-                  <div key={songId} className="mb-4">
-                    <p className="text-xs font-medium text-gray-400 mb-1.5 px-1">{song.title}</p>
-                    {songSteps.map((step, i) => {
-                      const stepIdx = steps.indexOf(step)
-                      return (
-                        <button key={step.moment.id}
-                          onClick={() => { setCurrentIdx(stepIdx); setMenuOpen(false) }}
-                          className={`w-full text-left px-3 py-2.5 rounded-xl text-xs mb-0.5 transition-colors ${
-                            stepIdx === currentIdx
-                              ? 'bg-cyan-700/40 text-cyan-300'
-                              : 'text-gray-300 hover:bg-gray-800'
-                          }`}>
-                          <span className="text-gray-500 tabular-nums mr-2">{i + 1}.</span>
-                          {step.moment.title}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </>
+        <RehearsalNavMenu
+          steps={steps} currentIdx={currentIdx}
+          onNavigate={setCurrentIdx} onClose={() => setMenuOpen(false)} />
       )}
 
-      {/* ── Single bottom bar ── */}
+      {/* Bottom bar */}
       <div className="flex items-center border-t border-gray-800 bg-gray-900 shrink-0">
         <button onClick={prev} disabled={currentIdx === 0}
           className="w-16 h-16 flex items-center justify-center text-white disabled:opacity-25 active:bg-gray-800 transition-colors shrink-0">
@@ -546,28 +363,28 @@ export default function Rehearsal() {
             <p className="text-sm font-semibold text-white leading-tight truncate">{current?.moment.title}</p>
           </div>
           <div className="flex items-center gap-0.5 shrink-0">
-            {/* Focus button — standard active style */}
             <button onClick={() => { setFocusOpen(v => !v); setMenuOpen(false); setGuideOpen(false) }}
               className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-colors ${
-                highlightId
-                  ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20'
-                  : 'border-gray-700 text-gray-500 hover:text-white'
-              }`}
-              title={highlightedMember ? highlightedMember.name : 'Focus'}>
+                highlightId ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-gray-700 text-gray-500 hover:text-white'
+              }`}>
               <Crosshair size={15} />
             </button>
-            {/* Guide button — only visible when someone is focused */}
             {highlightId && (
               <button onClick={() => { setGuideOpen(v => !v); setFocusOpen(false); setMenuOpen(false) }}
                 className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-colors ${
-                  guideOpen
-                    ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20'
-                    : 'border-gray-700 text-gray-500 hover:text-white'
-                }`}
-                title="Mode guia">
+                  guideOpen ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-gray-700 text-gray-500 hover:text-white'
+                }`}>
                 <BookOpen size={15} />
               </button>
             )}
+            {/* Run-through toggle */}
+            <button onClick={() => setRunning(v => !v)}
+              className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-colors ${
+                running ? 'border-amber-600 text-amber-400 bg-amber-900/20' : 'border-gray-700 text-gray-500 hover:text-white'
+              }`}
+              title="Mode run-through (espai per pausar)">
+              {running ? <Pause size={15} /> : <Play size={15} />}
+            </button>
             <button onClick={toggleRotated}
               className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-colors ${
                 rotated ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-gray-700 text-gray-500 hover:text-white'

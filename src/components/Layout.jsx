@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Music, Users, Clapperboard, Menu, X, BookOpen, Shield } from 'lucide-react'
+import { Music, Users, Clapperboard, Menu, X, BookOpen, Shield, ChevronDown } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { useChoir } from '../hooks/useChoir.jsx'
 import ProfileMenu from './ProfileMenu.jsx'
 
 export default function Layout({ children, fullWidth = false, narrow = false }) {
   const { user, role, permissions, isSimulating, signOut } = useAuth()
+  const { choirs, currentChoirId, switchChoir } = useChoir()
   const navigate = useNavigate()
   const location = useLocation()
   const [navOpen, setNavOpen] = useState(false)
+  const currentChoir = choirs.find(c => c.id === currentChoirId)
 
   const isAdmin = role === 'admin' || role === 'director'
   // Durant simulació, els permisos de navegació venen de permissions (ja sobreescrits)
@@ -43,6 +46,19 @@ export default function Layout({ children, fullWidth = false, narrow = false }) 
         <Link to="/" className="flex items-center gap-2 text-lg font-bold tracking-tight text-white hover:text-gray-300">
           <Music size={18} /> Choir Positions
         </Link>
+
+        {/* Choir selector */}
+        {user && choirs.length > 1 && (
+          <div className="relative hidden md:block">
+            <select
+              value={currentChoirId ?? ''}
+              onChange={e => { switchChoir(e.target.value); navigate('/') }}
+              className="appearance-none bg-gray-800 border border-gray-700 rounded-lg pl-3 pr-7 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-cyan-400 cursor-pointer">
+              {choirs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+          </div>
+        )}
 
         {/* Desktop nav */}
         {user && (

@@ -5,6 +5,7 @@ import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
 import Layout from '../components/Layout'
 import PersonProfileOverlay from '../components/PersonProfileOverlay'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { useChoir } from '../hooks/useChoir.jsx'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
 
@@ -26,6 +27,7 @@ function deriveInitials(fn, ln) {
 // ─── Main page ────────────────────────────────────────────────
 export default function Members() {
   const { permissions, role } = useAuth()
+  const { currentChoirId } = useChoir()
   const canEdit = role === 'admin' || role === 'director' || permissions?.members?.edit
   const [showInactive, setShowInactive] = useState(false)
   const [filterVoice, setFilterVoice] = useState('')
@@ -33,13 +35,17 @@ export default function Members() {
   const [overlayMember, setOverlayMember] = useState(null)   // member obj or 'new'
 
   const { data: members = [], setData: setMembers, loading } = useSupabaseQuery(async () => {
-    const { data } = await supabase.from('members').select('*').order('last_name').order('first_name')
+    let q = supabase.from('members').select('*').order('last_name').order('first_name')
+    if (currentChoirId) q = q.eq('choir_id', currentChoirId)
+    const { data } = await q
     return (data ?? []).sort((a, b) =>
       ((a.last_name || a.name) + '').localeCompare((b.last_name || b.name) + '', 'ca'))
-  }, [])
+  }, [currentChoirId])
 
   async function handleCreate(fields) {
-    const { data, error } = await supabase.from('members').insert({ active: true, ...fields }).select().single()
+    const payload = { active: true, ...fields }
+    if (currentChoirId) payload.choir_id = currentChoirId
+    const { data, error } = await supabase.from('members').insert(payload).select().single()
     if (!error) {
       setMembers(prev => [...prev, data].sort((a, b) =>
         ((a.last_name || a.name) + '').localeCompare((b.last_name || b.name) + '', 'ca')))

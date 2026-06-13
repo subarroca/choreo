@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { BookOpen, Plus, Pencil, ExternalLink, Music, Globe, Lock, FileText, Upload, X, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { useChoir } from '../hooks/useChoir.jsx'
 import Layout from '../components/Layout'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
@@ -281,18 +282,23 @@ function SongSheet({ song, isNew, onSave, onDelete, onClose }) {
 // ── Main page ─────────────────────────────────────────────────
 export default function Songs() {
   const { user } = useAuth()
+  const { currentChoirId } = useChoir()
   const [sheetSong, setSheetSong] = useState(null) // song obj | 'new' | null
   const [search, setSearch]     = useState('')
 
   const { data: songs = [], setData: setSongs, loading } = useSupabaseQuery(async () => {
-    const { data } = await supabase.from('repertoire_songs').select('*').order('title')
+    let q = supabase.from('repertoire_songs').select('*').order('title')
+    if (currentChoirId) q = q.eq('choir_id', currentChoirId)
+    const { data } = await q
     return data ?? []
-  }, [])
+  }, [currentChoirId])
 
   async function handleCreate(fields) {
+    const payload = { ...fields, created_by: user?.id }
+    if (currentChoirId) payload.choir_id = currentChoirId
     const { data, error } = await supabase
       .from('repertoire_songs')
-      .insert({ ...fields, created_by: user?.id })
+      .insert(payload)
       .select().single()
     if (!error) {
       setSongs(prev => [...prev, data].sort((a, b) => a.title.localeCompare(b.title, 'ca')))

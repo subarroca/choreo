@@ -5,7 +5,7 @@ import {
   ChevronLeft, ChevronRight,
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
   Plus, Target, LayoutTemplate, X,
-  Menu, Crosshair, MoreHorizontal,
+  Menu, Crosshair, MoreHorizontal, Undo2, Redo2,
 } from 'lucide-react'
 import ArrangePanel from './ArrangePanel'
 
@@ -27,7 +27,7 @@ export default function EditorToolbar({
   onNavigateToSong, onSetHighlightId, onEnterTrajectoryMode, onShiftSelected, onSetRotated,
   onSetSidebarOpen, onSetEditingMoment, onOpenAddMoment, onSetTrajectoryMode, onSetFocusPicker,
   onSetShowArrange, onSetArrangeAxis, onSetArrangeReplaceAll, onAutoPlace, onClearSelection,
-  onResetDirector, navigate,
+  onResetDirector, canUndo, canRedo, onUndo, onRedo, navigate,
   VOICE_GROUPS, ARRANGEMENT_PATTERNS, VOICE_COLORS,
 }) {
   const [showOverflow, setShowOverflow] = useState(false)
@@ -115,6 +115,16 @@ export default function EditorToolbar({
 
       {/* ── Right: tools ── */}
       <div className="flex items-center gap-1 shrink-0">
+        {/* Undo/Redo */}
+        <button onClick={onUndo} disabled={!canUndo} title="Desfer (Ctrl+Z)"
+          className="w-9 h-10 flex items-center justify-center rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 disabled:opacity-20 disabled:cursor-not-allowed transition-colors">
+          <Undo2 size={16} />
+        </button>
+        <button onClick={onRedo} disabled={!canRedo} title="Refer (Ctrl+Y)"
+          className="w-9 h-10 flex items-center justify-center rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 disabled:opacity-20 disabled:cursor-not-allowed transition-colors">
+          <Redo2 size={16} />
+        </button>
+
         {/* Movement arrows — only when something is selected */}
         {!trajectoryMode && selectedIds.size > 0 && (
           <div className="flex rounded-lg border border-gray-700 overflow-hidden h-10">

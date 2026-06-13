@@ -180,6 +180,30 @@ function ensureSeedData() {
     .map(p => ({ ...p, created_at: new Date().toISOString() }))
   if (toAddPresets.length || presetsChanged) save('light_presets', [...migratedPresets, ...toAddPresets])
 
+  // ── Choirs ───────────────────────────────────────────────────
+  const existingChoirs = load('choirs')
+  const SEED_CHOIRS = [
+    { id: 'dev-choir-1', name: 'Cor del Condal', description: 'Cor principal de demo' },
+    { id: 'dev-choir-2', name: 'Cor Jove', description: 'Cor jove de demo' },
+  ]
+  const existingChoirIds = new Set(existingChoirs.map(c => c.id))
+  const toAddChoirs = SEED_CHOIRS.filter(c => !existingChoirIds.has(c.id))
+    .map(c => ({ ...c, created_at: new Date().toISOString() }))
+  if (toAddChoirs.length) save('choirs', [...existingChoirs, ...toAddChoirs])
+
+  // ── Migrate: add choir_id to members and shows ────────────────
+  const membersAfterSeed = load('members')
+  const membersNeedChoir = membersAfterSeed.some(m => !m.choir_id)
+  if (membersNeedChoir) save('members', membersAfterSeed.map(m => m.choir_id ? m : { ...m, choir_id: 'dev-choir-1' }))
+
+  const showsAfterSeed = load('shows')
+  const showsNeedChoir = showsAfterSeed.some(s => !s.choir_id)
+  if (showsNeedChoir) save('shows', showsAfterSeed.map(s => s.choir_id ? s : { ...s, choir_id: 'dev-choir-1' }))
+
+  const repAfterSeed = load('repertoire_songs')
+  const repNeedChoir = repAfterSeed.some(s => !s.choir_id)
+  if (repNeedChoir) save('repertoire_songs', repAfterSeed.map(s => s.choir_id ? s : { ...s, choir_id: 'dev-choir-1' }))
+
   // ── Profiles (dev user) ──────────────────────────────────────
   const existingProfiles = load('profiles')
   if (!existingProfiles.find(p => p.id === DEV_USER.id)) {
