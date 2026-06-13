@@ -1,3 +1,5 @@
+import Button from '../ui/Button'
+
 export default function EditMomentPanel({
   editMomentTitle, editMomentSubtitle, setEditMomentTitle,
   setEditMomentSubtitle, onSave, onDelete, onCancel, inputCls,
@@ -18,12 +20,9 @@ export default function EditMomentPanel({
             placeholder="ex. Entrada, pont…" className={inputCls + ' w-52'} />
         </div>
         <div className="flex gap-1.5 self-end">
-          <button onClick={onSave}
-            className="bg-cyan-600 hover:bg-cyan-300 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">Guardar</button>
-          <button onClick={onDelete}
-            className="bg-red-900/50 hover:bg-red-800 text-red-400 hover:text-red-300 text-xs px-3 py-1.5 rounded-lg transition-colors">Eliminar</button>
-          <button onClick={onCancel}
-            className="text-faint hover:text-body text-xs px-2 py-1.5 transition-colors">Cancel·lar</button>
+          <Button onClick={onSave} className="text-xs px-3 py-1.5 min-h-0 h-auto">Guardar</Button>
+          <Button onClick={onDelete} variant="danger" className="text-xs px-3 py-1.5 min-h-0 h-auto">Eliminar</Button>
+          <Button onClick={onCancel} variant="ghost" className="text-xs px-2 py-1.5 min-h-0 h-auto">Cancel·lar</Button>
         </div>
       </div>
     </div>

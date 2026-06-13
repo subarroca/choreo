@@ -1,4 +1,5 @@
 import { POSITION_TEMPLATES } from '../../lib/editorArrange'
+import Button from '../ui/Button'
 
 export default function AddMomentPanel({
   newMomentTitle, setNewMomentTitle, cloneFrom, moments,
@@ -69,10 +70,8 @@ export default function AddMomentPanel({
           <span className="text-xs text-faint self-end pb-1">Carregant…</span>
         )}
         <div className="flex gap-1.5 self-end">
-          <button onClick={onCreate}
-            className="bg-cyan-600 hover:bg-cyan-300 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">Crear</button>
-          <button onClick={onCancel}
-            className="text-faint hover:text-body text-xs px-2 py-1.5 transition-colors">Cancel·lar</button>
+          <Button onClick={onCreate} className="text-xs px-3 py-1.5 min-h-0 h-auto">Crear</Button>
+          <Button onClick={onCancel} variant="ghost" className="text-xs px-2 py-1.5 min-h-0 h-auto">Cancel·lar</Button>
         </div>
       </div>
     </div>
