@@ -69,12 +69,14 @@ export default function Login() {
           {/* Email / password */}
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-1">
-              <label className="text-sm text-gray-400">Correu electrònic</label>
+              <label className="text-sm text-gray-400">Correu electrònic o usuari</label>
               <input
-                type="email"
+                type="text"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
+                autoComplete="username"
+                placeholder="demo"
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-300"
               />
             </div>
@@ -85,9 +87,14 @@ export default function Login() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
+                placeholder="demo"
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-300"
               />
             </div>
+            <p className="text-xs text-gray-500">
+              Accés demo: entra amb <span className="text-gray-300">demo</span> / <span className="text-gray-300">demo</span>.
+            </p>
             <button
               type="submit"
               disabled={loading || googleLoading}
