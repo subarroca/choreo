@@ -78,7 +78,7 @@ function IndicationItem({ song, onEdit, onDelete, listeners, attributes, style }
 export default function SortableSong({
   song, moments, expanded, onToggle, onEdit, onDelete, onAddMoment,
   onDeleteMoment, onReorderMoments, showId, activeDragId, repSong, micAssignments, members,
-  copiedMoment, onCopyMoment, onPasteMoment,
+  copiedMoment, onCopyMoment, onPasteMoment, positionsByMoment, diffByMoment, gridRows, gridCols,
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: song.id })
   const isOtherDragging = activeDragId && activeDragId !== song.id
@@ -174,7 +174,10 @@ export default function SortableSong({
                     <SortableMomentRow key={m.id} moment={m} index={i}
                       showId={showId} songId={song.id}
                       onDelete={onDeleteMoment} onCopy={onCopyMoment}
-                      micAssignments={micAssignments} />
+                      micAssignments={micAssignments}
+                      positions={positionsByMoment?.[m.id]}
+                      changedMembers={diffByMoment?.[m.id]}
+                      gridRows={gridRows} gridCols={gridCols} />
                   ))}
                 </SortableContext>
               </DndContext>

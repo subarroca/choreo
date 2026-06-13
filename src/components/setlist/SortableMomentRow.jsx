@@ -2,8 +2,9 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, MicVocal, ArrowRight, X, Copy } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import MomentThumbnail from './MomentThumbnail'
 
-export default function SortableMomentRow({ moment, index, showId, songId, onDelete, onCopy, micAssignments }) {
+export default function SortableMomentRow({ moment, index, showId, songId, onDelete, onCopy, micAssignments, positions, changedMembers, gridRows, gridCols }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: moment.id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }
 
@@ -23,6 +24,9 @@ export default function SortableMomentRow({ moment, index, showId, songId, onDel
         <span className="text-sm text-gray-200 font-medium block truncate">{moment.title}</span>
         {moment.subtitle && <span className="text-xs text-gray-500 block truncate">{moment.subtitle}</span>}
       </Link>
+      {positions?.length > 0 && (
+        <MomentThumbnail positions={positions} changedMembers={changedMembers} gridRows={gridRows} gridCols={gridCols} />
+      )}
       {activeMicCount > 0 && (
         <span className="flex items-center gap-0.5 text-xs text-gray-500 shrink-0">
           <MicVocal size={10} className="text-gray-600" />

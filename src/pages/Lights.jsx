@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { Plus, Menu, ListOrdered, AlignLeft, X, Play, Hash } from 'lucide-react'
 import Layout from '../components/Layout'
 import ShowToolbar from '../components/ShowToolbar'
+import { confirmDialog } from '../components/ui/ConfirmDialog'
 import { useLightCues } from '../hooks/useLightCues'
 import { nextCueNumber, sortCues, lyricsLines } from '../lib/lights'
 import { isSongType, repertoireType } from '../lib/repertoireTypes'
@@ -106,11 +107,13 @@ export default function Lights() {
 
   async function handleDeleteCue() {
     if (!selectedCue) return
+    if (!(await confirmDialog('Eliminar aquest cue de llums?'))) return
     await deleteCue(selectedCue.id)
     setSelectedCueId(null)
   }
 
   async function handleDeleteCueById(cue) {
+    if (!(await confirmDialog('Eliminar aquest cue de llums?'))) return
     await deleteCue(cue.id)
     if (selectedCueId === cue.id) setSelectedCueId(null)
   }

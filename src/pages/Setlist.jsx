@@ -44,6 +44,8 @@ export default function Setlist() {
   const [editingMember, setEditingMember] = useState(null)
   const [repertoire, setRepertoire] = useState([])
   const [copiedMoment, setCopiedMoment] = useState(null)
+  const [positionsByMoment, setPositionsByMoment] = useState({})
+  const [diffByMoment, setDiffByMoment] = useState({})
 
   const songSensors = useSensors(
     useSensor(PointerSensor),
@@ -85,6 +87,43 @@ export default function Setlist() {
         for (const s of songList) grouped[s.id] = []
         for (const m of (momentData ?? [])) grouped[m.song_id] = [...(grouped[m.song_id] ?? []), m]
         setMoments(grouped)
+
+        const allMomentIds = (momentData ?? []).map(m => m.id)
+        if (allMomentIds.length) {
+          const { data: posData } = await supabase
+            .from('positions').select('moment_id, grid_row, grid_col, member_id')
+            .in('moment_id', allMomentIds)
+          const memberVoice = {}
+          for (const m of (membersRes.data ?? [])) memberVoice[m.id] = m.voice
+          const posByMoment = {}
+          for (const p of (posData ?? [])) {
+            if (!posByMoment[p.moment_id]) posByMoment[p.moment_id] = []
+            posByMoment[p.moment_id].push({ row: p.grid_row, col: p.grid_col, voice: memberVoice[p.member_id], memberId: p.member_id })
+          }
+          setPositionsByMoment(posByMoment)
+
+          // Compute which members changed position vs previous moment per song
+          const diffSet = {}
+          for (const [songId, songMoments] of Object.entries(grouped)) {
+            for (let i = 1; i < songMoments.length; i++) {
+              const prevId = songMoments[i - 1].id
+              const currId = songMoments[i].id
+              const prev = posByMoment[prevId] ?? []
+              const curr = posByMoment[currId] ?? []
+              const prevMap = {}
+              for (const p of prev) prevMap[p.memberId] = `${p.row},${p.col}`
+              const changed = new Set()
+              for (const p of curr) {
+                if (prevMap[p.memberId] !== `${p.row},${p.col}`) changed.add(p.memberId)
+              }
+              for (const p of prev) {
+                if (!curr.find(c => c.memberId === p.memberId)) changed.add(p.memberId)
+              }
+              if (changed.size) diffSet[currId] = changed
+            }
+          }
+          setDiffByMoment(diffSet)
+        }
       }
       setLoading(false)
     }
@@ -362,7 +401,11 @@ export default function Setlist() {
                               members={allMembers}
                               copiedMoment={copiedMoment}
                               onCopyMoment={setCopiedMoment}
-                              onPasteMoment={handlePasteMoment} />
+                              onPasteMoment={handlePasteMoment}
+                              positionsByMoment={positionsByMoment}
+                              diffByMoment={diffByMoment}
+                              gridRows={show?.grid_rows?.length ?? 8}
+                              gridCols={show?.grid_cols ?? 14} />
                           ))}
                         </SortableContext>
                         {sectionSongs.length === 0 && (
