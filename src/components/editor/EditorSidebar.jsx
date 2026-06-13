@@ -16,14 +16,14 @@ export default function EditorSidebar({
   unplacedCount, onContextMenu, onSoloistMic,
 }) {
   return (
-    <div className={`absolute lg:relative inset-y-0 left-0 z-30 lg:z-auto w-56 lg:w-44 shrink-0 border-r border-gray-800 bg-gray-950 flex flex-col overflow-y-auto transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+    <div className={`absolute lg:relative inset-y-0 left-0 z-30 lg:z-auto w-56 lg:w-44 shrink-0 border-r border-rim bg-page flex flex-col overflow-y-auto transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
       <div className="p-2.5 space-y-3">
 
         <SidebarSection title="Mode" open={isPanelOpen('mode')} onToggle={() => togglePanel('mode')}>
-          <div className="grid grid-cols-2 gap-px rounded-lg border border-gray-700 overflow-hidden bg-gray-800">
+          <div className="grid grid-cols-2 gap-px rounded-lg border border-line overflow-hidden bg-fill">
             {MODES.map(({ id, Icon, label }) => (
               <button key={id} onClick={() => onChangeMode(id)} title={label}
-                className={`flex flex-col items-center gap-1 py-2.5 min-h-[56px] text-xs transition-colors ${mode === id ? 'bg-cyan-600 text-white' : 'bg-gray-950 text-gray-500 hover:text-white hover:bg-gray-800'}`}>
+                className={`flex flex-col items-center gap-1 py-2.5 min-h-[56px] text-xs transition-colors ${mode === id ? 'bg-cyan-600 text-white' : 'bg-page text-faint hover:text-body hover:bg-fill'}`}>
                 <Icon size={18} /><span className="text-xs leading-none">{label}</span>
               </button>
             ))}
@@ -42,15 +42,15 @@ export default function EditorSidebar({
                 ))}
               </SortableContext>
             </DndContext>
-            <button onClick={onAddRow} className="flex items-center gap-1 text-xs text-cyan-300 hover:text-cyan-400 transition-colors mt-0.5 py-2 px-1 -mx-1 rounded hover:bg-gray-800">
+            <button onClick={onAddRow} className="flex items-center gap-1 text-xs text-cyan-300 hover:text-cyan-400 transition-colors mt-0.5 py-2 px-1 -mx-1 rounded hover:bg-fill">
               <Plus size={12} /> Fila
             </button>
           </div>
           <div className="flex items-center gap-1.5 mt-1.5">
-            <span className="text-xs text-gray-500">Col.</span>
-            <button onClick={() => onUpdateCols(COLS - 1)} className="w-9 h-9 text-gray-400 hover:text-white bg-gray-800 rounded-lg text-base">−</button>
-            <span className="text-xs text-gray-300 w-5 text-center tabular-nums">{COLS}</span>
-            <button onClick={() => onUpdateCols(COLS + 1)} className="w-9 h-9 text-gray-400 hover:text-white bg-gray-800 rounded-lg text-base">+</button>
+            <span className="text-xs text-faint">Col.</span>
+            <button onClick={() => onUpdateCols(COLS - 1)} className="w-9 h-9 text-muted hover:text-body bg-fill rounded-lg text-base">−</button>
+            <span className="text-xs text-soft w-5 text-center tabular-nums">{COLS}</span>
+            <button onClick={() => onUpdateCols(COLS + 1)} className="w-9 h-9 text-muted hover:text-body bg-fill rounded-lg text-base">+</button>
           </div>
         </SidebarSection>
 

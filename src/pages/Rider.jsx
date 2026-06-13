@@ -19,7 +19,7 @@ export default function Rider() {
   } = useLightCues(showId)
 
   if (loading) {
-    return <div className="min-h-screen bg-white flex items-center justify-center text-gray-400 text-sm">Carregant…</div>
+    return <div className="min-h-screen bg-white flex items-center justify-center text-muted text-sm">Carregant…</div>
   }
 
   const songMap = Object.fromEntries(songs.map(s => [s.id, s]))
@@ -61,10 +61,10 @@ export default function Rider() {
       `}</style>
 
       {/* Barra superior (no s'imprimeix) */}
-      <div className="no-print sticky top-0 z-10 bg-gray-900 text-white">
+      <div className="no-print sticky top-0 z-10 bg-pane text-body">
         <ShowToolbar showId={showId} showName={show?.name} />
-        <div className="flex items-center justify-between px-4 py-2 border-t border-gray-800">
-          <span className="text-sm text-gray-500 truncate">Rider tècnic</span>
+        <div className="flex items-center justify-between px-4 py-2 border-t border-rim">
+          <span className="text-sm text-faint truncate">Rider tècnic</span>
           <button onClick={() => window.print()}
             className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors">
             <Printer size={14} /> Imprimir / PDF
@@ -75,11 +75,11 @@ export default function Rider() {
       <div className="rider-sheet max-w-3xl mx-auto my-6 bg-white shadow-xl px-10 py-12 print:px-0 print:py-0">
         {/* Portada */}
         <div className="text-center pb-10 mb-10 border-b-2 border-gray-900">
-          <p className="text-xs uppercase tracking-[0.3em] text-gray-500 mb-3">Rider tècnic — Llums</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-faint mb-3">Rider tècnic — Llums</p>
           <h1 className="text-3xl font-bold tracking-tight mb-2">{show?.name}</h1>
-          {dateStr && <p className="text-sm text-gray-600">{dateStr}</p>}
-          {show?.venue && <p className="text-sm text-gray-600">{show.venue}</p>}
-          <div className="flex justify-center gap-8 mt-6 text-xs text-gray-500">
+          {dateStr && <p className="text-sm text-ghost">{dateStr}</p>}
+          {show?.venue && <p className="text-sm text-ghost">{show.venue}</p>}
+          <div className="flex justify-center gap-8 mt-6 text-xs text-faint">
             <span><strong className="text-gray-900 text-base block">{cues.length}</strong> memòries</span>
             <span><strong className="text-gray-900 text-base block">{songs.length}</strong> cançons</span>
             <span><strong className="text-gray-900 text-base block">{mics.length}</strong> micròfons</span>
@@ -89,40 +89,40 @@ export default function Rider() {
         {/* Llegenda d'efectes */}
         <div className="mb-10 grid grid-cols-2 gap-x-8 gap-y-1 text-xs">
           <div className="flex items-center gap-2">
-            <Moon size={12} className="text-gray-500" />
-            <span className="text-gray-600">Blackout</span>
+            <Moon size={12} className="text-faint" />
+            <span className="text-ghost">Blackout</span>
           </div>
           <div className="flex items-center gap-2">
-            <Wind size={12} className="text-gray-500" />
-            <span className="text-gray-600">Sweep</span>
+            <Wind size={12} className="text-faint" />
+            <span className="text-ghost">Sweep</span>
           </div>
           <div className="flex items-center gap-2">
-            <Sparkles size={12} className="text-gray-500" />
-            <span className="text-gray-600">Chase</span>
+            <Sparkles size={12} className="text-faint" />
+            <span className="text-ghost">Chase</span>
           </div>
           <div className="flex items-center gap-2">
-            <Move size={12} className="text-gray-500" />
-            <span className="text-gray-600">Movers</span>
+            <Move size={12} className="text-faint" />
+            <span className="text-ghost">Movers</span>
           </div>
           <div className="flex items-center gap-2">
-            <Pause size={12} className="text-gray-500" />
-            <span className="text-gray-600">Freeze</span>
+            <Pause size={12} className="text-faint" />
+            <span className="text-ghost">Freeze</span>
           </div>
           <div className="flex items-center gap-2">
-            <Theater size={12} className="text-gray-500" />
-            <span className="text-gray-600">Llums de sala</span>
+            <Theater size={12} className="text-faint" />
+            <span className="text-ghost">Llums de sala</span>
           </div>
           <div className="flex items-center gap-2">
-            <ScanFace size={12} className="text-gray-500" />
-            <span className="text-gray-600">Públic</span>
+            <ScanFace size={12} className="text-faint" />
+            <span className="text-ghost">Públic</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold text-gray-600 border border-gray-400 rounded px-1">F</span>
-            <span className="text-gray-600">Frontal</span>
+            <span className="text-[9px] font-bold text-ghost border border-gray-400 rounded px-1">F</span>
+            <span className="text-ghost">Frontal</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold text-gray-600 border border-gray-400 rounded px-1">C</span>
-            <span className="text-gray-600">Contra</span>
+            <span className="text-[9px] font-bold text-ghost border border-gray-400 rounded px-1">C</span>
+            <span className="text-ghost">Contra</span>
           </div>
         </div>
 
@@ -150,7 +150,7 @@ export default function Rider() {
                         <div className="flex items-center gap-2">
                           {frontHexes.length > 0 && (
                             <div className="inline-flex items-center gap-0.5">
-                              <span className="text-[9px] font-bold text-gray-600 mr-0.5">F</span>
+                              <span className="text-[9px] font-bold text-ghost mr-0.5">F</span>
                               {frontHexes.map((hex, i) => (
                                 <span key={i} className="w-3 h-3 rounded-full border border-gray-400" style={{ background: hex }} />
                               ))}
@@ -158,13 +158,13 @@ export default function Rider() {
                           )}
                           {backHexes.length > 0 && (
                             <div className="inline-flex items-center gap-0.5">
-                              <span className="text-[9px] font-bold text-gray-600 mr-0.5">C</span>
+                              <span className="text-[9px] font-bold text-ghost mr-0.5">C</span>
                               {backHexes.map((hex, i) => (
                                 <span key={i} className="w-3 h-3 rounded-full border border-gray-400" style={{ background: hex }} />
                               ))}
                             </div>
                           )}
-                          <span className="text-gray-600">{cueSummary(p)}</span>
+                          <span className="text-ghost">{cueSummary(p)}</span>
                         </div>
                       </td>
                     </tr>
@@ -177,12 +177,12 @@ export default function Rider() {
 
         {/* Cue sheet */}
         <h2 className="text-lg font-bold mb-4">Memòries de llum</h2>
-        {groups.length === 0 && <p className="text-sm text-gray-500">Encara no hi ha cues definits.</p>}
+        {groups.length === 0 && <p className="text-sm text-faint">Encara no hi ha cues definits.</p>}
         {groups.map((g, gi) => (
           <div key={gi} className="mb-6">
             {g.title
-              ? <h3 className="text-sm font-bold bg-gray-900 text-white px-3 py-1.5 rounded">{g.title}</h3>
-              : <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-1.5 border-y border-gray-300 bg-gray-50">Estructura</h3>}
+              ? <h3 className="text-sm font-bold bg-pane text-body px-3 py-1.5 rounded">{g.title}</h3>
+              : <h3 className="text-xs font-semibold text-faint uppercase tracking-wider px-3 py-1.5 border-y border-gray-300 bg-gray-50">Estructura</h3>}
             <table className="w-full text-xs mt-1">
               <tbody>
                 {g.cues.map(cue => {
@@ -193,7 +193,7 @@ export default function Rider() {
                   return (
                     <tr key={cue.id} className="border-b border-gray-200 align-top">
                       <td className="py-2 pr-2 w-12">
-                        <span className={`inline-block min-w-[30px] text-center font-bold rounded px-1 py-0.5 ${fosc ? 'bg-gray-900 text-white' : 'border border-gray-400'}`}>
+                        <span className={`inline-block min-w-[30px] text-center font-bold rounded px-1 py-0.5 ${fosc ? 'bg-pane text-body' : 'border border-gray-400'}`}>
                           {formatCueNumber(cue.cue_number)}
                         </span>
                       </td>
@@ -201,14 +201,14 @@ export default function Rider() {
                         <span className={cue.trigger_type === 'lyric' ? 'italic' : 'font-medium uppercase text-[11px]'}>
                           {cue.trigger_type === 'lyric' && cue.trigger_text ? `«${cue.trigger_text}»` : cue.trigger_text}
                         </span>
-                        {cue.notes && <span className="block text-gray-500 mt-0.5">{cue.notes}</span>}
+                        {cue.notes && <span className="block text-faint mt-0.5">{cue.notes}</span>}
                       </td>
                       <td className="py-2">
                         <div className="flex items-center gap-2">
                           <div className="inline-flex items-center gap-1.5 font-medium">
                             {frontHexes.length > 0 && (
                               <div className="inline-flex items-center gap-0.5">
-                                <span className="text-[9px] font-bold text-gray-600 mr-0.5">F</span>
+                                <span className="text-[9px] font-bold text-ghost mr-0.5">F</span>
                                 {frontHexes.map((hex, i) => (
                                   <span key={i} className="w-3 h-3 rounded-full border border-gray-400" style={{ background: hex }} />
                                 ))}
@@ -216,7 +216,7 @@ export default function Rider() {
                             )}
                             {backHexes.length > 0 && (
                               <div className="inline-flex items-center gap-0.5">
-                                <span className="text-[9px] font-bold text-gray-600 mr-0.5">C</span>
+                                <span className="text-[9px] font-bold text-ghost mr-0.5">C</span>
                                 {backHexes.map((hex, i) => (
                                   <span key={i} className="w-3 h-3 rounded-full border border-gray-400 ring-1 ring-gray-300" style={{ background: hex }} />
                                 ))}
@@ -229,7 +229,7 @@ export default function Rider() {
                               {effects.map((eff, i) => {
                                 const iconName = effectIcon(eff)
                                 const Icon = iconName ? EFFECT_ICONS[iconName] : null
-                                return Icon ? <Icon key={i} size={12} className="text-gray-500" title={eff} /> : null
+                                return Icon ? <Icon key={i} size={12} className="text-faint" title={eff} /> : null
                               })}
                             </div>
                           )}
@@ -260,7 +260,7 @@ export default function Rider() {
                 {allMoments.filter(m => micAssignments[m.id] && Object.keys(micAssignments[m.id]).length).map(m => (
                   <tr key={m.id} className="border-b border-gray-200">
                     <td className="py-1.5 px-2">
-                      <span className="text-gray-500">{m.song_title}</span> — {m.title}
+                      <span className="text-faint">{m.song_title}</span> — {m.title}
                     </td>
                     {mics.map(mic => (
                       <td key={mic} className="py-1.5 px-2 text-center border-l border-gray-200">
@@ -274,7 +274,7 @@ export default function Rider() {
           </div>
         )}
 
-        <p className="text-[10px] text-gray-400 mt-10 pt-4 border-t border-gray-200 text-center">
+        <p className="text-[10px] text-muted mt-10 pt-4 border-t border-gray-200 text-center">
           Generat amb Choir Positions — {new Date().toLocaleDateString('ca-ES')}
         </p>
       </div>

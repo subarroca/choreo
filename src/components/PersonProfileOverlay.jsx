@@ -22,8 +22,8 @@ function deriveName(fn, ln) { return [fn, ln].filter(Boolean).join(' ') }
 
 const ALL_VOICES = ['soprano1','soprano2','alto1','alto2','tenor1','tenor2','baritone','bass']
 const ROLES = Object.keys(ROLE_LABELS)
-const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-300 placeholder-gray-600'
-const labelCls = 'text-xs text-gray-500 mb-1 block'
+const inputCls = 'w-full bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300 placeholder-gray-600'
+const labelCls = 'text-xs text-faint mb-1 block'
 
 // ─── Voice dropdown ───────────────────────────────────────────
 function VoiceSelect({ value, onChange }) {
@@ -40,24 +40,24 @@ function VoiceSelect({ value, onChange }) {
   return (
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-2.5 bg-gray-800 border border-gray-700 hover:border-gray-500 rounded-lg px-3 py-2 text-sm transition-colors">
+        className="w-full flex items-center gap-2.5 bg-fill border border-line hover:border-gray-500 rounded-lg px-3 py-2 text-sm transition-colors">
         <span className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: c.bg }} />
-        <span className="flex-1 text-left text-white">{VOICE_LABELS[value] ?? value}</span>
-        <ChevronDown size={13} className={`text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <span className="flex-1 text-left text-body">{VOICE_LABELS[value] ?? value}</span>
+        <ChevronDown size={13} className={`text-faint transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="absolute z-20 mt-1 w-full bg-gray-800 border border-gray-700 rounded-xl shadow-2xl py-1 overflow-hidden">
+        <div className="absolute z-20 mt-1 w-full bg-fill border border-line rounded-xl shadow-2xl py-1 overflow-hidden">
           {ALL_VOICES.map(v => {
             const vc = VOICE_COLORS[v]
             const isSelected = v === value
             return (
               <button key={v} type="button"
                 onClick={() => { onChange(v); setOpen(false) }}
-                className={`w-full flex items-center gap-2.5 px-3 py-1.5 text-sm transition-colors ${isSelected ? 'bg-gray-700' : 'hover:bg-gray-700/60'}`}>
+                className={`w-full flex items-center gap-2.5 px-3 py-1.5 text-sm transition-colors ${isSelected ? 'bg-raised' : 'hover:bg-raised/60'}`}>
                 <span className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: vc.bg }} />
                 <span style={{ color: isSelected ? vc.bg : undefined }}
-                  className={isSelected ? 'font-medium' : 'text-gray-300'}>
+                  className={isSelected ? 'font-medium' : 'text-soft'}>
                   {VOICE_LABELS[v]}
                 </span>
                 {isSelected && <span className="ml-auto text-xs" style={{ color: vc.bg }}>✓</span>}
@@ -98,7 +98,7 @@ function ProfileView({ member, onEdit }) {
           {initials}
         </span>
         <div className="flex-1 min-w-0 pt-1">
-          <h2 className="text-white font-semibold text-base leading-tight">{fullName}</h2>
+          <h2 className="text-body font-semibold text-base leading-tight">{fullName}</h2>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {member.voice && (
               <span className="text-xs font-medium px-2 py-0.5 rounded-full"
@@ -107,7 +107,7 @@ function ProfileView({ member, onEdit }) {
               </span>
             )}
             {member.role && member.role !== 'choir' && (
-              <span className="text-xs text-gray-500">{ROLE_LABELS[member.role] ?? member.role}</span>
+              <span className="text-xs text-faint">{ROLE_LABELS[member.role] ?? member.role}</span>
             )}
             {member.active === false && (
               <span className="text-xs text-yellow-700 font-medium">De baixa</span>
@@ -120,12 +120,12 @@ function ProfileView({ member, onEdit }) {
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         {rows.length > 0 ? rows.map(({ icon: Icon, label, value }) => (
           <div key={label} className="flex items-center gap-2.5">
-            <Icon size={13} className="text-gray-600 shrink-0" />
-            <span className="text-gray-500 text-xs w-20 shrink-0">{label}</span>
-            <span className="text-white text-sm truncate">{value}</span>
+            <Icon size={13} className="text-ghost shrink-0" />
+            <span className="text-faint text-xs w-20 shrink-0">{label}</span>
+            <span className="text-body text-sm truncate">{value}</span>
           </div>
         )) : (
-          <p className="text-gray-600 text-xs text-center py-3">Sense dades addicionals</p>
+          <p className="text-ghost text-xs text-center py-3">Sense dades addicionals</p>
         )}
       </div>
 
@@ -133,7 +133,7 @@ function ProfileView({ member, onEdit }) {
       {onEdit && (
         <div className="px-5 pb-5 shrink-0">
           <button onClick={onEdit}
-            className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-white text-sm py-2 rounded-lg transition-colors">
+            className="w-full flex items-center justify-center gap-2 bg-fill hover:bg-raised text-body text-sm py-2 rounded-lg transition-colors">
             <Pencil size={13} /> Editar
           </button>
         </div>
@@ -182,10 +182,10 @@ function EditForm({ member, isNew, onSave, onBack, onSetActive, onDelete }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
       {/* Edit header */}
-      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-gray-800 shrink-0">
+      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-rim shrink-0">
         {!isNew && (
           <button type="button" onClick={onBack}
-            className="text-gray-500 hover:text-white transition-colors">
+            className="text-faint hover:text-body transition-colors">
             <ChevronLeft size={16} />
           </button>
         )}
@@ -193,7 +193,7 @@ function EditForm({ member, isNew, onSave, onBack, onSetActive, onDelete }) {
           style={{ backgroundColor: c.bg, color: c.fg }}>
           {displayInitials}
         </span>
-        <span className="text-white font-medium text-sm flex-1 truncate">
+        <span className="text-body font-medium text-sm flex-1 truncate">
           {deriveName(firstName, lastName) || 'Editar persona'}
         </span>
       </div>
@@ -233,8 +233,8 @@ function EditForm({ member, isNew, onSave, onBack, onSetActive, onDelete }) {
           </div>
         )}
 
-        <div className="border-t border-gray-800 pt-4 space-y-3">
-          <p className="text-xs text-gray-600 uppercase tracking-wider">Contacte</p>
+        <div className="border-t border-rim pt-4 space-y-3">
+          <p className="text-xs text-ghost uppercase tracking-wider">Contacte</p>
           <div className="space-y-1">
             <label className={labelCls}>Telèfon</label>
             <input value={phone} onChange={e => setPhone(e.target.value)} type="tel"
@@ -252,8 +252,8 @@ function EditForm({ member, isNew, onSave, onBack, onSetActive, onDelete }) {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 pt-4 space-y-3">
-          <p className="text-xs text-gray-600 uppercase tracking-wider">Dades personals</p>
+        <div className="border-t border-rim pt-4 space-y-3">
+          <p className="text-xs text-ghost uppercase tracking-wider">Dades personals</p>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className={labelCls}>Alçada (cm)</label>
@@ -276,7 +276,7 @@ function EditForm({ member, isNew, onSave, onBack, onSetActive, onDelete }) {
       </div>
 
       {/* Fixed footer */}
-      <div className="shrink-0 border-t border-gray-800 px-4 py-3 flex items-center gap-2">
+      <div className="shrink-0 border-t border-rim px-4 py-3 flex items-center gap-2">
         <button type="submit"
           className="flex-1 bg-cyan-600 hover:bg-cyan-300 text-white text-sm font-medium py-2 rounded-lg transition-colors">
           {isNew ? 'Crear persona' : 'Desar'}
@@ -306,20 +306,20 @@ function MoreOptionsMenu({ isInactive, onSetActive, onDelete }) {
   return (
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen(v => !v)}
-        className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors">
+        className="p-2 rounded-lg text-faint hover:text-body hover:bg-fill transition-colors">
         <MoreHorizontal size={16} />
       </button>
       {open && (
-        <div className="absolute bottom-full right-0 mb-1 w-44 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl py-1 z-20">
+        <div className="absolute bottom-full right-0 mb-1 w-44 bg-fill border border-line rounded-xl shadow-2xl py-1 z-20">
           <button type="button"
             onClick={() => { onSetActive(); setOpen(false) }}
-            className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-gray-700 ${isInactive ? 'text-green-400' : 'text-yellow-400'}`}>
+            className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-raised ${isInactive ? 'text-green-400' : 'text-yellow-400'}`}>
             {isInactive ? 'Reactivar' : 'Donar de baixa'}
           </button>
-          <div className="border-t border-gray-700 my-1" />
+          <div className="border-t border-line my-1" />
           <button type="button"
             onClick={() => { onDelete(); setOpen(false) }}
-            className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-gray-700 transition-colors">
+            className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-raised transition-colors">
             Eliminar
           </button>
         </div>
@@ -350,11 +350,11 @@ export default function PersonProfileOverlay({ member, isNew, readOnly = false, 
         onClick={() => editing && !isNew ? setEditing(false) : onClose()} />
 
       {/* Card */}
-      <div className="relative z-10 bg-gray-900 border border-gray-700/80 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-sm flex flex-col h-[100dvh] sm:h-[90vh]" style={{ overflow: 'hidden' }}>
+      <div className="relative z-10 bg-pane border border-line/80 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-sm flex flex-col h-[100dvh] sm:h-[90vh]" style={{ overflow: 'hidden' }}>
 
         {/* Close button (top-right) */}
         <button onClick={onClose}
-          className="absolute top-2 right-2 z-10 text-gray-600 hover:text-white transition-colors p-2.5 rounded-lg hover:bg-gray-800">
+          className="absolute top-2 right-2 z-10 text-ghost hover:text-body transition-colors p-2.5 rounded-lg hover:bg-fill">
           <X size={18} />
         </button>
 

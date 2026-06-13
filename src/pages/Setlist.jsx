@@ -288,17 +288,17 @@ export default function Setlist() {
             const expAll = {}; for (const s of songs) expAll[s.id] = next
             setExpandedSongs(expAll)
           }}
-            className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+            className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-line text-muted hover:text-body hover:bg-fill transition-colors"
             title={allExpanded ? 'Replegar tot' : 'Expandir tot'}>
             {allExpanded ? <ChevronsUp size={14} /> : <ChevronsDown size={14} />}
           </button>
           <button onClick={() => setShowCast(v => !v)}
-            className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border transition-colors ${showCast ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800'}`}>
+            className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border transition-colors ${showCast ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-line text-muted hover:text-body hover:bg-fill'}`}>
             <MicVocal size={14} /> Membres {exclusions.size > 0 && <span className="ml-1 text-xs text-yellow-500">({allMembers.length - exclusions.size}/{allMembers.length})</span>}
           </button>
           {!creatingPart && (
             <button onClick={() => setCreatingPart(true)}
-              className="text-sm text-purple-400 hover:text-purple-300 px-4 py-2 rounded-lg hover:bg-gray-800 border border-purple-800 transition-colors">
+              className="text-sm text-purple-400 hover:text-purple-300 px-4 py-2 rounded-lg hover:bg-fill border border-purple-800 transition-colors">
               + Nova part
             </button>
           )}
@@ -315,29 +315,29 @@ export default function Setlist() {
 
         {/* Part forms */}
         {creatingPart && (
-          <div className="bg-gray-900 border border-purple-800/50 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Nova part</h3>
+          <div className="bg-pane border border-purple-800/50 rounded-xl p-4">
+            <h3 className="text-sm font-medium text-soft mb-3">Nova part</h3>
             <PartForm onSave={handleCreatePart} onCancel={() => setCreatingPart(false)} />
           </div>
         )}
         {editingPart && (
-          <div className="bg-gray-900 border border-purple-800/50 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Editar part</h3>
+          <div className="bg-pane border border-purple-800/50 rounded-xl p-4">
+            <h3 className="text-sm font-medium text-soft mb-3">Editar part</h3>
             <PartForm initial={editingPart} onSave={f => handleUpdatePart(editingPart.id, f)} onCancel={() => setEditingPart(null)} />
           </div>
         )}
 
         {/* Song forms */}
         {creating && (
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Nou element</h3>
+          <div className="bg-pane border border-line rounded-xl p-4">
+            <h3 className="text-sm font-medium text-soft mb-3">Nou element</h3>
             <SongForm parts={parts} repertoire={repertoire} members={allMembers}
               onSave={handleCreateSong} onCancel={() => setCreating(false)} />
           </div>
         )}
         {editingSong && (
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Editar element</h3>
+          <div className="bg-pane border border-line rounded-xl p-4">
+            <h3 className="text-sm font-medium text-soft mb-3">Editar element</h3>
             <SongForm initial={editingSong} parts={parts} repertoire={repertoire} members={allMembers}
               onSave={fields => handleUpdateSong(editingSong.id, fields)}
               onCancel={() => setEditingSong(null)} />
@@ -345,7 +345,7 @@ export default function Setlist() {
         )}
 
         {/* Sections — single DndContext for cross-part song drag */}
-        {loading ? <p className="text-gray-500">Carregant...</p> : (
+        {loading ? <p className="text-faint">Carregant...</p> : (
           <DndContext sensors={songSensors} collisionDetection={closestCenter}
             onDragStart={({ active }) => setActiveDragId(active.id)}
             onDragEnd={(e) => { setActiveDragId(null); handleSongDragEnd(e) }}
@@ -361,21 +361,21 @@ export default function Setlist() {
                     {part ? (
                       <div
                         onClick={() => setExpandedParts(prev => ({ ...prev, [part.id]: !(prev[part.id] !== false) }))}
-                        className="flex items-center gap-2 px-3 py-2.5 rounded-xl border bg-gray-900 border-gray-700 hover:border-gray-600 cursor-pointer transition-colors">
-                        <span className="text-gray-500 p-0.5 shrink-0">
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-xl border bg-pane border-line hover:border-wire cursor-pointer transition-colors">
+                        <span className="text-faint p-0.5 shrink-0">
                           {isPartExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                         </span>
                         <span className="font-semibold text-sm text-gray-200 flex-1">{part.title}</span>
-                        <span className="text-xs text-gray-600">{sectionSongs.length} cançó{sectionSongs.length !== 1 ? 'ns' : ''}</span>
+                        <span className="text-xs text-ghost">{sectionSongs.length} cançó{sectionSongs.length !== 1 ? 'ns' : ''}</span>
                         <button onClick={e => { e.stopPropagation(); setEditingPart(part) }}
-                          className="text-gray-500 hover:text-white p-2.5 rounded-lg hover:bg-gray-800 transition-colors"><Pencil size={15} /></button>
+                          className="text-faint hover:text-body p-2.5 rounded-lg hover:bg-fill transition-colors"><Pencil size={15} /></button>
                         <button onClick={e => { e.stopPropagation(); handleDeletePart(part.id) }}
-                          className="text-gray-600 hover:text-red-500 p-2.5 rounded-lg hover:bg-gray-800 transition-colors"><X size={15} /></button>
+                          className="text-ghost hover:text-red-500 p-2.5 rounded-lg hover:bg-fill transition-colors"><X size={15} /></button>
                       </div>
                     ) : (
                       sectionSongs.length > 0 && (
                         <div className="px-1">
-                          <span className="text-sm text-gray-500 font-medium">Sense part</span>
+                          <span className="text-sm text-faint font-medium">Sense part</span>
                         </div>
                       )
                     )}
@@ -409,7 +409,7 @@ export default function Setlist() {
                           ))}
                         </SortableContext>
                         {sectionSongs.length === 0 && (
-                          <div className="text-center py-6 text-gray-600 text-xs border-2 border-dashed border-gray-800 rounded-xl">
+                          <div className="text-center py-6 text-ghost text-xs border-2 border-dashed border-rim rounded-xl">
                             Arrossega cançons aquí
                           </div>
                         )}
@@ -420,7 +420,7 @@ export default function Setlist() {
               })}
 
               {songs.length === 0 && !creating && (
-                <div className="text-center py-16 text-gray-500">
+                <div className="text-center py-16 text-faint">
                   <Music size={40} className="mx-auto mb-4 opacity-30" />
                   <p>Afegeix les cançons del setlist.</p>
                 </div>
@@ -433,9 +433,9 @@ export default function Setlist() {
                 const s = songs.find(s => s.id === activeDragId)
                 if (!s) return null
                 return (
-                  <div className="bg-gray-900 border-2 border-cyan-300 rounded-xl px-4 py-3 shadow-2xl opacity-95 pointer-events-none">
-                    <p className="text-sm font-medium text-white">{s.title}</p>
-                    {s.notes && <p className="text-xs text-gray-500 mt-0.5">{s.notes}</p>}
+                  <div className="bg-pane border-2 border-cyan-300 rounded-xl px-4 py-3 shadow-2xl opacity-95 pointer-events-none">
+                    <p className="text-sm font-medium text-body">{s.title}</p>
+                    {s.notes && <p className="text-xs text-faint mt-0.5">{s.notes}</p>}
                   </div>
                 )
               })() : null}

@@ -64,12 +64,12 @@ export default function ScoreView({ song, repSong, cues, moments, selectedCueId,
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           {rt && (() => { const Icon = rt.icon; return <Icon size={15} className={rt.color} /> })()}
-          <h3 className="text-sm font-semibold text-white">{song.title}</h3>
+          <h3 className="text-sm font-semibold text-body">{song.title}</h3>
           {rt && <span className={`text-xs ${rt.color}`}>{rt.label}</span>}
         </div>
         {isSong && (
           <button onClick={onEditLyrics}
-            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-cyan-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-gray-800">
+            className="flex items-center gap-1.5 text-xs text-faint hover:text-cyan-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-fill">
             <Pencil size={12} /> {hasContent ? 'Edita lletra' : 'Afegeix lletra'}
           </button>
         )}
@@ -80,14 +80,14 @@ export default function ScoreView({ song, repSong, cues, moments, selectedCueId,
           onDragOver={e => { e.preventDefault(); setDropTarget('unanchored') }}
           onDragLeave={() => setDropTarget(null)}
           onDrop={handleDropUnanchor}>
-          <p className="text-xs text-gray-600 uppercase tracking-wider">Cues sense ancorar</p>
+          <p className="text-xs text-ghost uppercase tracking-wider">Cues sense ancorar</p>
           <div className={`flex flex-wrap gap-1.5 min-h-[32px] rounded-lg border border-dashed transition-colors px-1.5 py-1 ${
-            dropTarget === 'unanchored' ? 'border-cyan-500 bg-cyan-900/10' : unanchored.length > 0 ? 'border-transparent' : 'border-gray-800'
+            dropTarget === 'unanchored' ? 'border-cyan-500 bg-cyan-900/10' : unanchored.length > 0 ? 'border-transparent' : 'border-rim'
           }`}>
             {unanchored.map(c => (
               <div key={c.id} className="flex flex-col gap-0.5">
                 <DraggableCueChip cue={c} selected={c.id === selectedCueId} onClick={() => onSelectCue(c)} onDuplicate={onDuplicateCue} onDelete={onDeleteCue} momentName={momentMap[c.moment_id]?.title} />
-                {c.trigger_text && <span className="text-xs text-gray-600 px-1 max-w-[260px] truncate">{c.trigger_text}</span>}
+                {c.trigger_text && <span className="text-xs text-ghost px-1 max-w-[260px] truncate">{c.trigger_text}</span>}
               </div>
             ))}
             {unanchored.length === 0 && <span className="text-xs text-gray-700 py-1">Arrossega aquí per desancorar</span>}
@@ -96,7 +96,7 @@ export default function ScoreView({ song, repSong, cues, moments, selectedCueId,
       )}
 
       {hasContent ? (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 space-y-0">
+        <div className="bg-pane border border-rim rounded-xl px-3 py-2 space-y-0">
           {lines.map((line, i) => {
             const lineCues = anchored[i] ?? []
             const isSelectedLine = lineCues.some(c => c.id === selectedCueId)
@@ -112,14 +112,14 @@ export default function ScoreView({ song, repSong, cues, moments, selectedCueId,
                 <div className="flex-1 min-w-0 py-0.5">
                   {line.trim() === '' ? <div className="h-2" /> : (
                     <span className={`text-xs leading-snug ${
-                      !isSong ? 'text-gray-300 font-medium uppercase tracking-wider' :
-                      lineCues.length ? 'text-white font-medium' : 'text-gray-400'
+                      !isSong ? 'text-soft font-medium uppercase tracking-wider' :
+                      lineCues.length ? 'text-body font-medium' : 'text-muted'
                     }`}>{line}</span>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-1 shrink-0 justify-end items-center">
                   <button onClick={() => onCreateCueAtLine(i, line)} title="Crear cue en aquest punt"
-                    className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-gray-700 opacity-30 md:opacity-0 md:group-hover:opacity-100 hover:!opacity-100 hover:text-cyan-300 hover:bg-gray-800 transition-all">
+                    className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-gray-700 opacity-30 md:opacity-0 md:group-hover:opacity-100 hover:!opacity-100 hover:text-cyan-300 hover:bg-fill transition-all">
                     <Plus size={11} />
                   </button>
                   {lineCues.map(c => (
@@ -131,7 +131,7 @@ export default function ScoreView({ song, repSong, cues, moments, selectedCueId,
           })}
         </div>
       ) : (
-        <div className="text-center py-12 text-gray-600 text-sm border-2 border-dashed border-gray-800 rounded-xl">
+        <div className="text-center py-12 text-ghost text-sm border-2 border-dashed border-rim rounded-xl">
           Aquesta cançó no té lletra al repertori.<br />
           Afegeix-la per poder ancorar-hi els cues de llum.
         </div>

@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Music, Users, Clapperboard, Menu, X, BookOpen, Shield, ChevronDown } from 'lucide-react'
+import { Music, Users, Clapperboard, Menu, X, BookOpen, Shield, ChevronDown, Sun, Moon } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'
+import { useTheme } from '../hooks/useTheme.jsx'
 import ProfileMenu from './ProfileMenu.jsx'
 
 export default function Layout({ children, fullWidth = false, narrow = false }) {
   const { user, role, permissions, isSimulating, signOut } = useAuth()
   const { choirs, currentChoirId, switchChoir } = useChoir()
+  const { theme, toggle: toggleTheme } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
   const [navOpen, setNavOpen] = useState(false)
@@ -28,22 +30,22 @@ export default function Layout({ children, fullWidth = false, narrow = false }) 
     `flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
       location.pathname === path
         ? 'bg-cyan-700/40 text-cyan-300'
-        : 'text-gray-400 hover:text-white hover:bg-gray-800'
+        : 'text-muted hover:text-body hover:bg-fill'
     }`
 
   const mobileNavLinkCls = (path) =>
     `flex items-center gap-2 px-4 py-3 rounded-lg text-sm transition-colors ${
       location.pathname === path
         ? 'bg-cyan-700/40 text-cyan-300'
-        : 'text-gray-400 hover:text-white hover:bg-gray-800'
+        : 'text-muted hover:text-body hover:bg-fill'
     }`
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 flex flex-col">
+    <div className="min-h-screen bg-page text-gray-100 flex flex-col">
       <header className={`border-b px-4 py-3 flex items-center justify-between relative transition-colors ${
-        isSimulating ? 'bg-amber-950 border-amber-800/60' : 'bg-gray-900 border-gray-800'
+        isSimulating ? 'bg-amber-950 border-amber-800/60' : 'bg-pane border-rim'
       }`}>
-        <Link to="/" className="flex items-center gap-2 text-lg font-bold tracking-tight text-white hover:text-gray-300">
+        <Link to="/" className="flex items-center gap-2 text-lg font-bold tracking-tight text-body hover:text-soft">
           <Music size={18} /> Choir Positions
         </Link>
 
@@ -53,10 +55,10 @@ export default function Layout({ children, fullWidth = false, narrow = false }) 
             <select
               value={currentChoirId ?? ''}
               onChange={e => { switchChoir(e.target.value); navigate('/') }}
-              className="appearance-none bg-gray-800 border border-gray-700 rounded-lg pl-3 pr-7 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-cyan-400 cursor-pointer">
+              className="appearance-none bg-fill border border-line rounded-lg pl-3 pr-7 py-1.5 text-xs text-soft focus:outline-none focus:border-cyan-400 cursor-pointer">
               {choirs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-            <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+            <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
           </div>
         )}
 
@@ -85,11 +87,15 @@ export default function Layout({ children, fullWidth = false, narrow = false }) 
         )}
 
         <div className="flex items-center gap-2">
+          <button onClick={toggleTheme} title={theme === 'dark' ? 'Mode clar' : 'Mode fosc'}
+            className="p-2 rounded-lg text-muted hover:text-body hover:bg-fill transition-colors">
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
           {user && <ProfileMenu onSignOut={handleSignOut} />}
           {user && (
             <button
               onClick={() => setNavOpen(v => !v)}
-              className="md:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+              className="md:hidden p-2 rounded-lg text-muted hover:text-body hover:bg-fill transition-colors"
             >
               {navOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -99,7 +105,7 @@ export default function Layout({ children, fullWidth = false, narrow = false }) 
         {/* Mobile nav dropdown */}
         {user && navOpen && (
           <div
-            className="absolute top-full left-0 right-0 z-40 bg-gray-900 border-b border-gray-800 shadow-xl md:hidden"
+            className="absolute top-full left-0 right-0 z-40 bg-pane border-b border-rim shadow-xl md:hidden"
             onClick={() => setNavOpen(false)}
           >
             <nav className="flex flex-col p-3 gap-1">

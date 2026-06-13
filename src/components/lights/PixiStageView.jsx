@@ -141,7 +141,7 @@ export default function PixiStageView({ show, members, placements = {}, gridMode
       <div className="flex items-center gap-2 mt-1">
         <button
           onDoubleClick={e => { e.stopPropagation(); toggleSuperadmin() }}
-          className={`text-[10px] font-mono transition-opacity ${superadmin ? 'text-gray-600 hover:text-gray-400' : 'text-gray-800 hover:text-gray-700 opacity-30'}`}
+          className={`text-[10px] font-mono transition-opacity ${superadmin ? 'text-ghost hover:text-muted' : 'text-gray-800 hover:text-gray-700 opacity-30'}`}
           title={superadmin ? 'Doble click per sortir' : 'Doble click per entrar a superadmin'}
         >
           🔧
@@ -150,19 +150,19 @@ export default function PixiStageView({ show, members, placements = {}, gridMode
           <>
             <button
               onClick={e => { e.stopPropagation(); setDebug(d => !d) }}
-              className="text-[10px] text-gray-600 hover:text-gray-400 font-mono"
+              className="text-[10px] text-ghost hover:text-muted font-mono"
             >
               {debug ? '▼' : '▶'} persp
             </button>
             {debug && (
-              <code className="text-[10px] text-gray-600 select-all">
+              <code className="text-[10px] text-ghost select-all">
                 {JSON.stringify(persp)}
               </code>
             )}
             {debug && (
               <button
                 onClick={e => { e.stopPropagation(); setPersp(PERSP_DEFAULTS) }}
-                className="text-[10px] text-gray-600 hover:text-gray-400"
+                className="text-[10px] text-ghost hover:text-muted"
               >
                 reset
               </button>
@@ -173,7 +173,7 @@ export default function PixiStageView({ show, members, placements = {}, gridMode
       {superadmin && debug && (
         <div className="grid gap-1 mt-1">
           {PERSP_CONTROLS.map(c => (
-            <label key={c.key} className="flex items-center gap-2 text-[10px] text-gray-500">
+            <label key={c.key} className="flex items-center gap-2 text-[10px] text-faint">
               <span className="w-16 shrink-0">{c.label}</span>
               <input
                 type="range" min={c.min} max={c.max} value={persp[c.key]}

@@ -32,11 +32,11 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-page flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <h1 className="flex items-center justify-center gap-2 text-2xl font-bold text-white text-center mb-8"><Music size={22} /> Choir Positions</h1>
-        <div className="bg-gray-900 rounded-xl p-6 space-y-4 border border-gray-800">
-          <h2 className="text-lg font-semibold text-white">Iniciar sessió</h2>
+        <h1 className="flex items-center justify-center gap-2 text-2xl font-bold text-body text-center mb-8"><Music size={22} /> Choir Positions</h1>
+        <div className="bg-pane rounded-xl p-6 space-y-4 border border-rim">
+          <h2 className="text-lg font-semibold text-body">Iniciar sessió</h2>
 
           {error && (
             <div className="bg-red-900/40 border border-red-700 text-red-300 rounded-lg px-3 py-2 text-sm">
@@ -61,15 +61,15 @@ export default function Login() {
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-gray-800" />
-            <span className="text-xs text-gray-600">o amb correu</span>
-            <div className="flex-1 h-px bg-gray-800" />
+            <div className="flex-1 h-px bg-fill" />
+            <span className="text-xs text-ghost">o amb correu</span>
+            <div className="flex-1 h-px bg-fill" />
           </div>
 
           {/* Email / password */}
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-1">
-              <label className="text-sm text-gray-400">Correu electrònic o usuari</label>
+              <label className="text-sm text-muted">Correu electrònic o usuari</label>
               <input
                 type="text"
                 value={email}
@@ -77,11 +77,11 @@ export default function Login() {
                 required
                 autoComplete="username"
                 placeholder="demo"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-300"
+                className="w-full bg-fill border border-line rounded-lg px-3 py-2 text-body placeholder-gray-500 focus:outline-none focus:border-cyan-300"
               />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-gray-400">Contrasenya</label>
+              <label className="text-sm text-muted">Contrasenya</label>
               <input
                 type="password"
                 value={password}
@@ -89,11 +89,11 @@ export default function Login() {
                 required
                 autoComplete="current-password"
                 placeholder="demo"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-300"
+                className="w-full bg-fill border border-line rounded-lg px-3 py-2 text-body placeholder-gray-500 focus:outline-none focus:border-cyan-300"
               />
             </div>
-            <p className="text-xs text-gray-500">
-              Accés demo: entra amb <span className="text-gray-300">demo</span> / <span className="text-gray-300">demo</span>.
+            <p className="text-xs text-faint">
+              Accés demo: entra amb <span className="text-soft">demo</span> / <span className="text-soft">demo</span>.
             </p>
             <button
               type="submit"

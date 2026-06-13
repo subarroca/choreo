@@ -18,9 +18,9 @@ export default function RehearsalFocusPicker({ members, highlightId, onSelect, o
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/50" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 border-t border-gray-700 rounded-t-2xl shadow-2xl max-h-[65dvh] flex flex-col">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-pane border-t border-line rounded-t-2xl shadow-2xl max-h-[65dvh] flex flex-col">
         <div className="flex items-center justify-between px-4 pt-3 pb-1 shrink-0">
-          <span className="text-sm font-semibold text-white">Focus persona</span>
+          <span className="text-sm font-semibold text-body">Focus persona</span>
           <div className="flex items-center gap-2">
             {highlightId && (
               <button onClick={() => onSelect('')}
@@ -29,12 +29,12 @@ export default function RehearsalFocusPicker({ members, highlightId, onSelect, o
               </button>
             )}
             <button onClick={onClose}
-              className="text-gray-500 hover:text-white p-1 rounded-lg hover:bg-gray-800 transition-colors">
+              className="text-faint hover:text-body p-1 rounded-lg hover:bg-fill transition-colors">
               <X size={16} />
             </button>
           </div>
         </div>
-        <p className="text-[11px] text-gray-600 px-4 pb-2 shrink-0">
+        <p className="text-[11px] text-ghost px-4 pb-2 shrink-0">
           O mantén premut sobre una persona al canvas.
         </p>
         <div className="overflow-y-auto px-4 pb-6 space-y-3">
@@ -42,7 +42,7 @@ export default function RehearsalFocusPicker({ members, highlightId, onSelect, o
             <div key={voice}>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{voice}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">{voice}</p>
               </div>
               <div className="flex flex-wrap gap-2 pl-4">
                 {vMembers.map(m => {
@@ -53,13 +53,13 @@ export default function RehearsalFocusPicker({ members, highlightId, onSelect, o
                     <button key={m.id} onClick={() => onSelect(m.id)}
                       style={active ? { borderColor: color } : {}}
                       className={`flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl border transition-colors min-h-[44px] ${
-                        active ? 'bg-gray-800' : 'border-gray-700 hover:bg-gray-800'
+                        active ? 'bg-fill' : 'border-line hover:bg-fill'
                       }`}>
-                      <span className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold text-white"
+                      <span className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold text-body"
                         style={{ background: color }}>
                         {initials}
                       </span>
-                      <span className={active ? 'text-white' : 'text-gray-300'}>{fn}</span>
+                      <span className={active ? 'text-body' : 'text-soft'}>{fn}</span>
                     </button>
                   )
                 })}

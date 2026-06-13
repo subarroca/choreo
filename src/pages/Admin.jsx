@@ -17,7 +17,7 @@ function PermToggle({ active, onChange, label }) {
       className={`flex items-center gap-1.5 text-xs px-2.5 py-2 rounded-lg border transition-colors ${
         active
           ? 'bg-cyan-900/30 border-cyan-700 text-cyan-400'
-          : 'bg-gray-800 border-gray-700 text-gray-600 hover:text-gray-400'
+          : 'bg-fill border-line text-ghost hover:text-muted'
       }`}>
       {active ? <Check size={13} /> : <X size={13} />}
       {label}
@@ -88,7 +88,7 @@ export default function Admin() {
   const ROLE_BADGE = {
     admin:    'bg-red-900/40 text-red-400 border-red-800',
     director: 'bg-purple-900/40 text-purple-400 border-purple-800',
-    member:   'bg-gray-800 text-gray-500 border-gray-700',
+    member:   'bg-fill text-faint border-line',
   }
 
   return (
@@ -96,13 +96,13 @@ export default function Admin() {
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <Shield size={20} className="text-cyan-400" />
-          <h1 className="text-2xl font-bold text-white">Gestió d'usuaris</h1>
+          <h1 className="text-2xl font-bold text-body">Gestió d'usuaris</h1>
         </div>
 
         {loading ? (
-          <p className="text-gray-500 text-sm">Carregant...</p>
+          <p className="text-faint text-sm">Carregant...</p>
         ) : users.length === 0 ? (
-          <p className="text-gray-500 text-sm">Cap usuari registrat.</p>
+          <p className="text-faint text-sm">Cap usuari registrat.</p>
         ) : (
           <div className="space-y-2">
             {users.map(u => {
@@ -110,28 +110,28 @@ export default function Admin() {
               const isOpen  = expanded === u.id
               const uPerms  = perms[u.id] ?? {}
               return (
-                <div key={u.id} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+                <div key={u.id} className="bg-pane border border-rim rounded-xl overflow-hidden">
                   <div onClick={() => setExpanded(isOpen ? null : u.id)}
-                    className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-800/40 transition-colors">
+                    className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-fill/40 transition-colors">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white font-medium truncate">{u.full_name || u.email}</p>
-                      {u.full_name && <p className="text-xs text-gray-500 truncate">{u.email}</p>}
+                      <p className="text-sm text-body font-medium truncate">{u.full_name || u.email}</p>
+                      {u.full_name && <p className="text-xs text-faint truncate">{u.email}</p>}
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded border ${ROLE_BADGE[u.role] ?? ROLE_BADGE.member}`}>
                       {u.role ?? 'member'}
                     </span>
-                    {isOpen ? <ChevronUp size={14} className="text-gray-600 shrink-0" /> : <ChevronDown size={14} className="text-gray-600 shrink-0" />}
+                    {isOpen ? <ChevronUp size={14} className="text-ghost shrink-0" /> : <ChevronDown size={14} className="text-ghost shrink-0" />}
                   </div>
 
                   {isOpen && (
-                    <div className="border-t border-gray-800 px-4 py-3 bg-black/20">
+                    <div className="border-t border-rim px-4 py-3 bg-black/20">
                       {isAdmin ? (
-                        <p className="text-xs text-gray-500 italic">Accés total (rol {u.role}). Els permisos no s'apliquen.</p>
+                        <p className="text-xs text-faint italic">Accés total (rol {u.role}). Els permisos no s'apliquen.</p>
                       ) : (
                         <div className="space-y-3">
                           {SECTIONS.map(s => (
                             <div key={s.key} className="flex items-center gap-3">
-                              <span className="text-xs text-gray-400 w-24 shrink-0">{s.label}</span>
+                              <span className="text-xs text-muted w-24 shrink-0">{s.label}</span>
                               <div className="flex gap-2">
                                 <PermToggle
                                   active={uPerms[s.key]?.view ?? true}

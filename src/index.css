@@ -1,3 +1,46 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  /* ── Light mode (default) ── */
+  :root {
+    --c-page:   249 250 251;   /* gray-50  */
+    --c-pane:   255 255 255;   /* white    */
+    --c-fill:   243 244 246;   /* gray-100 */
+    --c-raised: 229 231 235;   /* gray-200 */
+    --c-rim:    229 231 235;   /* gray-200 */
+    --c-line:   209 213 219;   /* gray-300 */
+    --c-wire:   156 163 175;   /* gray-400 */
+    --c-body:   17  24  39;    /* gray-900 */
+    --c-soft:   55  65  81;    /* gray-700 */
+    --c-muted:  107 114 128;   /* gray-500 */
+    --c-faint:  107 114 128;   /* gray-500 */
+    --c-ghost:  156 163 175;   /* gray-400 */
+  }
+
+  /* ── Dark mode ── */
+  .dark {
+    --c-page:   3   7   18;    /* gray-950 */
+    --c-pane:   17  24  39;    /* gray-900 */
+    --c-fill:   31  41  55;    /* gray-800 */
+    --c-raised: 55  65  81;    /* gray-700 */
+    --c-rim:    31  41  55;    /* gray-800 */
+    --c-line:   55  65  81;    /* gray-700 */
+    --c-wire:   75  85  99;    /* gray-600 */
+    --c-body:   255 255 255;   /* white    */
+    --c-soft:   209 213 219;   /* gray-300 */
+    --c-muted:  156 163 175;   /* gray-400 */
+    --c-faint:  107 114 128;   /* gray-500 */
+    --c-ghost:  75  85  99;    /* gray-600 */
+  }
+
+  html {
+    color-scheme: light dark;
+  }
+
+  body {
+    background-color: rgb(var(--c-page));
+    color: rgb(var(--c-body));
+  }
+}

@@ -121,7 +121,7 @@ export default function Mics() {
     return prevMember && currMember && prevMember !== currMember
   }
 
-  const inputCls = 'bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-cyan-300'
+  const inputCls = 'bg-fill border border-line rounded-lg px-2 py-1 text-xs text-body focus:outline-none focus:border-cyan-300'
 
   return (
     <Layout fullWidth>
@@ -129,12 +129,12 @@ export default function Mics() {
         {/* Header */}
         <div className="flex items-center shrink-0">
           <button onClick={() => setSidebarOpen(v => !v)}
-            className="lg:hidden p-2.5 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors shrink-0 self-stretch flex items-center border-b border-gray-800 bg-gray-900">
+            className="lg:hidden p-2.5 text-muted hover:text-body hover:bg-fill transition-colors shrink-0 self-stretch flex items-center border-b border-rim bg-pane">
             <Menu size={18} />
           </button>
           <div className="flex-1 min-w-0 flex items-center">
             <ShowToolbar showId={showId} showName={show?.name} />
-            {saving && <span className="text-xs text-gray-600 pr-4 bg-gray-900 border-b border-gray-800 py-2.5 shrink-0">Guardant…</span>}
+            {saving && <span className="text-xs text-ghost pr-4 bg-pane border-b border-rim py-2.5 shrink-0">Guardant…</span>}
           </div>
         </div>
 
@@ -145,14 +145,14 @@ export default function Mics() {
           )}
 
           {/* Sidebar: mic config */}
-          <div className={`absolute lg:relative inset-y-0 left-0 z-30 lg:z-auto w-56 lg:w-44 shrink-0 border-r border-gray-800 bg-gray-950 flex flex-col p-3 gap-3 overflow-y-auto transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+          <div className={`absolute lg:relative inset-y-0 left-0 z-30 lg:z-auto w-56 lg:w-44 shrink-0 border-r border-rim bg-page flex flex-col p-3 gap-3 overflow-y-auto transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-2">Micròfons</p>
+              <p className="text-xs text-faint uppercase tracking-wider font-medium mb-2">Micròfons</p>
               <div className="space-y-1">
                 {mics.map(mic => (
                   <div key={mic} className="flex items-center gap-1.5">
-                    <span className="flex-1 text-xs text-white font-medium">{mic}</span>
-                    <button onClick={() => removeMic(mic)} className="text-gray-600 hover:text-red-400 transition-colors p-2 -my-1.5 -mr-1"><X size={14} /></button>
+                    <span className="flex-1 text-xs text-body font-medium">{mic}</span>
+                    <button onClick={() => removeMic(mic)} className="text-ghost hover:text-red-400 transition-colors p-2 -my-1.5 -mr-1"><X size={14} /></button>
                   </div>
                 ))}
               </div>
@@ -167,9 +167,9 @@ export default function Mics() {
               </div>
             </div>
 
-            <div className="border-t border-gray-800 pt-3">
-              <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-2">Llegenda handoff</p>
-              <div className="flex items-center gap-1.5 text-xs text-gray-400">
+            <div className="border-t border-rim pt-3">
+              <p className="text-xs text-faint uppercase tracking-wider font-medium mb-2">Llegenda handoff</p>
+              <div className="flex items-center gap-1.5 text-xs text-muted">
                 <span className="w-3 h-3 rounded-sm bg-amber-500/30 border border-amber-500/60 shrink-0" />
                 Canvi de persona
               </div>
@@ -179,20 +179,20 @@ export default function Mics() {
           {/* Matrix — moments as rows, mics as columns */}
           <div className="flex-1 overflow-auto p-3">
             {mics.length === 0 && (
-              <div className="text-gray-600 text-sm mt-8 text-center">Afegeix micròfons al panell esquerre per començar.</div>
+              <div className="text-ghost text-sm mt-8 text-center">Afegeix micròfons al panell esquerre per començar.</div>
             )}
             {mics.length > 0 && allMoments.length === 0 && (
-              <div className="text-gray-600 text-sm mt-8 text-center">Crea moments a les cançons per poder assignar micros.</div>
+              <div className="text-ghost text-sm mt-8 text-center">Crea moments a les cançons per poder assignar micros.</div>
             )}
             {mics.length > 0 && allMoments.length > 0 && (
               <table className="border-collapse text-xs w-full">
                 <thead>
                   <tr>
                     {/* Moment label col + song span cols */}
-                    <th className="sticky left-0 bg-gray-950 z-10 border-b border-gray-800 text-xs text-gray-600 font-normal px-3 py-2 text-left min-w-[160px]">Moment</th>
+                    <th className="sticky left-0 bg-page z-10 border-b border-rim text-xs text-ghost font-normal px-3 py-2 text-left min-w-[160px]">Moment</th>
                     {mics.map((mic, i) => (
                       <th key={mic}
-                        className="px-3 py-2 text-center text-sm font-bold text-white border-b border-l border-gray-800 min-w-[120px]">
+                        className="px-3 py-2 text-center text-sm font-bold text-body border-b border-l border-rim min-w-[120px]">
                         {displayMic(mic)}
                       </th>
                     ))}
@@ -204,17 +204,17 @@ export default function Mics() {
                       {/* Song separator row */}
                       <tr key={`song-${song.id}`}>
                         <td colSpan={mics.length + 1}
-                          className="px-3 py-1.5 bg-gray-900 border-b border-gray-800 text-xs text-gray-500 font-medium">
-                          <Link to={`/show/${showId}`} className="hover:text-gray-300">{song.title}</Link>
+                          className="px-3 py-1.5 bg-pane border-b border-rim text-xs text-faint font-medium">
+                          <Link to={`/show/${showId}`} className="hover:text-soft">{song.title}</Link>
                         </td>
                       </tr>
                       {songMoments.map((m, idx) => {
                         const globalIdx = allMoments.findIndex(am => am.id === m.id)
                         return (
-                          <tr key={m.id} className="hover:bg-gray-900/40 transition-colors">
-                            <td className="sticky left-0 bg-gray-950 z-10 px-3 py-2 border-b border-gray-800 text-gray-300 text-xs">
+                          <tr key={m.id} className="hover:bg-pane/40 transition-colors">
+                            <td className="sticky left-0 bg-page z-10 px-3 py-2 border-b border-rim text-soft text-xs">
                               <div className="font-medium">{m.title}</div>
-                              {m.subtitle && <div className="text-gray-600">{m.subtitle}</div>}
+                              {m.subtitle && <div className="text-ghost">{m.subtitle}</div>}
                             </td>
                             {mics.map((mic) => {
                               const memberId = assignments[m.id]?.[mic]
@@ -225,7 +225,7 @@ export default function Mics() {
 
                               return (
                                 <td key={mic}
-                                  className={`border-b border-l border-gray-800 p-0 ${handoff ? 'bg-amber-500/10' : ''}`}
+                                  className={`border-b border-l border-rim p-0 ${handoff ? 'bg-amber-500/10' : ''}`}
                                   style={{ minWidth: 120 }}>
                                   {isActive ? (
                                     <select
@@ -233,7 +233,7 @@ export default function Mics() {
                                       value={memberId ?? ''}
                                       onChange={e => { assign(m.id, mic, e.target.value); setActiveCell(null) }}
                                       onBlur={() => setActiveCell(null)}
-                                      className="w-full h-full bg-gray-800 border border-cyan-300 text-white text-xs px-2 py-2 focus:outline-none rounded-none">
+                                      className="w-full h-full bg-fill border border-cyan-300 text-body text-xs px-2 py-2 focus:outline-none rounded-none">
                                       <option value="">— ningú —</option>
                                       {members.filter(mb => mb.role !== 'director').map(mb => (
                                         <option key={mb.id} value={mb.id}>{mb.name || [mb.first_name, mb.last_name].filter(Boolean).join(' ')}</option>
@@ -242,7 +242,7 @@ export default function Mics() {
                                   ) : (
                                     <button
                                       onClick={() => setActiveCell({ momentId: m.id, mic })}
-                                      className="w-full h-full text-left px-2 py-2 hover:bg-gray-800 transition-colors flex items-center gap-1.5 min-h-[40px]">
+                                      className="w-full h-full text-left px-2 py-2 hover:bg-fill transition-colors flex items-center gap-1.5 min-h-[40px]">
                                       {handoff && <ArrowRight size={9} className="text-amber-400 shrink-0" />}
                                       {member ? (
                                         <>
@@ -250,7 +250,7 @@ export default function Mics() {
                                             style={{ background: c.bg, color: c.fg }}>
                                             {memberInitials(member)}
                                           </span>
-                                          <span className="text-gray-300 truncate text-xs">{member.name || [member.first_name, member.last_name].filter(Boolean).join(' ')}</span>
+                                          <span className="text-soft truncate text-xs">{member.name || [member.first_name, member.last_name].filter(Boolean).join(' ')}</span>
                                         </>
                                       ) : (
                                         <span className="text-gray-700 text-xs">—</span>

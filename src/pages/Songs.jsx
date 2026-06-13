@@ -10,8 +10,8 @@ import { REPERTOIRE_TYPES, repertoireType, isSongType } from '../lib/repertoireT
 
 const DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true'
 
-const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-300 placeholder-gray-600'
-const labelCls = 'text-xs text-gray-400 mb-1 block'
+const inputCls = 'w-full bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300 placeholder-gray-600'
+const labelCls = 'text-xs text-muted mb-1 block'
 
 const ATTACHMENT_TYPES = [
   { value: 'reference', label: 'Referència / Link', icon: ExternalLink, color: 'text-blue-400' },
@@ -63,15 +63,15 @@ function AttachmentEditor({ attachments, onChange }) {
       {attachments.length > 0 && (
         <div className="space-y-1.5">
           {attachments.map((a, i) => (
-            <div key={i} className="flex items-center gap-2 bg-gray-800 rounded-lg px-3 py-2">
+            <div key={i} className="flex items-center gap-2 bg-fill rounded-lg px-3 py-2">
               <AttachmentIcon type={a.type} size={13} />
-              <span className="text-xs text-gray-300 flex-1 truncate">{a.label}</span>
+              <span className="text-xs text-soft flex-1 truncate">{a.label}</span>
               <a href={a.url} target="_blank" rel="noopener noreferrer"
-                className="text-xs text-gray-500 hover:text-blue-400 truncate max-w-[140px] transition-colors">
+                className="text-xs text-faint hover:text-blue-400 truncate max-w-[140px] transition-colors">
                 {a.url.replace(/^https?:\/\//, '').slice(0, 30)}…
               </a>
               <button type="button" onClick={() => removeAttachment(i)}
-                className="text-gray-600 hover:text-red-500 transition-colors shrink-0 p-2 -my-1.5 -mr-1.5">
+                className="text-ghost hover:text-red-500 transition-colors shrink-0 p-2 -my-1.5 -mr-1.5">
                 <X size={14} />
               </button>
             </div>
@@ -80,12 +80,12 @@ function AttachmentEditor({ attachments, onChange }) {
       )}
 
       {adding ? (
-        <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-3 space-y-2.5">
+        <div className="bg-fill/60 border border-line rounded-xl p-3 space-y-2.5">
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className={labelCls}>Tipus</label>
               <select value={type} onChange={e => setType(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-cyan-300">
+                className="w-full bg-fill border border-line rounded-lg px-2 py-1.5 text-sm text-body focus:outline-none focus:border-cyan-300">
                 {ATTACHMENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
@@ -105,13 +105,13 @@ function AttachmentEditor({ attachments, onChange }) {
                   <input ref={fileRef} type="file" className="hidden" onChange={handleFileUpload} />
                   <button type="button" onClick={() => fileRef.current?.click()}
                     disabled={uploading}
-                    className="shrink-0 flex items-center gap-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
+                    className="shrink-0 flex items-center gap-1 bg-raised hover:bg-gray-600 text-soft text-xs px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
                     <Upload size={12} /> {uploading ? 'Pujant…' : 'Pujar'}
                   </button>
                 </>
               )}
             </div>
-            {DEV_MODE && <p className="text-xs text-gray-600 mt-1">Upload desactivat en mode dev — afegeix una URL manualment.</p>}
+            {DEV_MODE && <p className="text-xs text-ghost mt-1">Upload desactivat en mode dev — afegeix una URL manualment.</p>}
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={addAttachment}
@@ -119,14 +119,14 @@ function AttachmentEditor({ attachments, onChange }) {
               Afegir
             </button>
             <button type="button" onClick={() => { setAdding(false); setLabel(''); setUrl(''); setType('reference') }}
-              className="text-gray-500 hover:text-white text-xs px-3 py-1.5 rounded-lg transition-colors">
+              className="text-faint hover:text-body text-xs px-3 py-1.5 rounded-lg transition-colors">
               Cancel·lar
             </button>
           </div>
         </div>
       ) : (
         <button type="button" onClick={() => setAdding(true)}
-          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-400 transition-colors border border-dashed border-gray-700 hover:border-blue-600 rounded-lg px-3 py-2 w-full">
+          className="flex items-center gap-1.5 text-xs text-faint hover:text-blue-400 transition-colors border border-dashed border-line hover:border-blue-600 rounded-lg px-3 py-2 w-full">
           <Plus size={12} /> Afegir recurs (link o fitxer)
         </button>
       )}
@@ -182,8 +182,8 @@ function SongForm({ initial, onSave, onCancel }) {
               <button key={t.value} type="button" onClick={() => setType(t.value)}
                 className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-colors ${
                   active
-                    ? 'bg-gray-700 border-gray-500 text-white'
-                    : 'bg-gray-900 border-gray-700 text-gray-500 hover:text-gray-300 hover:border-gray-600'
+                    ? 'bg-raised border-gray-500 text-body'
+                    : 'bg-pane border-line text-faint hover:text-soft hover:border-wire'
                 }`}>
                 <Icon size={12} className={active ? t.color : ''} />
                 {t.label}
@@ -219,17 +219,17 @@ function SongForm({ initial, onSave, onCancel }) {
         </div>
       )}
 
-      <div className="border-t border-gray-800 pt-4 space-y-2">
-        <p className="text-xs text-gray-500 uppercase tracking-wider">Recursos</p>
+      <div className="border-t border-rim pt-4 space-y-2">
+        <p className="text-xs text-faint uppercase tracking-wider">Recursos</p>
         <AttachmentEditor attachments={attachments} onChange={setAttachments} />
       </div>
 
       <label className="flex items-center gap-2 cursor-pointer select-none">
         <div onClick={() => setIsPublic(v => !v)}
-          className={`w-9 h-5 rounded-full transition-colors relative ${isPublic ? 'bg-green-600' : 'bg-gray-700'}`}>
+          className={`w-9 h-5 rounded-full transition-colors relative ${isPublic ? 'bg-green-600' : 'bg-raised'}`}>
           <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${isPublic ? 'left-4' : 'left-0.5'}`} />
         </div>
-        <span className="text-sm text-gray-400">{isPublic ? 'Pública' : 'Privada'}</span>
+        <span className="text-sm text-muted">{isPublic ? 'Pública' : 'Privada'}</span>
       </label>
 
       <div className="flex gap-2">
@@ -238,7 +238,7 @@ function SongForm({ initial, onSave, onCancel }) {
           Guardar
         </button>
         <button type="button" onClick={onCancel}
-          className="text-gray-400 hover:text-white text-sm px-4 py-2 rounded-lg transition-colors">
+          className="text-muted hover:text-body text-sm px-4 py-2 rounded-lg transition-colors">
           Cancel·lar
         </button>
       </div>
@@ -254,19 +254,19 @@ function SongSheet({ song, isNew, onSave, onDelete, onClose }) {
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/60 z-40" onClick={onClose} />
       {/* Panel */}
-      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-gray-950 border-l border-gray-800 flex flex-col shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800 shrink-0">
-          <h2 className="text-base font-semibold text-white">
+      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-page border-l border-rim flex flex-col shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-rim shrink-0">
+          <h2 className="text-base font-semibold text-body">
             {isNew ? `Nou element` : `Editar ${typeLabel}`}
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-white p-1.5 rounded-lg hover:bg-gray-800 transition-colors">
+          <button onClick={onClose} className="text-faint hover:text-body p-1.5 rounded-lg hover:bg-fill transition-colors">
             <X size={18} />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-5">
           <SongForm initial={isNew ? undefined : song} onSave={onSave} onCancel={onClose} />
           {!isNew && onDelete && (
-            <div className="mt-6 pt-4 border-t border-gray-800">
+            <div className="mt-6 pt-4 border-t border-rim">
               <button onClick={onDelete}
                 className="text-sm text-red-500 hover:text-red-400 transition-colors">
                 Eliminar {typeLabel} del repertori
@@ -349,7 +349,7 @@ export default function Songs() {
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold text-white">Repertori</h1>
+          <h1 className="text-2xl font-bold text-body">Repertori</h1>
           <button onClick={() => setSheetSong('new')}
             className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors shrink-0">
             <Plus size={14} /> Nou element
@@ -358,16 +358,16 @@ export default function Songs() {
 
         {/* Search */}
         <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Cerca per títol, compositor o tipus…"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-300" />
+            className="w-full bg-fill border border-line rounded-lg pl-8 pr-3 py-2 text-sm text-body placeholder-gray-600 focus:outline-none focus:border-cyan-300" />
         </div>
 
         {loading ? (
-          <p className="text-gray-500">Carregant...</p>
+          <p className="text-faint">Carregant...</p>
         ) : visibleSongs.length === 0 ? (
-          <div className="text-center py-16 text-gray-500">
+          <div className="text-center py-16 text-faint">
             <BookOpen size={40} className="mx-auto mb-4 opacity-30" />
             <p>{search ? 'Cap resultat per aquesta cerca.' : 'El repertori és buit.'}</p>
             {!search && <p className="text-sm mt-1">Afegeix la primera cançó amb el botó de dalt.</p>}
@@ -380,13 +380,13 @@ export default function Songs() {
               const TypeIcon = rt.icon
               return (
                 <button key={song.id} onClick={() => setSheetSong(song)}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 hover:border-gray-700 hover:bg-gray-800/30 transition-colors text-left flex items-center gap-3">
+                  className="w-full bg-pane border border-rim rounded-xl px-4 py-3 hover:border-line hover:bg-fill/30 transition-colors text-left flex items-center gap-3">
                   <TypeIcon size={14} className={`${rt.color} shrink-0`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="text-white font-medium text-sm">{song.title}</p>
+                      <p className="text-body font-medium text-sm">{song.title}</p>
                       {!isSongType(song.type) && (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full bg-gray-800 ${rt.color}`}>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full bg-fill ${rt.color}`}>
                           {rt.label}
                         </span>
                       )}
@@ -394,15 +394,15 @@ export default function Songs() {
                         ? <span className="flex items-center gap-1 text-xs text-green-500 px-1.5 py-0.5 rounded shrink-0">
                             <Globe size={9} /> Pública
                           </span>
-                        : <span className="flex items-center gap-1 text-xs text-gray-600 px-1.5 py-0.5 rounded shrink-0">
+                        : <span className="flex items-center gap-1 text-xs text-ghost px-1.5 py-0.5 rounded shrink-0">
                             <Lock size={9} /> Privada
                           </span>
                       }
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      {song.composer && <p className="text-xs text-gray-500 truncate">{song.composer}</p>}
+                      {song.composer && <p className="text-xs text-faint truncate">{song.composer}</p>}
                       {atts.length > 0 && (
-                        <span className="text-xs text-gray-600 shrink-0">{atts.length} recurs{atts.length !== 1 ? 'os' : ''}</span>
+                        <span className="text-xs text-ghost shrink-0">{atts.length} recurs{atts.length !== 1 ? 'os' : ''}</span>
                       )}
                     </div>
                   </div>

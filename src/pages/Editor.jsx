@@ -410,7 +410,7 @@ export default function Editor() {
     { id: 'square', Icon: LayoutGrid, label: 'Quadrat' }, { id: 'alternate', Icon: Hexagon, label: 'Alternat' },
     { id: 'free', Icon: Move, label: 'Lliure' }, { id: 'semicircle', Icon: Disc, label: 'Semicercle' },
   ]
-  const inputCls = 'bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-cyan-300'
+  const inputCls = 'bg-fill border border-line rounded-lg px-2 py-1 text-xs text-body focus:outline-none focus:border-cyan-300'
 
   // ─── Render ───────────────────────────────────────────────
   return (

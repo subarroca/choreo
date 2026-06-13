@@ -7,16 +7,16 @@ export default function AddMomentPanel({
   setSelectedOtherSongId, setSelectedOtherMomentId, onCloneFromChange, onCreate, onCancel, inputCls,
 }) {
   return (
-    <div className="border-t border-gray-700 bg-gray-900 px-3 py-2 shrink-0">
+    <div className="border-t border-line bg-pane px-3 py-2 shrink-0">
       <div className="flex flex-wrap gap-2 items-end">
         <div className="space-y-0.5">
-          <label className="text-xs text-gray-500">Títol</label>
+          <label className="text-xs text-faint">Títol</label>
           <input value={newMomentTitle} onChange={e => setNewMomentTitle(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') onCreate(); if (e.key === 'Escape') onCancel() }}
             autoFocus className={inputCls + ' w-36'} />
         </div>
         <div className="space-y-0.5">
-          <label className="text-xs text-gray-500">Font</label>
+          <label className="text-xs text-faint">Font</label>
           <select value={cloneFrom} onChange={e => onCloneFromChange(e.target.value)}
             className={inputCls}>
             <option value="">Des de 0</option>
@@ -31,7 +31,7 @@ export default function AddMomentPanel({
         {/* Template picker — only visible when starting from scratch */}
         {!cloneFrom && (
           <div className="space-y-0.5">
-            <label className="text-xs text-gray-500">Template</label>
+            <label className="text-xs text-faint">Template</label>
             <select value={selectedTemplate} onChange={e => setSelectedTemplate(e.target.value)}
               className={inputCls}>
               <option value="">Buit</option>
@@ -44,7 +44,7 @@ export default function AddMomentPanel({
 
         {cloneFrom === 'other' && otherSongs !== null && (
           <div className="space-y-0.5">
-            <label className="text-xs text-gray-500">Cançó</label>
+            <label className="text-xs text-faint">Cançó</label>
             <select value={selectedOtherSongId}
               onChange={e => { setSelectedOtherSongId(e.target.value); setSelectedOtherMomentId('') }}
               className={inputCls}>
@@ -55,7 +55,7 @@ export default function AddMomentPanel({
         )}
         {cloneFrom === 'other' && selectedOtherSongId && (
           <div className="space-y-0.5">
-            <label className="text-xs text-gray-500">Moment</label>
+            <label className="text-xs text-faint">Moment</label>
             <select value={selectedOtherMomentId} onChange={e => setSelectedOtherMomentId(e.target.value)}
               className={inputCls}>
               <option value="">Tria…</option>
@@ -66,13 +66,13 @@ export default function AddMomentPanel({
           </div>
         )}
         {cloneFrom === 'other' && otherSongs === null && (
-          <span className="text-xs text-gray-500 self-end pb-1">Carregant…</span>
+          <span className="text-xs text-faint self-end pb-1">Carregant…</span>
         )}
         <div className="flex gap-1.5 self-end">
           <button onClick={onCreate}
             className="bg-cyan-600 hover:bg-cyan-300 text-white text-xs px-3 py-1.5 rounded-lg transition-colors">Crear</button>
           <button onClick={onCancel}
-            className="text-gray-500 hover:text-white text-xs px-2 py-1.5 transition-colors">Cancel·lar</button>
+            className="text-faint hover:text-body text-xs px-2 py-1.5 transition-colors">Cancel·lar</button>
         </div>
       </div>
     </div>

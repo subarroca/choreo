@@ -35,7 +35,7 @@ export function ConfirmHost() {
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={() => done(false)} />
-      <div className="relative bg-gray-900 border border-gray-700 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-sm p-5 pb-safe sm:pb-5">
+      <div className="relative bg-pane border border-line rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-sm p-5 pb-safe sm:pb-5">
         <div className="flex items-start gap-3 mb-5">
           <span className="shrink-0 w-10 h-10 rounded-full bg-red-900/40 text-red-400 flex items-center justify-center">
             <AlertTriangle size={20} />

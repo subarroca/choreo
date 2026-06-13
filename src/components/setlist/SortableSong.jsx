@@ -18,28 +18,28 @@ function TextItem({ song, members, onEdit, onDelete, listeners, attributes, styl
     .filter(Boolean)
     .map(m => m.first_name || m.name.split(' ')[0])
   return (
-    <div style={style} className="bg-gray-900 border border-emerald-900/50 rounded-xl overflow-hidden">
+    <div style={style} className="bg-pane border border-emerald-900/50 rounded-xl overflow-hidden">
       <div className="flex items-start gap-1.5 px-2 py-2.5 min-h-[48px]">
         <button {...attributes} {...listeners}
-          className="text-gray-600 hover:text-gray-400 cursor-grab active:cursor-grabbing p-2 touch-none shrink-0 mt-0.5">
+          className="text-ghost hover:text-muted cursor-grab active:cursor-grabbing p-2 touch-none shrink-0 mt-0.5">
           <GripVertical size={14} />
         </button>
         <MessageSquare size={14} className="text-emerald-500 shrink-0 mt-1" />
         <div className="flex-1 min-w-0 py-0.5">
-          <p className="text-sm font-medium text-white leading-snug">{song.title}</p>
+          <p className="text-sm font-medium text-body leading-snug">{song.title}</p>
           {speakerNames.length > 0 && (
             <p className="text-xs text-emerald-400 mt-0.5">{speakerNames.join(', ')}</p>
           )}
           {song.body && (
-            <p className="text-xs text-gray-500 mt-1 line-clamp-2 whitespace-pre-line">{song.body}</p>
+            <p className="text-xs text-faint mt-1 line-clamp-2 whitespace-pre-line">{song.body}</p>
           )}
         </div>
         <button onClick={() => onEdit(song)}
-          className="text-gray-500 hover:text-white p-2.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+          className="text-faint hover:text-body p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
           <Pencil size={14} />
         </button>
         <button onClick={() => onDelete(song.id)}
-          className="text-gray-600 hover:text-red-500 p-2.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+          className="text-ghost hover:text-red-500 p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
           <X size={14} />
         </button>
       </div>
@@ -49,25 +49,25 @@ function TextItem({ song, members, onEdit, onDelete, listeners, attributes, styl
 
 function IndicationItem({ song, onEdit, onDelete, listeners, attributes, style }) {
   return (
-    <div style={style} className="bg-gray-900 border border-amber-900/50 rounded-xl overflow-hidden">
+    <div style={style} className="bg-pane border border-amber-900/50 rounded-xl overflow-hidden">
       <div className="flex items-start gap-1.5 px-2 py-2.5 min-h-[48px]">
         <button {...attributes} {...listeners}
-          className="text-gray-600 hover:text-gray-400 cursor-grab active:cursor-grabbing p-2 touch-none shrink-0 mt-0.5">
+          className="text-ghost hover:text-muted cursor-grab active:cursor-grabbing p-2 touch-none shrink-0 mt-0.5">
           <GripVertical size={14} />
         </button>
         <Info size={14} className="text-amber-500 shrink-0 mt-1" />
         <div className="flex-1 min-w-0 py-0.5">
-          <p className="text-sm font-medium text-white leading-snug">{song.title}</p>
+          <p className="text-sm font-medium text-body leading-snug">{song.title}</p>
           {song.body && (
-            <p className="text-xs text-gray-500 mt-1 line-clamp-2 whitespace-pre-line">{song.body}</p>
+            <p className="text-xs text-faint mt-1 line-clamp-2 whitespace-pre-line">{song.body}</p>
           )}
         </div>
         <button onClick={() => onEdit(song)}
-          className="text-gray-500 hover:text-white p-2.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+          className="text-faint hover:text-body p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
           <Pencil size={14} />
         </button>
         <button onClick={() => onDelete(song.id)}
-          className="text-gray-600 hover:text-red-500 p-2.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+          className="text-ghost hover:text-red-500 p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
           <X size={14} />
         </button>
       </div>
@@ -121,14 +121,14 @@ export default function SortableSong({
   }
 
   return (
-    <div ref={setNodeRef} style={style} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+    <div ref={setNodeRef} style={style} className="bg-pane border border-rim rounded-xl overflow-hidden">
       {/* Song header */}
       <div className="flex items-center gap-1.5 px-2 min-h-[52px]">
         <button {...attributes} {...listeners}
-          className="text-gray-600 hover:text-gray-400 cursor-grab active:cursor-grabbing p-2 touch-none shrink-0">
+          className="text-ghost hover:text-muted cursor-grab active:cursor-grabbing p-2 touch-none shrink-0">
           <GripVertical size={15} />
         </button>
-        <button onClick={onToggle} className="text-gray-500 hover:text-white p-2 transition-colors shrink-0">
+        <button onClick={onToggle} className="text-faint hover:text-body p-2 transition-colors shrink-0">
           {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
         {repSong && !isSongType(repSong.type) && (() => {
@@ -137,36 +137,36 @@ export default function SortableSong({
           return <Icon size={14} className={`${rt.color} shrink-0`} />
         })()}
         <button onClick={onToggle} className="flex-1 text-left min-w-0 py-2">
-          <span className="text-sm font-medium text-white block truncate">
+          <span className="text-sm font-medium text-body block truncate">
             {repSong ? repSong.title : song.title}
           </span>
-          <span className="text-xs text-gray-500 block truncate">
-            {repSong?.composer && <span className="text-gray-600">{repSong.composer}</span>}
+          <span className="text-xs text-faint block truncate">
+            {repSong?.composer && <span className="text-ghost">{repSong.composer}</span>}
             {repSong?.composer && song.notes && <span className="text-gray-700"> · </span>}
             {song.notes}
           </span>
         </button>
         {song.duration_seconds > 0 && (
-          <span className="text-xs text-gray-500 shrink-0 tabular-nums">{formatDuration(song.duration_seconds)}</span>
+          <span className="text-xs text-faint shrink-0 tabular-nums">{formatDuration(song.duration_seconds)}</span>
         )}
-        <span className="text-xs text-gray-500 bg-gray-800 px-2.5 py-1 rounded-full shrink-0 tabular-nums">
+        <span className="text-xs text-faint bg-fill px-2.5 py-1 rounded-full shrink-0 tabular-nums">
           {moments.length}m
         </span>
         <button onClick={() => onEdit(song)}
-          className="text-gray-500 hover:text-white p-2.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+          className="text-faint hover:text-body p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
           <Pencil size={15} />
         </button>
         <button onClick={() => onDelete(song.id)}
-          className="text-gray-600 hover:text-red-500 p-2.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+          className="text-ghost hover:text-red-500 p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
           <X size={15} />
         </button>
       </div>
 
       {/* Moments list */}
       {expanded && (
-        <div className="border-t border-gray-800">
+        <div className="border-t border-rim">
           {moments.length === 0
-            ? <p className="px-4 py-3 text-xs text-gray-600 italic">Sense moments</p>
+            ? <p className="px-4 py-3 text-xs text-ghost italic">Sense moments</p>
             : (
               <DndContext sensors={momentSensors} collisionDetection={closestCenter} onDragEnd={handleMomentDragEnd}>
                 <SortableContext items={moments.map(m => m.id)} strategy={verticalListSortingStrategy}>
@@ -182,26 +182,26 @@ export default function SortableSong({
                 </SortableContext>
               </DndContext>
             )}
-          <div className="flex border-t border-gray-800">
+          <div className="flex border-t border-rim">
             <button onClick={() => onAddMoment(song.id, false)}
-              className="flex items-center gap-1.5 flex-1 px-4 py-3 text-xs text-cyan-600 hover:text-cyan-400 hover:bg-gray-800 transition-colors">
+              className="flex items-center gap-1.5 flex-1 px-4 py-3 text-xs text-cyan-600 hover:text-cyan-400 hover:bg-fill transition-colors">
               <Plus size={12} /> Afegir moment
             </button>
             {copiedMoment && onPasteMoment && (
               <button onClick={() => onPasteMoment(song.id)}
-                className="flex items-center gap-1.5 px-4 py-3 text-xs text-violet-500 hover:text-violet-300 hover:bg-gray-800 transition-colors border-l border-gray-800"
+                className="flex items-center gap-1.5 px-4 py-3 text-xs text-violet-500 hover:text-violet-300 hover:bg-fill transition-colors border-l border-rim"
                 title={`Enganxar "${copiedMoment.title}"`}>
                 <Clipboard size={12} /> Enganxar
               </button>
             )}
           </div>
           {song.lyrics && (
-            <details className="border-t border-gray-800 group">
-              <summary className="px-4 py-2.5 text-xs text-gray-500 hover:text-gray-300 cursor-pointer list-none flex items-center gap-1.5 select-none">
+            <details className="border-t border-rim group">
+              <summary className="px-4 py-2.5 text-xs text-faint hover:text-soft cursor-pointer list-none flex items-center gap-1.5 select-none">
                 <ChevronRight size={12} className="group-open:rotate-90 transition-transform" />
                 Lletra
               </summary>
-              <pre className="px-4 pb-4 text-xs text-gray-400 whitespace-pre-wrap font-sans leading-relaxed">{song.lyrics}</pre>
+              <pre className="px-4 pb-4 text-xs text-muted whitespace-pre-wrap font-sans leading-relaxed">{song.lyrics}</pre>
             </details>
           )}
         </div>

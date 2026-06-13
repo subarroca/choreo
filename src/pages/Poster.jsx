@@ -51,16 +51,16 @@ export default function Poster() {
 
         <div className="flex-1 overflow-y-auto flex flex-col items-center p-6 gap-6">
           {loading ? (
-            <p className="text-gray-500 text-sm mt-8">Carregant…</p>
+            <p className="text-faint text-sm mt-8">Carregant…</p>
           ) : (
             <>
               {/* DIN vertical canvas */}
-              <div className="relative border-2 border-dashed border-gray-700 rounded-lg overflow-hidden bg-gray-900"
+              <div className="relative border-2 border-dashed border-line rounded-lg overflow-hidden bg-pane"
                 style={{ width: '100%', maxWidth: 360, aspectRatio: `1 / ${DIN_RATIO}` }}>
                 {show?.poster_url ? (
                   <img src={show.poster_url} alt="Pòster" className="absolute inset-0 w-full h-full object-cover" />
                 ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-gray-600">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-ghost">
                     <ImageIcon size={48} className="opacity-30" />
                     <p className="text-sm">DIN vertical — {Math.round(297)}×{Math.round(420)} mm</p>
                     <p className="text-xs">Puja una imatge per al rètol</p>
@@ -69,9 +69,9 @@ export default function Poster() {
                 {/* Overlay with show info */}
                 {!show?.poster_url && (
                   <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
-                    <p className="text-white font-bold text-lg">{show?.name}</p>
-                    {dateStr && <p className="text-gray-300 text-sm">{dateStr}</p>}
-                    {show?.venue && <p className="text-gray-400 text-xs">{show.venue}</p>}
+                    <p className="text-body font-bold text-lg">{show?.name}</p>
+                    {dateStr && <p className="text-soft text-sm">{dateStr}</p>}
+                    {show?.venue && <p className="text-muted text-xs">{show.venue}</p>}
                   </div>
                 )}
               </div>
@@ -79,7 +79,7 @@ export default function Poster() {
               {/* Controls */}
               <div className="flex items-center gap-3">
                 {DEV_MODE ? (
-                  <p className="text-xs text-gray-600">Upload desactivat en mode dev.</p>
+                  <p className="text-xs text-ghost">Upload desactivat en mode dev.</p>
                 ) : (
                   <>
                     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
@@ -92,11 +92,11 @@ export default function Poster() {
                 {show?.poster_url && (
                   <>
                     <a href={show.poster_url} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white px-3 py-2 rounded-lg border border-gray-700 hover:bg-gray-800 transition-colors">
+                      className="flex items-center gap-1.5 text-sm text-muted hover:text-body px-3 py-2 rounded-lg border border-line hover:bg-fill transition-colors">
                       <Download size={14} /> Descarregar
                     </a>
                     <button onClick={handleRemove}
-                      className="text-gray-600 hover:text-red-400 p-2 rounded-lg hover:bg-gray-800 transition-colors">
+                      className="text-ghost hover:text-red-400 p-2 rounded-lg hover:bg-fill transition-colors">
                       <X size={14} />
                     </button>
                   </>
@@ -104,7 +104,7 @@ export default function Poster() {
               </div>
 
               {/* DIN info */}
-              <p className="text-xs text-gray-600 text-center max-w-xs">
+              <p className="text-xs text-ghost text-center max-w-xs">
                 Format DIN vertical (A3: 297×420 mm). La imatge es retallarà per ajustar-se al format.
               </p>
             </>

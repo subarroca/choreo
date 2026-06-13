@@ -266,20 +266,20 @@ export default function Rehearsal() {
   ].filter(Boolean).join(' ') || undefined
 
   if (loading) return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-      <span className="text-gray-500 text-sm">Carregant…</span>
+    <div className="min-h-screen bg-page flex items-center justify-center">
+      <span className="text-faint text-sm">Carregant…</span>
     </div>
   )
 
   if (!steps.length) return (
-    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-4">
-      <p className="text-gray-500 text-sm">No hi ha moments a aquest espectacle.</p>
+    <div className="min-h-screen bg-page flex flex-col items-center justify-center gap-4">
+      <p className="text-faint text-sm">No hi ha moments a aquest espectacle.</p>
       <Link to={`/show/${showId}`} className="text-cyan-400 text-sm hover:underline">Tornar a l'escaleta</Link>
     </div>
   )
 
   return (
-    <div className="bg-gray-950 flex flex-col overflow-hidden select-none" style={{ height: '100dvh' }}>
+    <div className="bg-page flex flex-col overflow-hidden select-none" style={{ height: '100dvh' }}>
 
       {/* Canvas area */}
       <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden p-1 relative"
@@ -304,7 +304,7 @@ export default function Rehearsal() {
 
         {/* Run-through speed selector (only when running) */}
         {running && (
-          <div className="absolute top-2 left-2 flex items-center gap-1 bg-gray-800/90 border border-amber-600/60 rounded-lg px-2 py-1">
+          <div className="absolute top-2 left-2 flex items-center gap-1 bg-fill/90 border border-amber-600/60 rounded-lg px-2 py-1">
             <span className="text-[10px] text-amber-400">Auto</span>
             <select value={runSpeed} onChange={e => setRunSpeed(Number(e.target.value))}
               onClick={e => e.stopPropagation()}
@@ -317,16 +317,16 @@ export default function Rehearsal() {
         {/* Zoom buttons */}
         <div className="absolute top-2 right-2 flex flex-col gap-1">
           <button onClick={() => setZoom(z => Math.min(ZOOM_MAX, +(z + 0.25).toFixed(2)))}
-            className="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-800/80 border border-gray-700 text-gray-400 hover:text-white active:bg-gray-700 transition-colors">
+            className="w-9 h-9 flex items-center justify-center rounded-lg bg-fill/80 border border-line text-muted hover:text-body active:bg-raised transition-colors">
             <ZoomIn size={16} />
           </button>
           <button onClick={() => setZoom(z => Math.max(ZOOM_MIN, +(z - 0.25).toFixed(2)))}
-            className="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-800/80 border border-gray-700 text-gray-400 hover:text-white active:bg-gray-700 transition-colors">
+            className="w-9 h-9 flex items-center justify-center rounded-lg bg-fill/80 border border-line text-muted hover:text-body active:bg-raised transition-colors">
             <ZoomOut size={16} />
           </button>
           {zoom !== 1.0 && (
             <button onClick={() => setZoom(1.0)}
-              className="w-9 h-7 flex items-center justify-center rounded-lg bg-gray-800/80 border border-gray-700 text-gray-500 text-[10px] hover:text-white transition-colors">
+              className="w-9 h-7 flex items-center justify-center rounded-lg bg-fill/80 border border-line text-faint text-[10px] hover:text-body transition-colors">
               1:1
             </button>
           )}
@@ -351,28 +351,28 @@ export default function Rehearsal() {
       )}
 
       {/* Bottom bar */}
-      <div className="flex items-center border-t border-gray-800 bg-gray-900 shrink-0">
+      <div className="flex items-center border-t border-rim bg-pane shrink-0">
         <button onClick={prev} disabled={currentIdx === 0}
-          className="w-16 h-16 flex items-center justify-center text-white disabled:opacity-25 active:bg-gray-800 transition-colors shrink-0">
+          className="w-16 h-16 flex items-center justify-center text-body disabled:opacity-25 active:bg-fill transition-colors shrink-0">
           <ChevronLeft size={30} />
         </button>
 
         <div className="flex-1 min-w-0 flex items-center gap-1 py-1 px-1">
           <div className="flex-1 min-w-0 text-center">
-            <p className="text-[11px] text-gray-500 leading-none truncate">{current?.song.title}</p>
-            <p className="text-sm font-semibold text-white leading-tight truncate">{current?.moment.title}</p>
+            <p className="text-[11px] text-faint leading-none truncate">{current?.song.title}</p>
+            <p className="text-sm font-semibold text-body leading-tight truncate">{current?.moment.title}</p>
           </div>
           <div className="flex items-center gap-0.5 shrink-0">
             <button onClick={() => { setFocusOpen(v => !v); setMenuOpen(false); setGuideOpen(false) }}
               className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-colors ${
-                highlightId ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-gray-700 text-gray-500 hover:text-white'
+                highlightId ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-line text-faint hover:text-body'
               }`}>
               <Crosshair size={15} />
             </button>
             {highlightId && (
               <button onClick={() => { setGuideOpen(v => !v); setFocusOpen(false); setMenuOpen(false) }}
                 className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-colors ${
-                  guideOpen ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-gray-700 text-gray-500 hover:text-white'
+                  guideOpen ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-line text-faint hover:text-body'
                 }`}>
                 <BookOpen size={15} />
               </button>
@@ -380,32 +380,32 @@ export default function Rehearsal() {
             {/* Run-through toggle */}
             <button onClick={() => setRunning(v => !v)}
               className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-colors ${
-                running ? 'border-amber-600 text-amber-400 bg-amber-900/20' : 'border-gray-700 text-gray-500 hover:text-white'
+                running ? 'border-amber-600 text-amber-400 bg-amber-900/20' : 'border-line text-faint hover:text-body'
               }`}
               title="Mode run-through (espai per pausar)">
               {running ? <Pause size={15} /> : <Play size={15} />}
             </button>
             <button onClick={toggleRotated}
               className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-colors ${
-                rotated ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-gray-700 text-gray-500 hover:text-white'
+                rotated ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-line text-faint hover:text-body'
               }`}>
               <RotateCcw size={15} />
             </button>
             <button onClick={() => { setMenuOpen(v => !v); setFocusOpen(false); setGuideOpen(false) }}
               className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-colors ${
-                menuOpen ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-gray-700 text-gray-500 hover:text-white'
+                menuOpen ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-line text-faint hover:text-body'
               }`}>
               <List size={15} />
             </button>
             <Link to={`/show/${showId}`}
-              className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-700 text-gray-500 hover:text-white transition-colors">
+              className="w-10 h-10 flex items-center justify-center rounded-lg border border-line text-faint hover:text-body transition-colors">
               <X size={15} />
             </Link>
           </div>
         </div>
 
         <button onClick={next} disabled={currentIdx >= steps.length - 1}
-          className="w-16 h-16 flex items-center justify-center text-white disabled:opacity-25 active:bg-gray-800 transition-colors shrink-0">
+          className="w-16 h-16 flex items-center justify-center text-body disabled:opacity-25 active:bg-fill transition-colors shrink-0">
           <ChevronRight size={30} />
         </button>
       </div>

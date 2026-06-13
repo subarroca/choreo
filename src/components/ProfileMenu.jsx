@@ -23,7 +23,7 @@ function SectionRow({ label, value, onChange }) {
   ]
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-gray-400 w-24 shrink-0">{label}</span>
+      <span className="text-xs text-muted w-24 shrink-0">{label}</span>
       <div className="flex gap-1">
         {opts.map(({ key, label: lbl, Icon }) => (
           <button
@@ -32,7 +32,7 @@ function SectionRow({ label, value, onChange }) {
             className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
               value === key
                 ? 'bg-cyan-700 text-cyan-100'
-                : 'text-gray-500 hover:text-gray-300 hover:bg-gray-700'
+                : 'text-faint hover:text-soft hover:bg-raised'
             }`}
           >
             <Icon size={10} />
@@ -92,40 +92,40 @@ export default function ProfileMenu({ onSignOut }) {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(v => !v)}
-        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-800 transition-colors ${
+        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-fill transition-colors ${
           isSimulating ? 'ring-1 ring-amber-500/60' : ''
         }`}
       >
         <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
           isSimulating ? 'bg-amber-600' : 'bg-cyan-700'
-        } text-white`}>
+        } text-body`}>
           {initials}
         </div>
-        <span className="hidden md:block text-sm text-gray-300 max-w-[120px] truncate">
+        <span className="hidden md:block text-sm text-soft max-w-[120px] truncate">
           {displayName}
         </span>
-        <ChevronDown size={13} className={`hidden md:block text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown size={13} className={`hidden md:block text-faint transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-72 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-72 bg-pane border border-line rounded-xl shadow-2xl z-50 overflow-hidden">
 
           {/* Capçalera de perfil */}
-          <div className="px-4 py-3 border-b border-gray-800">
+          <div className="px-4 py-3 border-b border-rim">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
                 isSimulating ? 'bg-amber-600' : 'bg-cyan-700'
-              } text-white`}>
+              } text-body`}>
                 {initials}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-white truncate">{profile?.full_name ?? '—'}</p>
-                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                <p className="text-sm font-semibold text-body truncate">{profile?.full_name ?? '—'}</p>
+                <p className="text-xs text-faint truncate">{user?.email}</p>
               </div>
             </div>
             <div className="mt-2">
               <span className={`px-2 py-0.5 rounded text-xs uppercase tracking-wide ${
-                isSimulating ? 'bg-amber-800/50 text-amber-300' : 'bg-gray-700 text-gray-300'
+                isSimulating ? 'bg-amber-800/50 text-amber-300' : 'bg-raised text-soft'
               }`}>
                 {isSimulating ? 'simulació activa' : displayRole}
               </span>
@@ -134,19 +134,19 @@ export default function ProfileMenu({ onSignOut }) {
 
           {/* Controls de simulació (només admin/director) */}
           {isAdmin && (
-            <div className="px-4 py-3 border-b border-gray-800">
+            <div className="px-4 py-3 border-b border-rim">
               <div className="flex items-center justify-between mb-2.5">
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Simular rol</span>
+                <span className="text-xs font-semibold text-muted uppercase tracking-wide">Simular rol</span>
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setPreset('reader')}
-                    className="text-xs px-2 py-0.5 rounded bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors"
+                    className="text-xs px-2 py-0.5 rounded bg-fill text-soft hover:bg-raised transition-colors"
                   >
                     Tot lector
                   </button>
                   <button
                     onClick={() => setPreset('editor')}
-                    className="text-xs px-2 py-0.5 rounded bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors"
+                    className="text-xs px-2 py-0.5 rounded bg-fill text-soft hover:bg-raised transition-colors"
                   >
                     Tot editor
                   </button>
@@ -176,7 +176,7 @@ export default function ProfileMenu({ onSignOut }) {
           {/* Sortir */}
           <button
             onClick={() => { setOpen(false); onSignOut() }}
-            className="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+            className="w-full flex items-center gap-2 px-4 py-3 text-sm text-muted hover:text-body hover:bg-fill transition-colors"
           >
             <LogOut size={14} />
             Tancar sessió

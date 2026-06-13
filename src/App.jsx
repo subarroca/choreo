@@ -1,7 +1,9 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth.jsx'
 import { ChoirProvider } from './hooks/useChoir.jsx'
+import { ThemeProvider } from './hooks/useTheme.jsx'
 import { ConfirmHost } from './components/ui/ConfirmDialog'
+import OfflineBanner from './components/OfflineBanner'
 import Login from './pages/Login'
 import Shows from './pages/Shows'
 import Setlist from './pages/Setlist'
@@ -18,8 +20,8 @@ import Rehearsal from './pages/Rehearsal'
 function RequireAuth({ children }) {
   const { session, loading } = useAuth()
   if (loading) return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-      <span className="text-gray-500 text-sm">Carregant...</span>
+    <div className="min-h-screen bg-page flex items-center justify-center">
+      <span className="text-faint text-sm">Carregant...</span>
     </div>
   )
   if (!session) return <Navigate to="/login" replace />
@@ -48,11 +50,14 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <ChoirProvider>
-        <AppRoutes />
-        <ConfirmHost />
-      </ChoirProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <ChoirProvider>
+          <AppRoutes />
+          <ConfirmHost />
+          <OfflineBanner />
+        </ChoirProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }

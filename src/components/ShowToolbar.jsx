@@ -31,11 +31,11 @@ export default function ShowToolbar({ showId, showName }) {
   const isRiderActive = RIDER_TABS.some(t => pathname.startsWith(base + t.path))
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 border-b border-gray-800 shrink-0">
-      <nav className="flex items-center gap-1.5 text-sm text-gray-500 min-w-0 mr-1 shrink-0">
-        <Link to="/" className="hover:text-gray-300">Espectacles</Link>
+    <div className="flex items-center gap-2 px-4 py-2.5 bg-pane border-b border-rim shrink-0">
+      <nav className="flex items-center gap-1.5 text-sm text-faint min-w-0 mr-1 shrink-0">
+        <Link to="/" className="hover:text-soft">Espectacles</Link>
         <span>/</span>
-        <Link to={base} className="hover:text-gray-300 truncate max-w-[160px]">{showName ?? '…'}</Link>
+        <Link to={base} className="hover:text-soft truncate max-w-[160px]">{showName ?? '…'}</Link>
       </nav>
 
       {/* Scrollable tabs — Rider is outside so its dropdown isn't clipped */}
@@ -49,7 +49,7 @@ export default function ShowToolbar({ showId, showName }) {
           return (
             <Link key={tab.key} to={to}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors ${
-                active ? 'bg-cyan-700/40 text-cyan-300' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                active ? 'bg-cyan-700/40 text-cyan-300' : 'text-muted hover:text-white hover:bg-fill'
               }`}>
               <Icon size={13} />
               {tab.label}
@@ -58,7 +58,7 @@ export default function ShowToolbar({ showId, showName }) {
         })}
 
         <Link to="/members"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors text-gray-400 hover:text-white hover:bg-gray-800">
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors text-muted hover:text-body hover:bg-fill">
           <Users size={13} />
           Persones
         </Link>
@@ -69,7 +69,7 @@ export default function ShowToolbar({ showId, showName }) {
         <button
           onClick={() => setRiderOpen(v => !v)}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors ${
-            isRiderActive ? 'bg-cyan-700/40 text-cyan-300' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+            isRiderActive ? 'bg-cyan-700/40 text-cyan-300' : 'text-muted hover:text-white hover:bg-fill'
           }`}
         >
           <FileText size={13} />
@@ -78,7 +78,7 @@ export default function ShowToolbar({ showId, showName }) {
         </button>
 
         {riderOpen && (
-          <div className="absolute right-0 top-full mt-1 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden min-w-[140px]">
+          <div className="absolute right-0 top-full mt-1 bg-pane border border-line rounded-xl shadow-xl z-50 overflow-hidden min-w-[140px]">
             {RIDER_TABS.map(tab => {
               const to = base + tab.path
               const active = pathname.startsWith(to)
@@ -87,7 +87,7 @@ export default function ShowToolbar({ showId, showName }) {
                 <Link key={tab.key} to={to}
                   onClick={() => setRiderOpen(false)}
                   className={`flex items-center gap-2 px-3 py-2.5 text-xs whitespace-nowrap transition-colors ${
-                    active ? 'bg-cyan-700/40 text-cyan-300' : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                    active ? 'bg-cyan-700/40 text-cyan-300' : 'text-muted hover:text-white hover:bg-fill'
                   }`}>
                   <Icon size={13} />
                   {tab.label}

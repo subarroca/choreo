@@ -19,7 +19,7 @@ export default function EditorCanvas({
             <div className="absolute inset-x-0 top-2 flex justify-center z-10 pointer-events-none">
               <div className="pointer-events-auto flex items-center gap-2 bg-cyan-950/90 border border-cyan-700 text-cyan-200 text-xs px-3 py-1.5 rounded-full shadow-lg">
                 <span>Toca el canvas per col·locar <strong>{pm?.name}</strong></span>
-                <button onClick={() => onSetPendingMemberId(null)} className="text-cyan-400 hover:text-white ml-1">✕</button>
+                <button onClick={() => onSetPendingMemberId(null)} className="text-cyan-400 hover:text-body ml-1">✕</button>
               </div>
             </div>
           )
@@ -41,12 +41,12 @@ export default function EditorCanvas({
             </div>
           )
         })()}
-        <div className="border-t border-gray-800">
+        <div className="border-t border-rim">
           <button
             onClick={onToggleHeightProfile}
-            className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-800/40 transition-colors select-none">
+            className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-faint hover:text-soft hover:bg-fill/40 transition-colors select-none">
             <span className="uppercase tracking-wider font-medium">Perfil d'alçades</span>
-            <span className="text-gray-600">{showHeightProfile ? '▲' : '▼'}</span>
+            <span className="text-ghost">{showHeightProfile ? '▲' : '▼'}</span>
           </button>
           {showHeightProfile && (
             <canvas ref={heightCanvasRef}

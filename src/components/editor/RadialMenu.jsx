@@ -32,7 +32,7 @@ export default function RadialMenu({ x, y, items, hub, onClose }) {
         {hub?.initials ?? ''}
       </div>
       {hub?.label && (
-        <div className="absolute text-xs text-white bg-gray-900/95 border border-gray-700 rounded-full px-3 py-1.5 whitespace-nowrap"
+        <div className="absolute text-xs text-body bg-pane/95 border border-line rounded-full px-3 py-1.5 whitespace-nowrap"
           style={{ left: cx, top: cy + R + BTN / 2 + 12, transform: 'translateX(-50%)' }}>
           {hub.label}
         </div>
@@ -46,8 +46,8 @@ export default function RadialMenu({ x, y, items, hub, onClose }) {
         const cls = it.active
           ? (ACTIVE_CLASSES[it.color] ?? ACTIVE_CLASSES.cyan)
           : it.color === 'red'
-            ? 'border-gray-700 text-red-400 bg-gray-900/95'
-            : 'border-gray-600 text-gray-200 bg-gray-900/95'
+            ? 'border-line text-red-400 bg-pane/95'
+            : 'border-wire text-gray-200 bg-pane/95'
         return (
           <button key={it.id}
             onClick={e => { e.stopPropagation(); it.onSelect() }}

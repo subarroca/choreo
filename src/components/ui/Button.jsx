@@ -1,8 +1,8 @@
 const VARIANTS = {
   primary:   'bg-cyan-600 hover:bg-cyan-500 text-white',
-  secondary: 'border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800',
+  secondary: 'border border-line text-muted hover:text-body hover:bg-fill',
   danger:    'bg-red-600 hover:bg-red-500 text-white',
-  ghost:     'text-gray-400 hover:text-white hover:bg-gray-800',
+  ghost:     'text-muted hover:text-body hover:bg-fill',
 }
 
 // Touch-friendly button (≥44px tall) with the app's standard variants.
