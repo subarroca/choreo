@@ -101,18 +101,12 @@ const auth = {
   },
 }
 
-const storage = new Proxy({}, {
+export const supabase = new Proxy(defaultSupabase, {
   get(_target, key) {
-    const activeStorage = getActiveSupabase().storage
-    const value = activeStorage?.[key]
-    return typeof value === 'function' ? value.bind(activeStorage) : value
+    if (key === 'auth') return auth
+
+    const activeSupabase = getActiveSupabase()
+    const value = activeSupabase[key]
+    return typeof value === 'function' ? value.bind(activeSupabase) : value
   },
 })
-
-export const supabase = {
-  from(...args) {
-    return getActiveSupabase().from(...args)
-  },
-  auth,
-  storage,
-}
