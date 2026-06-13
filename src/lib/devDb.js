@@ -4,6 +4,7 @@
 import { SEED_MEMBERS, SEED_SHOWS, SEED_PARTS, SEED_SONGS, SEED_REPERTOIRE, SEED_MOMENTS, SEED_SECTIONS } from './devSeedData.js'
 import { SEED_POSITIONS } from './devSeedPositions.js'
 import { SEED_LIGHT_CUES, SEED_LIGHT_PRESETS } from './devSeedLights.js'
+import { SEED_REHEARSALS, SEED_ATTENDANCE } from './devSeedAttendance.js'
 
 export const DEV_USER = {
   id: 'dev-user-001',
@@ -204,6 +205,21 @@ function ensureSeedData() {
   const repNeedChoir = repAfterSeed.some(s => !s.choir_id)
   if (repNeedChoir) save('repertoire_songs', repAfterSeed.map(s => s.choir_id ? s : { ...s, choir_id: 'dev-choir-1' }))
 
+  // ── Rehearsals ───────────────────────────────────────────────
+  const existingRehearsals = load('rehearsals')
+  const existingRehIds = new Set(existingRehearsals.map(r => r.id))
+  const toAddReh = SEED_REHEARSALS.filter(r => !existingRehIds.has(r.id))
+  if (toAddReh.length) save('rehearsals', [...existingRehearsals, ...toAddReh])
+
+  // ── Attendance ───────────────────────────────────────────────
+  const existingAtt = load('attendance')
+  const attKey = r => `${r.rehearsal_id}|${r.member_id}`
+  const existingAttKeys = new Set(existingAtt.map(attKey))
+  const toAddAtt = SEED_ATTENDANCE
+    .filter(r => !existingAttKeys.has(attKey(r)))
+    .map(r => ({ id: `att-${r.rehearsal_id}-${r.member_id}`, ...r }))
+  if (toAddAtt.length) save('attendance', [...existingAtt, ...toAddAtt])
+
   // ── Profiles (dev user) ──────────────────────────────────────
   const existingProfiles = load('profiles')
   if (!existingProfiles.find(p => p.id === DEV_USER.id)) {
@@ -234,6 +250,7 @@ class QB {
   insert(data) { this._op = 'insert'; this._payload = data; return this }
   update(data) { this._op = 'update'; this._payload = data; return this }
   delete() { this._op = 'delete'; return this }
+  upsert(data, opts = {}) { this._op = 'upsert'; this._payload = data; this._onConflict = opts.onConflict ?? ''; return this }
 
   eq(col, val) { this._filters.push(['eq', col, val]); return this }
   in(col, vals) { this._filters.push(['in', col, vals]); return this }
@@ -288,6 +305,21 @@ class QB {
     if (op === 'delete') {
       save(this._t, rows.filter(r => !this._match(r)))
       return { data: null, error: null }
+    }
+
+    if (op === 'upsert') {
+      const conflictCols = (this._onConflict || '').split(',').map(s => s.trim()).filter(Boolean)
+      const items = (Array.isArray(this._payload) ? this._payload : [this._payload])
+      const allRows = load(this._t)
+      for (const item of items) {
+        const idx = conflictCols.length
+          ? allRows.findIndex(r => conflictCols.every(col => String(r[col]) === String(item[col])))
+          : -1
+        if (idx >= 0) allRows[idx] = { ...allRows[idx], ...item }
+        else allRows.push({ id: devUuid(), created_at: new Date().toISOString(), ...item })
+      }
+      save(this._t, allRows)
+      return this._single ? { data: items[0], error: null } : { data: items, error: null }
     }
 
     return { data: null, error: null }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Music, Users, Clapperboard, Menu, X, BookOpen, Shield, ChevronDown, Sun, Moon } from 'lucide-react'
+import { Music, Users, Clapperboard, Menu, X, BookOpen, Shield, ChevronDown, Sun, Moon, CalendarDays } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'
 import { useTheme } from '../hooks/useTheme.jsx'
@@ -73,6 +73,9 @@ export default function Layout({ children, fullWidth = false, narrow = false }) 
             <Link to="/" className={navLinkCls('/')}>
               <Clapperboard size={14} /> Espectacles
             </Link>
+            <Link to="/assistencia" className={navLinkCls('/assistencia')}>
+              <CalendarDays size={14} /> Assistència
+            </Link>
             {canViewMembers && (
               <Link to="/members" className={navLinkCls('/members')}>
                 <Users size={14} /> Persones
@@ -116,6 +119,9 @@ export default function Layout({ children, fullWidth = false, narrow = false }) 
               )}
               <Link to="/" className={mobileNavLinkCls('/')}>
                 <Clapperboard size={16} /> Espectacles
+              </Link>
+              <Link to="/assistencia" className={mobileNavLinkCls('/assistencia')}>
+                <CalendarDays size={16} /> Assistència
               </Link>
               {canViewMembers && (
                 <Link to="/members" className={mobileNavLinkCls('/members')}>

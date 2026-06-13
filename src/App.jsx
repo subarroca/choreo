@@ -42,7 +42,7 @@ function AppRoutes() {
       <Route path="/show/:id/rider" element={<RequireAuth><Rider /></RequireAuth>} />
       <Route path="/show/:id/poster" element={<RequireAuth><Poster /></RequireAuth>} />
       <Route path="/show/:id/assaig" element={<RequireAuth><Rehearsal /></RequireAuth>} />
-      <Route path="/show/:id/assistencia" element={<RequireAuth><Attendance /></RequireAuth>} />
+      <Route path="/assistencia" element={<RequireAuth><Attendance /></RequireAuth>} />
       <Route path="/songs" element={<RequireAuth><Songs /></RequireAuth>} />
       <Route path="/admin" element={<RequireAuth><Admin /></RequireAuth>} />
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ListOrdered, Users, ImageIcon, MicVocal, Lightbulb, FileText, ChevronDown, PlayCircle, CalendarDays } from 'lucide-react'
+import { ListOrdered, Users, ImageIcon, MicVocal, Lightbulb, FileText, ChevronDown, PlayCircle } from 'lucide-react'
 
 const MAIN_TABS = [
-  { key: 'setlist',     path: '',              label: 'Escaleta',   icon: ListOrdered },
-  { key: 'assaig',      path: '/assaig',       label: 'Assaig',     icon: PlayCircle  },
-  { key: 'assistencia', path: '/assistencia',  label: 'Assistència', icon: CalendarDays },
-  { key: 'poster',      path: '/poster',       label: 'Pòster',     icon: ImageIcon   },
+  { key: 'setlist', path: '',       label: 'Escaleta', icon: ListOrdered },
+  { key: 'assaig',  path: '/assaig', label: 'Assaig',   icon: PlayCircle  },
+  { key: 'poster',  path: '/poster', label: 'Pòster',   icon: ImageIcon   },
 ]
 
 const RIDER_TABS = [
