@@ -303,38 +303,41 @@ function drawFollowspots(app, W, Y_BACK, Y_FRONT, followspots, tokens, FS_X) {
   for (let i = 0; i < followspots.length; i++) {
     const fs = followspots[i]
     const target = fs.member_id ? tokens.find(tk => tk.m.id === fs.member_id) : null
-    let tx, feetY, faceY
+    let tx, feetY
     if (target) {
       tx = xScreen(target.xNorm, target.t, W)
       feetY = lerp(Y_BACK, Y_FRONT, target.t) - target.elev
-      faceY = feetY - target.h * 0.75
     } else {
       tx = xScreen(FS_X[fs.position] ?? 0.5, 0.85, W)
       feetY = Y_FRONT - 6
-      faceY = feetY - 30
     }
+    // Apex centrat a dalt, repartit per nombre de canons
     const apexX = W / 2 + (i - (followspots.length - 1) / 2) * 90
-    const apexY = -8  // Posició dels canons fora del canvas (simulant sostre)
+    const apexY = -8
+    const floorY = feetY + 5
+    const halfBot = 32
 
+    // Con complet des del sostre fins al terra (pool)
     const cone = new Graphics()
-    cone.poly([apexX - 6, apexY, apexX + 6, apexY, tx + 30, faceY + 12, tx - 30, faceY + 12])
-    cone.fill({ color: 0xfef3c7, alpha: 0.16 })
+    cone.poly([apexX - 6, apexY, apexX + 6, apexY, tx + halfBot, floorY, tx - halfBot, floorY])
+    cone.fill({ color: 0xfef3c7, alpha: 0.14 })
     app.stage.addChild(cone)
 
     const cg = new Graphics()
-    cg.poly([apexX - 3, apexY, apexX + 3, apexY, tx + 20, faceY + 8, tx - 20, faceY + 8])
-    cg.fill({ color: 0xfef3c7, alpha: 0.10 })
+    cg.poly([apexX - 3, apexY, apexX + 3, apexY, tx + halfBot * 0.6, floorY, tx - halfBot * 0.6, floorY])
+    cg.fill({ color: 0xfef3c7, alpha: 0.08 })
     cg.filters = [new BlurFilter({ strength: 10, quality: 3 })]
     app.stage.addChild(cg)
 
+    // Pool al terra — coincideix exactament amb la base del con
     const pool = new Graphics()
-    pool.ellipse(tx, feetY + 5, 32, 10)
+    pool.ellipse(tx, floorY, halfBot, 10)
     pool.fill({ color: 0xfef3c7, alpha: 0.35 })
     pool.filters = [new BlurFilter({ strength: 8, quality: 3 })]
     app.stage.addChild(pool)
 
     const bright = new Graphics()
-    bright.ellipse(tx, feetY + 5, 18, 6)
+    bright.ellipse(tx, floorY, halfBot * 0.55, 6)
     bright.fill({ color: 0xffffff, alpha: 0.20 })
     bright.filters = [new BlurFilter({ strength: 4, quality: 2 })]
     app.stage.addChild(bright)
