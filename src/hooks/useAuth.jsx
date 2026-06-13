@@ -21,9 +21,10 @@ function defaultPermissions(role) {
 }
 
 export function AuthProvider({ children }) {
-  const [session, setSession]         = useState(undefined)
-  const [profile, setProfile]         = useState(null)
-  const [permissions, setPermissions] = useState(null)
+  const [session, setSession]               = useState(undefined)
+  const [profile, setProfile]               = useState(null)
+  const [permissions, setPermissions]       = useState(null)
+  const [simulatedPermissions, setSimulatedPermissions] = useState(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -68,12 +69,18 @@ export function AuthProvider({ children }) {
 
   const role = profile?.role ?? session?.user?.user_metadata?.role ?? 'member'
 
+  const effectivePermissions = simulatedPermissions ?? permissions ?? defaultPermissions(role)
+
   const value = {
     session,
     user: session?.user ?? null,
     profile,
     role,
-    permissions: permissions ?? defaultPermissions(role),
+    permissions: effectivePermissions,
+    simulatedPermissions,
+    setSimulatedPermissions,
+    isSimulating: simulatedPermissions !== null,
+    exitSimulation: () => setSimulatedPermissions(null),
     loading: session === undefined,
     signOut: () => supabase.auth.signOut(),
   }
