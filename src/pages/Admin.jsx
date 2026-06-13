@@ -3,13 +3,24 @@ import { Shield, Check, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import Layout from '../components/Layout'
+import PageContainer from '../components/ui/PageContainer'
+import PageHeader from '../components/ui/PageHeader'
+import EmptyState from '../components/ui/EmptyState'
+import ListRow from '../components/ui/ListRow'
 import { useNavigate } from 'react-router-dom'
+import { ICON } from '../lib/ui'
 
 const SECTIONS = [
   { key: 'shows',      label: 'Espectacles' },
   { key: 'members',    label: 'Membres' },
   { key: 'repertoire', label: 'Repertori' },
 ]
+
+const ROLE_BADGE = {
+  admin:    'bg-red-900/40 text-red-400 border-red-800',
+  director: 'bg-cyan-900/40 text-cyan-400 border-cyan-800',
+  member:   'bg-fill text-faint border-line',
+}
 
 function PermToggle({ active, onChange, label }) {
   return (
@@ -19,7 +30,7 @@ function PermToggle({ active, onChange, label }) {
           ? 'bg-cyan-900/30 border-cyan-700 text-cyan-400'
           : 'bg-fill border-line text-ghost hover:text-muted'
       }`}>
-      {active ? <Check size={13} /> : <X size={13} />}
+      {active ? <Check size={ICON.xs + 1} /> : <X size={ICON.xs + 1} />}
       {label}
     </button>
   )
@@ -28,12 +39,11 @@ function PermToggle({ active, onChange, label }) {
 export default function Admin() {
   const { role } = useAuth()
   const navigate = useNavigate()
-  const [users, setUsers]   = useState([])
-  const [perms, setPerms]   = useState({})   // { userId: { shows: {view,edit}, … } }
+  const [users, setUsers]     = useState([])
+  const [perms, setPerms]     = useState({})
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(null)
 
-  // Guard: only admins
   useEffect(() => {
     if (role && role !== 'admin' && role !== 'director') navigate('/')
   }, [role])
@@ -43,7 +53,6 @@ export default function Admin() {
       const { data: profiles } = await supabase
         .from('profiles').select('id, full_name, email, role').order('full_name')
       const { data: permRows } = await supabase.from('user_permissions').select('*')
-
       const permMap = {}
       for (const p of profiles ?? []) {
         permMap[p.id] = {
@@ -65,66 +74,56 @@ export default function Admin() {
   }, [])
 
   async function togglePerm(userId, section, field, value) {
-    // Optimistic update
     setPerms(prev => ({
       ...prev,
-      [userId]: {
-        ...prev[userId],
-        [section]: { ...prev[userId][section], [field]: value }
-      }
+      [userId]: { ...prev[userId], [section]: { ...prev[userId][section], [field]: value } }
     }))
-
     const current = perms[userId]?.[section] ?? { view: true, edit: false }
     const updated = { ...current, [field]: value }
-
-    await supabase.from('user_permissions').upsert({
-      user_id: userId,
-      section,
-      can_view: updated.view,
-      can_edit: updated.edit,
-    }, { onConflict: 'user_id,section' })
-  }
-
-  const ROLE_BADGE = {
-    admin:    'bg-red-900/40 text-red-400 border-red-800',
-    director: 'bg-purple-900/40 text-purple-400 border-purple-800',
-    member:   'bg-fill text-faint border-line',
+    await supabase.from('user_permissions').upsert(
+      { user_id: userId, section, can_view: updated.view, can_edit: updated.edit },
+      { onConflict: 'user_id,section' }
+    )
   }
 
   return (
     <Layout narrow>
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <Shield size={20} className="text-cyan-400" />
-          <h1 className="text-2xl font-bold text-body">Gestió d'usuaris</h1>
-        </div>
-
+      <PageContainer
+        header={
+          <PageHeader title="Gestió d'usuaris" icon={Shield} />
+        }
+      >
         {loading ? (
-          <p className="text-faint text-sm">Carregant...</p>
+          <p className="text-faint text-sm py-8">Carregant...</p>
         ) : users.length === 0 ? (
-          <p className="text-faint text-sm">Cap usuari registrat.</p>
+          <EmptyState icon={Shield} title="Cap usuari registrat." />
         ) : (
-          <div className="space-y-2">
+          <div className="divide-y divide-rim">
             {users.map(u => {
               const isAdmin = u.role === 'admin' || u.role === 'director'
               const isOpen  = expanded === u.id
               const uPerms  = perms[u.id] ?? {}
+
               return (
-                <div key={u.id} className="bg-pane border border-rim rounded-xl overflow-hidden">
-                  <div onClick={() => setExpanded(isOpen ? null : u.id)}
-                    className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-fill/40 transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-body font-medium truncate">{u.full_name || u.email}</p>
-                      {u.full_name && <p className="text-xs text-faint truncate">{u.email}</p>}
-                    </div>
-                    <span className={`text-xs px-2 py-0.5 rounded border ${ROLE_BADGE[u.role] ?? ROLE_BADGE.member}`}>
-                      {u.role ?? 'member'}
-                    </span>
-                    {isOpen ? <ChevronUp size={14} className="text-ghost shrink-0" /> : <ChevronDown size={14} className="text-ghost shrink-0" />}
-                  </div>
+                <div key={u.id}>
+                  <ListRow
+                    onClick={() => setExpanded(isOpen ? null : u.id)}
+                    title={u.full_name || u.email}
+                    meta={u.full_name ? u.email : null}
+                    trailing={
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs px-2 py-0.5 rounded border ${ROLE_BADGE[u.role] ?? ROLE_BADGE.member}`}>
+                          {u.role ?? 'member'}
+                        </span>
+                        {isOpen
+                          ? <ChevronUp size={ICON.sm} className="text-ghost" />
+                          : <ChevronDown size={ICON.sm} className="text-ghost" />}
+                      </div>
+                    }
+                  />
 
                   {isOpen && (
-                    <div className="border-t border-rim px-4 py-3 bg-black/20">
+                    <div className="px-3 py-3 bg-fill/30 border-t border-rim">
                       {isAdmin ? (
                         <p className="text-xs text-faint italic">Accés total (rol {u.role}). Els permisos no s'apliquen.</p>
                       ) : (
@@ -153,7 +152,7 @@ export default function Admin() {
             })}
           </div>
         )}
-      </div>
+      </PageContainer>
     </Layout>
   )
 }

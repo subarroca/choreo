@@ -1,14 +1,21 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Clapperboard, Pencil, Trash2, ImageIcon, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Clapperboard, Pencil, Trash2, ImageIcon, X, Plus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'
 import Layout from '../components/Layout'
+import Modal from '../components/ui/Modal'
+import PageContainer from '../components/ui/PageContainer'
+import PageHeader from '../components/ui/PageHeader'
+import EmptyState from '../components/ui/EmptyState'
+import Button from '../components/ui/Button'
+import { inputCls, labelCls } from '../components/ui/Input'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
+import { ICON } from '../lib/ui'
 
-function ShowForm({ initial, onSave, onCancel }) {
+function ShowForm({ initial, onSave, onCancel, onDelete }) {
   const [name, setName] = useState(initial?.name ?? '')
   const [date, setDate] = useState(initial?.date ?? '')
   const [venue, setVenue] = useState(initial?.venue ?? '')
@@ -41,52 +48,55 @@ function ShowForm({ initial, onSave, onCancel }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="space-y-1">
-          <label className="text-xs text-muted">Nom *</label>
-          <input value={name} onChange={e => setName(e.target.value)} required placeholder="Condal 2026"
-            className="w-full bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300" />
+          <label className={labelCls}>Nom *</label>
+          <input value={name} onChange={e => setName(e.target.value)} required
+            placeholder="Condal 2026" className={inputCls} />
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-muted">Data</label>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            className="w-full bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300" />
+          <label className={labelCls}>Data</label>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} className={inputCls} />
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-muted">Sala</label>
-          <input value={venue} onChange={e => setVenue(e.target.value)} placeholder="Gran Teatre del Liceu"
-            className="w-full bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300" />
+          <label className={labelCls}>Sala</label>
+          <input value={venue} onChange={e => setVenue(e.target.value)}
+            placeholder="Gran Teatre del Liceu" className={inputCls} />
         </div>
       </div>
 
       <div className="flex items-start gap-3">
         <div className="space-y-1 flex-1">
-          <label className="text-xs text-muted">Poster</label>
+          <label className={labelCls}>Poster</label>
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => fileRef.current?.click()}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line text-xs text-muted hover:text-body hover:border-wire transition-colors">
-              <ImageIcon size={14} /> {uploading ? 'Pujant…' : 'Triar imatge'}
+              <ImageIcon size={ICON.sm} /> {uploading ? 'Pujant…' : 'Triar imatge'}
             </button>
             {posterPreview && (
               <button type="button" onClick={() => { setPosterUrl(''); setPosterPreview('') }}
-                className="text-ghost hover:text-red-400 transition-colors p-2"><X size={14} /></button>
+                className="text-ghost hover:text-red-400 transition-colors p-2">
+                <X size={ICON.sm} />
+              </button>
             )}
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePosterChange} />
           </div>
         </div>
         {posterPreview && (
-          <img src={posterPreview} alt="Poster" className="w-16 h-20 object-cover rounded-lg border border-line shrink-0" />
+          <img src={posterPreview} alt="Poster"
+            className="w-16 h-20 object-cover rounded-lg border border-line shrink-0" />
         )}
       </div>
 
-      <div className="flex gap-2">
-        <button type="submit" className="bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-1.5 rounded-lg transition-colors">
-          Guardar
-        </button>
-        <button type="button" onClick={onCancel} className="text-muted hover:text-body text-sm px-4 py-1.5 rounded-lg transition-colors">
-          Cancel·lar
-        </button>
+      <div className="flex items-center gap-2 pt-1">
+        <Button type="submit">Guardar</Button>
+        <Button type="button" variant="ghost" onClick={onCancel}>Cancel·lar</Button>
+        {onDelete && (
+          <Button type="button" variant="danger" onClick={onDelete} className="ml-auto">
+            Eliminar
+          </Button>
+        )}
       </div>
     </form>
   )
@@ -110,11 +120,11 @@ function ShowCard({ show, canEdit, onEdit, onDelete, onClick }) {
           <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button onClick={e => { e.stopPropagation(); onEdit() }}
               className="p-1.5 rounded-lg bg-page/80 text-muted hover:text-body transition-colors backdrop-blur-sm">
-              <Pencil size={12} />
+              <Pencil size={ICON.xs} />
             </button>
             <button onClick={e => { e.stopPropagation(); onDelete() }}
               className="p-1.5 rounded-lg bg-page/80 text-faint hover:text-red-400 transition-colors backdrop-blur-sm">
-              <Trash2 size={12} />
+              <Trash2 size={ICON.xs} />
             </button>
           </div>
         )}
@@ -155,60 +165,44 @@ export default function Shows() {
     const payload = { ...fields, created_by: user.id }
     if (currentChoirId) payload.choir_id = currentChoirId
     const { data, error } = await supabase.from('shows').insert(payload).select().single()
-    if (!error) {
-      setShows(prev => [data, ...prev])
-      setFormShow(null)
-    }
+    if (!error) { setShows(prev => [data, ...prev]); setFormShow(null) }
   }
 
   async function handleUpdate(id, fields) {
     const { data, error } = await supabase.from('shows').update(fields).eq('id', id).select().single()
-    if (!error) {
-      setShows(prev => prev.map(s => s.id === id ? data : s))
-      setFormShow(null)
-    }
+    if (!error) { setShows(prev => prev.map(s => s.id === id ? data : s)); setFormShow(null) }
   }
 
   async function handleDelete(id) {
     if (!(await confirmDialog('Eliminar aquest espectacle?'))) return
     await supabase.from('shows').delete().eq('id', id)
     setShows(prev => prev.filter(s => s.id !== id))
+    setFormShow(null)
   }
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-body">Espectacles</h1>
-          {!formShow && canEdit && (
-            <button onClick={() => setFormShow('new')}
-              className="bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-              + Nou espectacle
-            </button>
-          )}
-        </div>
-
-        {formShow && (
-          <div className="bg-pane border border-line rounded-xl p-4">
-            <h3 className="text-sm font-medium text-soft mb-3">
-              {formShow === 'new' ? 'Nou espectacle' : `Editar: ${formShow.name}`}
-            </h3>
-            <ShowForm
-              initial={formShow === 'new' ? null : formShow}
-              onSave={formShow === 'new' ? handleCreate : fields => handleUpdate(formShow.id, fields)}
-              onCancel={() => setFormShow(null)}
-            />
-          </div>
-        )}
-
+      <PageContainer
+        header={
+          <PageHeader
+            title="Espectacles"
+            icon={Clapperboard}
+            actions={canEdit && (
+              <Button onClick={() => setFormShow('new')}>
+                <Plus size={ICON.sm} /> Nou espectacle
+              </Button>
+            )}
+          />
+        }
+      >
         {loading ? (
-          <p className="text-faint">Carregant...</p>
+          <p className="text-faint text-sm py-8">Carregant...</p>
         ) : shows.length === 0 ? (
-          <div className="text-center py-16 text-faint">
-            <Clapperboard size={40} className="mx-auto mb-4 opacity-30" />
-            <p>Encara no hi ha cap espectacle.</p>
-            <p className="text-sm mt-1">Crea el primer amb el botó de dalt.</p>
-          </div>
+          <EmptyState
+            icon={Clapperboard}
+            title="Encara no hi ha cap espectacle."
+            hint={canEdit ? 'Crea el primer amb el botó de dalt.' : undefined}
+          />
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {shows.map(show => (
@@ -223,7 +217,20 @@ export default function Shows() {
             ))}
           </div>
         )}
-      </div>
+      </PageContainer>
+
+      <Modal
+        open={!!formShow}
+        onClose={() => setFormShow(null)}
+        title={formShow === 'new' ? 'Nou espectacle' : 'Editar espectacle'}
+      >
+        <ShowForm
+          initial={formShow === 'new' ? null : formShow}
+          onSave={formShow === 'new' ? handleCreate : fields => handleUpdate(formShow?.id, fields)}
+          onCancel={() => setFormShow(null)}
+          onDelete={formShow && formShow !== 'new' ? () => handleDelete(formShow.id) : undefined}
+        />
+      </Modal>
     </Layout>
   )
 }

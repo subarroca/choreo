@@ -4,7 +4,10 @@ import { Plus, Menu, ListOrdered, AlignLeft, Play, Hash } from 'lucide-react'
 import Layout from '../components/Layout'
 import ShowToolbar from '../components/ShowToolbar'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
-import Sheet from '../components/ui/Sheet'
+import Modal from '../components/ui/Modal'
+import Button from '../components/ui/Button'
+import { inputCls } from '../components/ui/Input'
+import { ICON } from '../lib/ui'
 import { useLightCues } from '../hooks/useLightCues'
 import { nextCueNumber, sortCues, lyricsLines } from '../lib/lights'
 import { isSongType, repertoireType } from '../lib/repertoireTypes'
@@ -24,22 +27,21 @@ const NEW_CUE_DEFAULTS = {
 function LyricsEditor({ repSong, onSave, onClose }) {
   const [text, setText] = useState(repSong?.lyrics ?? '')
   return (
-    <Sheet open onClose={onClose} title={`Lletra — ${repSong.title}`} width="lg"
+    <Modal open onClose={onClose} title={`Lletra — ${repSong.title}`} width="lg"
       footer={
         <div className="flex gap-2">
-          <button onClick={() => { onSave(text); onClose() }}
-            className="bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors">Guardar</button>
-          <button onClick={onClose} className="text-muted hover:text-body text-sm px-4 py-2 rounded-lg transition-colors">Cancel·lar</button>
+          <Button onClick={() => { onSave(text); onClose() }}>Guardar</Button>
+          <Button variant="ghost" onClick={onClose}>Cancel·lar</Button>
         </div>
       }
     >
       <div className="flex flex-col gap-3 h-full">
         <textarea value={text} onChange={e => setText(e.target.value)} autoFocus
           placeholder={'Una línia per vers.\nLes línies buides separen estrofes.'}
-          className="flex-1 min-h-[400px] w-full bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300 placeholder-gray-600 resize-none leading-relaxed" />
+          className={inputCls + ' flex-1 min-h-[400px] resize-none leading-relaxed'} />
         <p className="text-xs text-ghost">Els cues queden ancorats al número de línia: si afegeixes o esborres línies enmig, revisa els ancoratges.</p>
       </div>
-    </Sheet>
+    </Modal>
   )
 }
 
@@ -146,16 +148,16 @@ export default function Lights() {
         <div className="flex items-center gap-2 px-4 py-2 bg-pane border-b border-rim shrink-0">
           <button onClick={() => setSidebarOpen(v => !v)}
             className="lg:hidden p-1.5 rounded-lg text-muted hover:text-body hover:bg-fill transition-colors shrink-0">
-            <Menu size={18} />
+            <Menu size={ICON.lg} />
           </button>
           <div className="flex rounded-lg border border-line overflow-hidden">
             <button onClick={() => setView('score')}
               className={`flex items-center gap-1.5 px-3 py-2 text-xs transition-colors ${view === 'score' ? 'bg-cyan-700/40 text-cyan-300' : 'text-muted hover:text-white'}`}>
-              <AlignLeft size={13} /> Partitura
+              <AlignLeft size={ICON.sm} /> Partitura
             </button>
             <button onClick={() => setView('table')}
               className={`flex items-center gap-1.5 px-3 py-2 text-xs transition-colors border-l border-line ${view === 'table' ? 'bg-cyan-700/40 text-cyan-300' : 'text-muted hover:text-white'}`}>
-              <ListOrdered size={13} /> Taula
+              <ListOrdered size={ICON.sm} /> Taula
             </button>
           </div>
           {saving && <span className="text-xs text-ghost">Guardant…</span>}
@@ -163,19 +165,18 @@ export default function Lights() {
             {cues.length > 0 && (
               <button onClick={renumberCues} title="Reassignar memòries consecutivament (1, 2, 3...)"
                 className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-line text-muted hover:text-body hover:bg-fill transition-colors">
-                <Hash size={13} /> Renumerar
+                <Hash size={ICON.sm} /> Renumerar
               </button>
             )}
             {selectedSong && (
               <button onClick={() => setPlayerOpen(true)}
                 className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-line text-muted hover:text-body hover:bg-fill transition-colors">
-                <Play size={13} /> Reproduir
+                <Play size={ICON.sm} /> Reproduir
               </button>
             )}
-            <button onClick={handleCreateCue}
-              className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-300 text-white text-xs px-3 py-2 rounded-lg transition-colors">
-              <Plus size={13} /> Cue
-            </button>
+            <Button onClick={handleCreateCue}>
+              <Plus size={ICON.sm} /> Cue
+            </Button>
           </div>
         </div>
 
@@ -197,7 +198,7 @@ export default function Lights() {
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
                       s.id === selectedSongId ? 'bg-cyan-700/30 text-cyan-200' : 'text-muted hover:text-white hover:bg-fill'}`}>
                     <span className="text-xs text-ghost w-5 shrink-0">{i + 1}.</span>
-                    {isSection && <Icon size={13} className={`shrink-0 ${rt.color}`} />}
+                    {isSection && <Icon size={ICON.sm} className={`shrink-0 ${rt.color}`} />}
                     <span className="flex-1 truncate">{s.title}</span>
                     {cueCountBySong[s.id] > 0 && (
                       <span className="text-xs text-faint bg-fill rounded-full px-1.5 py-0.5 shrink-0">{cueCountBySong[s.id]}</span>

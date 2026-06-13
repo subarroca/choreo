@@ -1,18 +1,23 @@
 import { useState } from 'react'
-import { Mic, ChevronDown, ChevronUp, Plus, Search } from 'lucide-react'
+import { Users, ChevronDown, ChevronUp, Plus, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
 import Layout from '../components/Layout'
+import PageContainer from '../components/ui/PageContainer'
+import PageHeader from '../components/ui/PageHeader'
+import EmptyState from '../components/ui/EmptyState'
+import ListRow from '../components/ui/ListRow'
+import Avatar, { memberInitials } from '../components/ui/Avatar'
+import Button from '../components/ui/Button'
 import PersonProfileOverlay from '../components/PersonProfileOverlay'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
+import { ICON } from '../lib/ui'
 
 const VOICE_ORDER = ['soprano1','soprano2','alto1','alto2','tenor1','tenor2','baritone','bass']
-const ALL_VOICES = VOICE_ORDER
 
-// ─── Helpers ──────────────────────────────────────────────────
 function calcAge(birth_date) {
   if (!birth_date) return null
   const b = new Date(birth_date), now = new Date()
@@ -20,19 +25,44 @@ function calcAge(birth_date) {
   if (now.getMonth() < b.getMonth() || (now.getMonth() === b.getMonth() && now.getDate() < b.getDate())) age--
   return age
 }
-function deriveInitials(fn, ln) {
-  return ((fn?.trim()[0] ?? '') + (ln?.trim()[0] ?? '')).toUpperCase() || '?'
+
+function MemberMeta({ member }) {
+  const parts = [VOICE_LABELS[member.voice]].filter(Boolean)
+  const age = calcAge(member.birth_date)
+  if (age != null) parts.push(`${age} a.`)
+  if (member.height) parts.push(`${member.height} cm`)
+  return parts.join(' · ')
 }
 
-// ─── Main page ────────────────────────────────────────────────
+function MemberRow({ member, onClick, dim = false }) {
+  const c = VOICE_COLORS[member.voice] ?? VOICE_COLORS.extra
+  const label = member.last_name
+    ? <><span className="font-semibold">{member.last_name}</span>{member.first_name ? `, ${member.first_name}` : ''}</>
+    : <span className="font-medium">{member.name}</span>
+
+  return (
+    <ListRow
+      onClick={onClick}
+      className={dim ? 'opacity-50 hover:opacity-75' : ''}
+      leading={<Avatar member={member} size="sm" />}
+      title={<span className={dim ? 'line-through' : ''}>{label}</span>}
+      meta={
+        dim
+          ? <span className="text-amber-600 dark:text-amber-400">De baixa</span>
+          : <span style={{ color: c.bg }}><MemberMeta member={member} /></span>
+      }
+    />
+  )
+}
+
 export default function Members() {
   const { permissions, role } = useAuth()
   const { currentChoirId } = useChoir()
   const canEdit = role === 'admin' || role === 'director' || permissions?.members?.edit
   const [showInactive, setShowInactive] = useState(false)
-  const [filterVoice, setFilterVoice] = useState('')
-  const [search, setSearch]           = useState('')
-  const [overlayMember, setOverlayMember] = useState(null)   // member obj or 'new'
+  const [filterVoice, setFilterVoice]   = useState('')
+  const [search, setSearch]             = useState('')
+  const [overlayMember, setOverlayMember] = useState(null) // member obj | 'new'
 
   const { data: members = [], setData: setMembers, loading } = useSupabaseQuery(async () => {
     let q = supabase.from('members').select('*').order('last_name').order('first_name')
@@ -63,14 +93,9 @@ export default function Members() {
   }
 
   async function handleSetActive(id, active) {
-    const fields = active
-      ? { active: true, left_at: null }
-      : { active: false, left_at: new Date().toISOString() }
+    const fields = active ? { active: true, left_at: null } : { active: false, left_at: new Date().toISOString() }
     const { data, error } = await supabase.from('members').update(fields).eq('id', id).select().single()
-    if (!error) {
-      setMembers(prev => prev.map(m => m.id === id ? data : m))
-      setOverlayMember(data)
-    }
+    if (!error) { setMembers(prev => prev.map(m => m.id === id ? data : m)); setOverlayMember(data) }
   }
 
   async function handleDelete(id) {
@@ -82,7 +107,7 @@ export default function Members() {
 
   const activeMembers   = members.filter(m => m.active !== false)
   const inactiveMembers = members.filter(m => m.active === false)
-  const voiceCounts = ALL_VOICES.reduce((acc, v) => {
+  const voiceCounts = VOICE_ORDER.reduce((acc, v) => {
     acc[v] = activeMembers.filter(m => m.voice === v).length; return acc
   }, {})
   const searchLower = search.toLowerCase()
@@ -98,129 +123,88 @@ export default function Members() {
 
   return (
     <Layout narrow>
-      <div className="space-y-4">
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-bold text-body">Persones</h1>
-          <span className="text-xs text-ghost">ordenades per cognom</span>
-        </div>
-
-        {/* ── Header ── */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="flex-1 relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
-              <input value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Cerca per nom…"
-                className="w-full bg-fill border border-line rounded-lg pl-8 pr-3 py-2 text-sm text-body placeholder-gray-600 focus:outline-none focus:border-cyan-300" />
-            </div>
-            {canEdit && (
-              <button onClick={() => setOverlayMember('new')}
-                className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors shrink-0">
-                <Plus size={14} /> Afegir
-              </button>
+      <PageContainer
+        header={
+          <PageHeader
+            title="Persones"
+            icon={Users}
+            subtitle="ordenades per cognom"
+            actions={canEdit && (
+              <Button onClick={() => setOverlayMember('new')}>
+                <Plus size={ICON.sm} /> Afegir
+              </Button>
             )}
-          </div>
-
-          {/* Voice filter */}
-          <div className="flex flex-wrap gap-1.5">
-            <button onClick={() => setFilterVoice('')}
-              className={`px-3 py-1 rounded-full text-xs border transition-colors ${!filterVoice ? 'border-cyan-600 text-cyan-400' : 'border-line text-faint hover:text-body'}`}>
-              Totes <span className="text-ghost ml-1">{activeMembers.length}</span>
-            </button>
-            {ALL_VOICES.filter(v => voiceCounts[v] > 0).map(v => {
-              const c = VOICE_COLORS[v]
-              return (
-                <button key={v} onClick={() => setFilterVoice(filterVoice === v ? '' : v)}
-                  className="px-3 py-1 rounded-full text-xs border transition-all font-medium"
-                  style={filterVoice === v
-                    ? { color: c.bg, borderColor: c.bg }
-                    : { color: c.bg + 'aa', borderColor: c.bg + '44' }}>
-                  {VOICE_LABELS[v]} <span className="opacity-70 ml-0.5">{voiceCounts[v]}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* ── List ── */}
-        <div className="space-y-2">
-          {loading ? (
-            <p className="text-faint text-sm py-4">Carregant...</p>
-          ) : listMembers.length === 0 ? (
-            <div className="text-center py-16 text-ghost">
-              <Mic size={32} className="mx-auto mb-3 opacity-30" />
-              <p className="text-sm">Cap persona aquí.</p>
-            </div>
-          ) : (
-            listMembers.map(m => {
-              const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
-              const age = calcAge(m.birth_date)
-              return (
-                <div key={m.id} onClick={() => setOverlayMember(m)}
-                  className="bg-pane rounded-xl flex items-center gap-3 px-3 hover:bg-fill/50 cursor-pointer transition-colors">
-                  <span className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 my-3"
-                    style={{ backgroundColor: c.bg, color: c.fg }}>
-                    {(m.initials || deriveInitials(m.first_name, m.last_name)).slice(0, 3)}
-                  </span>
-                  <div className="flex-1 min-w-0 py-3">
-                    <div className="text-sm text-body truncate">
-                      {m.last_name
-                        ? <><span className="font-semibold">{m.last_name}</span>{m.first_name ? `, ${m.first_name}` : ''}</>
-                        : <span className="font-medium">{m.name}</span>
-                      }
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs font-medium" style={{ color: c.bg }}>
-                        {VOICE_LABELS[m.voice]}
-                      </span>
-                      {age != null && <span className="text-xs text-ghost">{age} a.</span>}
-                      {m.height && <span className="text-xs text-ghost">{m.height} cm</span>}
-                    </div>
-                  </div>
-              </div>
-              )
-            })
-          )}
-
-          {/* Inactive section */}
-          {inactiveMembers.length > 0 && (
-            <div className="pt-2">
-              <button onClick={() => setShowInactive(v => !v)}
-                className="flex items-center gap-2 px-1 py-2 text-xs text-yellow-700 hover:text-yellow-500 transition-colors w-full">
-                {showInactive ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                De baixa ({inactiveMembers.length})
-              </button>
-              {showInactive && (
-                <div className="space-y-2 mt-1">
-                  {inactiveMembers.map(m => {
-                    const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
+            tabs={
+              <div className="space-y-2 py-2">
+                {/* Search */}
+                <div className="relative">
+                  <Search size={ICON.sm} className="absolute left-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
+                  <input
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="Cerca per nom…"
+                    className="w-full bg-fill border border-line rounded-lg pl-8 pr-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                {/* Voice filter pills */}
+                <div className="flex flex-wrap gap-1.5 pb-0.5">
+                  <button
+                    onClick={() => setFilterVoice('')}
+                    className={`px-3 py-1 rounded-full text-xs border transition-colors ${!filterVoice ? 'border-cyan-600 text-cyan-400' : 'border-line text-faint hover:text-body'}`}
+                  >
+                    Totes <span className="text-ghost ml-1">{activeMembers.length}</span>
+                  </button>
+                  {VOICE_ORDER.filter(v => voiceCounts[v] > 0).map(v => {
+                    const c = VOICE_COLORS[v]
                     return (
-                      <div key={m.id} onClick={() => setOverlayMember(m)}
-                        className="bg-pane rounded-xl flex items-center gap-3 px-3 opacity-50 hover:opacity-70 cursor-pointer transition-opacity">
-                        <span className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 my-3"
-                          style={{ backgroundColor: c.bg, color: c.fg }}>
-                          {(m.initials || deriveInitials(m.first_name, m.last_name)).slice(0, 3)}
-                        </span>
-                        <div className="flex-1 min-w-0 py-3">
-                          <div className="text-sm text-body truncate line-through">
-                            {m.last_name
-                              ? <><span className="font-semibold">{m.last_name}</span>{m.first_name ? `, ${m.first_name}` : ''}</>
-                              : <span className="font-medium">{m.name}</span>
-                            }
-                          </div>
-                          <div className="text-xs text-yellow-700">De baixa</div>
-                        </div>
-                      </div>
+                      <button key={v} onClick={() => setFilterVoice(filterVoice === v ? '' : v)}
+                        className="px-3 py-1 rounded-full text-xs border transition-all font-medium"
+                        style={filterVoice === v
+                          ? { color: c.bg, borderColor: c.bg }
+                          : { color: c.bg + 'aa', borderColor: c.bg + '44' }}>
+                        {VOICE_LABELS[v]} <span className="opacity-70 ml-0.5">{voiceCounts[v]}</span>
+                      </button>
                     )
                   })}
                 </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+              </div>
+            }
+          />
+        }
+      >
+        {loading ? (
+          <p className="text-faint text-sm py-8">Carregant...</p>
+        ) : listMembers.length === 0 ? (
+          <EmptyState icon={Users} title="Cap persona aquí." />
+        ) : (
+          <div className="divide-y divide-rim">
+            {listMembers.map(m => (
+              <MemberRow key={m.id} member={m} onClick={() => setOverlayMember(m)} />
+            ))}
+          </div>
+        )}
 
-      {/* ── Overlay ── */}
+        {/* Inactive section */}
+        {inactiveMembers.length > 0 && (
+          <div className="mt-2 border-t border-rim">
+            <button
+              onClick={() => setShowInactive(v => !v)}
+              className="flex items-center gap-2 px-3 py-2.5 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-500 transition-colors w-full"
+            >
+              {showInactive ? <ChevronUp size={ICON.xs} /> : <ChevronDown size={ICON.xs} />}
+              De baixa ({inactiveMembers.length})
+            </button>
+            {showInactive && (
+              <div className="divide-y divide-rim">
+                {inactiveMembers.map(m => (
+                  <MemberRow key={m.id} member={m} onClick={() => setOverlayMember(m)} dim />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </PageContainer>
+
       {overlayMember && (
         <PersonProfileOverlay
           member={overlayData}
@@ -229,7 +213,8 @@ export default function Members() {
           onClose={() => setOverlayMember(null)}
           onSave={canEdit ? (fields => isNew ? handleCreate(fields) : handleUpdate(overlayData.id, fields)) : null}
           onSetActive={isNew || !canEdit ? null : handleSetActive}
-          onDelete={isNew || !canEdit ? null : handleDelete} />
+          onDelete={isNew || !canEdit ? null : handleDelete}
+        />
       )}
     </Layout>
   )
