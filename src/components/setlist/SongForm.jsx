@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Search, X, Music, MessageSquare, AlertTriangle, Info } from 'lucide-react'
+import Button from '../ui/Button'
 
 export function parseDuration(str) {
   if (!str) return null
@@ -108,7 +109,7 @@ function SpeakerPicker({ members, value, onChange }) {
   )
 }
 
-export default function SongForm({ initial, parts, repertoire = [], members = [], onSave, onCancel }) {
+export default function SongForm({ initial, parts, repertoire = [], members = [], onSave, onCancel, onDelete }) {
   const initialType = initial?.type ?? 'song'
   const [type, setType] = useState(initialType)
   const [repId, setRepId] = useState(initial?.repertoire_song_id ?? '')
@@ -233,15 +234,14 @@ export default function SongForm({ initial, parts, repertoire = [], members = []
         </>
       )}
 
-      <div className="flex gap-2">
-        <button type="submit"
-          className="bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-          Guardar
-        </button>
-        <button type="button" onClick={onCancel}
-          className="text-muted hover:text-body text-sm px-4 py-2 rounded-lg transition-colors">
-          Cancel·lar
-        </button>
+      <div className="flex items-center gap-2">
+        <Button type="submit">Guardar</Button>
+        <Button type="button" variant="ghost" onClick={onCancel}>Cancel·lar</Button>
+        {onDelete && (
+          <Button type="button" variant="danger" onClick={onDelete} className="ml-auto">
+            Eliminar
+          </Button>
+        )}
       </div>
     </form>
   )

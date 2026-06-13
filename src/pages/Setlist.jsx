@@ -7,7 +7,7 @@ import {
 import {
   arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { Pencil, X, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, MicVocal, Music } from 'lucide-react'
+import { Pencil, X, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, MicVocal, Music, Plus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 import ShowToolbar from '../components/ShowToolbar'
@@ -17,7 +17,11 @@ import SortableSong from '../components/setlist/SortableSong'
 import SongForm from '../components/setlist/SongForm'
 import PartForm from '../components/setlist/PartForm'
 import CastPanel from '../components/setlist/CastPanel'
+import Modal from '../components/ui/Modal'
+import Button from '../components/ui/Button'
+import EmptyState from '../components/ui/EmptyState'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
+import { ICON } from '../lib/ui'
 
 // ─── Main component ───────────────────────────────────────────
 export default function Setlist() {
@@ -157,6 +161,7 @@ export default function Setlist() {
     await supabase.from('parts').delete().eq('id', partId)
     setSongs(prev => prev.map(s => s.part_id === partId ? { ...s, part_id: null } : s))
     setParts(prev => prev.filter(p => p.id !== partId))
+    setEditingPart(null)
   }
 
   // ─── Songs CRUD ──────────────────────────────────────────
@@ -176,6 +181,7 @@ export default function Setlist() {
     await supabase.from('songs').delete().eq('id', songId)
     setSongs(prev => prev.filter(s => s.id !== songId))
     setMoments(prev => { const n = { ...prev }; delete n[songId]; return n })
+    setEditingSong(null)
   }
 
   // ─── Song drag-and-drop (cross-part + reorder) ───────────
@@ -306,53 +312,49 @@ export default function Setlist() {
             className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border transition-colors ${showCast ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-line text-muted hover:text-body hover:bg-fill'}`}>
             <MicVocal size={14} /> Membres {exclusions.size > 0 && <span className="ml-1 text-xs text-yellow-500">({allMembers.length - exclusions.size}/{allMembers.length})</span>}
           </button>
-          {!creatingPart && (
-            <button onClick={() => setCreatingPart(true)}
-              className="text-sm text-purple-400 hover:text-purple-300 px-4 py-2 rounded-lg hover:bg-fill border border-purple-800 transition-colors">
-              + Nova part
-            </button>
-          )}
-          {!creating && (
-            <button onClick={() => setCreating(true)}
-              className="bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-              + Nou element
-            </button>
-          )}
+          <Button variant="ghost" onClick={() => setCreatingPart(true)}>
+            <Plus size={ICON.sm} /> Nova part
+          </Button>
+          <Button onClick={() => setCreating(true)}>
+            <Plus size={ICON.sm} /> Nou element
+          </Button>
         </div>
 
         {/* Cast panel */}
         {showCast && <CastPanel showId={showId} allMembers={allMembers} exclusions={exclusions} onToggle={toggleExclusion} onEditMember={setEditingMember} />}
 
-        {/* Part forms */}
-        {creatingPart && (
-          <div className="bg-pane border border-purple-800/50 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-soft mb-3">Nova part</h3>
-            <PartForm onSave={handleCreatePart} onCancel={() => setCreatingPart(false)} />
-          </div>
-        )}
-        {editingPart && (
-          <div className="bg-pane border border-purple-800/50 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-soft mb-3">Editar part</h3>
-            <PartForm initial={editingPart} onSave={f => handleUpdatePart(editingPart.id, f)} onCancel={() => setEditingPart(null)} />
-          </div>
-        )}
+        {/* Part modal */}
+        <Modal
+          open={creatingPart || !!editingPart}
+          onClose={() => { setCreatingPart(false); setEditingPart(null) }}
+          title={creatingPart ? 'Nova part' : 'Editar part'}
+          width="sm"
+        >
+          <PartForm
+            initial={editingPart ?? undefined}
+            onSave={creatingPart ? handleCreatePart : f => handleUpdatePart(editingPart.id, f)}
+            onCancel={() => { setCreatingPart(false); setEditingPart(null) }}
+            onDelete={editingPart ? () => handleDeletePart(editingPart.id) : null}
+          />
+        </Modal>
 
-        {/* Song forms */}
-        {creating && (
-          <div className="bg-pane border border-line rounded-xl p-4">
-            <h3 className="text-sm font-medium text-soft mb-3">Nou element</h3>
-            <SongForm parts={parts} repertoire={repertoire} members={allMembers}
-              onSave={handleCreateSong} onCancel={() => setCreating(false)} />
-          </div>
-        )}
-        {editingSong && (
-          <div className="bg-pane border border-line rounded-xl p-4">
-            <h3 className="text-sm font-medium text-soft mb-3">Editar element</h3>
-            <SongForm initial={editingSong} parts={parts} repertoire={repertoire} members={allMembers}
-              onSave={fields => handleUpdateSong(editingSong.id, fields)}
-              onCancel={() => setEditingSong(null)} />
-          </div>
-        )}
+        {/* Song modal */}
+        <Modal
+          open={creating || !!editingSong}
+          onClose={() => { setCreating(false); setEditingSong(null) }}
+          title={creating ? 'Nou element' : 'Editar element'}
+          width="lg"
+        >
+          <SongForm
+            initial={editingSong ?? undefined}
+            parts={parts}
+            repertoire={repertoire}
+            members={allMembers}
+            onSave={creating ? handleCreateSong : fields => handleUpdateSong(editingSong.id, fields)}
+            onCancel={() => { setCreating(false); setEditingSong(null) }}
+            onDelete={editingSong ? () => handleDeleteSong(editingSong.id) : null}
+          />
+        </Modal>
 
         {/* Sections — single DndContext for cross-part song drag */}
         {loading ? <p className="text-faint">Carregant...</p> : (
@@ -432,10 +434,7 @@ export default function Setlist() {
               })}
 
               {songs.length === 0 && !creating && (
-                <div className="text-center py-16 text-faint">
-                  <Music size={40} className="mx-auto mb-4 opacity-30" />
-                  <p>Afegeix les cançons del setlist.</p>
-                </div>
+                <EmptyState icon={Music} title="Afegeix les cançons del setlist." />
               )}
             </div>
 

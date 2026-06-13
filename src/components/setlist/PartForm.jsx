@@ -1,16 +1,25 @@
 import { useState } from 'react'
+import { inputCls, labelCls } from '../ui/Input'
+import Button from '../ui/Button'
 
-export default function PartForm({ initial, onSave, onCancel }) {
+export default function PartForm({ initial, onSave, onCancel, onDelete }) {
   const [title, setTitle] = useState(initial?.title ?? '')
   return (
-    <form onSubmit={e => { e.preventDefault(); onSave({ title }) }} className="flex gap-3 items-end">
-      <div className="space-y-1 flex-1">
-        <label className="text-xs text-muted">Títol *</label>
-        <input value={title} onChange={e => setTitle(e.target.value)} required placeholder="Part 1, Acte 2…"
-          className="w-full bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-purple-500" />
+    <form onSubmit={e => { e.preventDefault(); onSave({ title }) }} className="space-y-4">
+      <div className="space-y-1">
+        <label className={labelCls}>Títol *</label>
+        <input value={title} onChange={e => setTitle(e.target.value)} required
+          placeholder="Part 1, Acte 2…" className={inputCls} />
       </div>
-      <button type="submit" className="bg-purple-700 hover:bg-purple-600 text-white text-sm px-4 py-2 rounded-lg transition-colors">Guardar</button>
-      <button type="button" onClick={onCancel} className="text-muted hover:text-body text-sm px-4 py-2 rounded-lg transition-colors">Cancel·lar</button>
+      <div className="flex items-center gap-2">
+        <Button type="submit">Guardar</Button>
+        <Button type="button" variant="ghost" onClick={onCancel}>Cancel·lar</Button>
+        {onDelete && (
+          <Button type="button" variant="danger" onClick={onDelete} className="ml-auto">
+            Eliminar
+          </Button>
+        )}
+      </div>
     </form>
   )
 }
