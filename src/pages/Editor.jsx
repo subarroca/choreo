@@ -75,6 +75,7 @@ export default function Editor() {
   const [otherSongMoments, setOtherSongMoments] = useState({})
   const [selectedOtherSongId, setSelectedOtherSongId] = useState('')
   const [selectedOtherMomentId, setSelectedOtherMomentId] = useState('')
+  const [selectedTemplate, setSelectedTemplate] = useState('')
   const [showHeightProfile, setShowHeightProfile] = useState(true)
   const [hoverProfileId, setHoverProfileId] = useState(null)
   const [hoverProfileRow, setHoverProfileRow] = useState(null)
@@ -289,7 +290,7 @@ export default function Editor() {
   // ─── Add moment ──────────────────────────────────────────
   function openAddMoment() {
     setNewMomentTitle(`Moment ${moments.length + 1}`)
-    setCloneFrom(''); setSelectedOtherSongId(''); setSelectedOtherMomentId('')
+    setCloneFrom(''); setSelectedOtherSongId(''); setSelectedOtherMomentId(''); setSelectedTemplate('')
     setAddingMoment(true); setEditingMoment(false)
   }
   async function handleCloneFromChange(val) {
@@ -304,7 +305,7 @@ export default function Editor() {
     }
   }
   async function createMoment() {
-    const newMom = await _createMoment(newMomentTitle, cloneFrom, selectedOtherMomentId, mode)
+    const newMom = await _createMoment(newMomentTitle, cloneFrom, selectedOtherMomentId, mode, selectedTemplate)
     if (newMom) { setAddingMoment(false); navigate(`/show/${showId}/song/${songId}/moment/${newMom.id}`) }
   }
 
@@ -467,6 +468,7 @@ export default function Editor() {
             cloneFrom={cloneFrom} moments={moments} momentId={momentId}
             otherSongs={otherSongs} otherSongMoments={otherSongMoments}
             selectedOtherSongId={selectedOtherSongId} selectedOtherMomentId={selectedOtherMomentId}
+            selectedTemplate={selectedTemplate} setSelectedTemplate={setSelectedTemplate}
             setSelectedOtherSongId={setSelectedOtherSongId} setSelectedOtherMomentId={setSelectedOtherMomentId}
             onCloneFromChange={handleCloneFromChange} onCreate={createMoment}
             onCancel={() => setAddingMoment(false)} inputCls={inputCls} />

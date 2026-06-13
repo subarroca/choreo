@@ -6,12 +6,79 @@ import {
 import {
   arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { GripVertical, Pencil, X, ChevronDown, ChevronRight, Plus } from 'lucide-react'
+import { GripVertical, Pencil, X, ChevronDown, ChevronRight, Plus, MessageSquare, Info } from 'lucide-react'
 import SortableMomentRow from './SortableMomentRow'
 import { formatDuration } from './SongForm'
 import { repertoireType, isSongType } from '../../lib/repertoireTypes'
 
-export default function SortableSong({ song, moments, expanded, onToggle, onEdit, onDelete, onAddMoment, onDeleteMoment, onReorderMoments, showId, activeDragId, repSong, micAssignments }) {
+function TextItem({ song, members, onEdit, onDelete, listeners, attributes, style }) {
+  const speakerIds = song.speakers ? JSON.parse(song.speakers) : []
+  const speakerNames = speakerIds
+    .map(id => members.find(m => m.id === id))
+    .filter(Boolean)
+    .map(m => m.first_name || m.name.split(' ')[0])
+  return (
+    <div style={style} className="bg-gray-900 border border-emerald-900/50 rounded-xl overflow-hidden">
+      <div className="flex items-start gap-1.5 px-2 py-2.5 min-h-[48px]">
+        <button {...attributes} {...listeners}
+          className="text-gray-600 hover:text-gray-400 cursor-grab active:cursor-grabbing p-2 touch-none shrink-0 mt-0.5">
+          <GripVertical size={14} />
+        </button>
+        <MessageSquare size={14} className="text-emerald-500 shrink-0 mt-1" />
+        <div className="flex-1 min-w-0 py-0.5">
+          <p className="text-sm font-medium text-white leading-snug">{song.title}</p>
+          {speakerNames.length > 0 && (
+            <p className="text-xs text-emerald-400 mt-0.5">{speakerNames.join(', ')}</p>
+          )}
+          {song.body && (
+            <p className="text-xs text-gray-500 mt-1 line-clamp-2 whitespace-pre-line">{song.body}</p>
+          )}
+        </div>
+        <button onClick={() => onEdit(song)}
+          className="text-gray-500 hover:text-white p-2.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+          <Pencil size={14} />
+        </button>
+        <button onClick={() => onDelete(song.id)}
+          className="text-gray-600 hover:text-red-500 p-2.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+          <X size={14} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function IndicationItem({ song, onEdit, onDelete, listeners, attributes, style }) {
+  return (
+    <div style={style} className="bg-gray-900 border border-amber-900/50 rounded-xl overflow-hidden">
+      <div className="flex items-start gap-1.5 px-2 py-2.5 min-h-[48px]">
+        <button {...attributes} {...listeners}
+          className="text-gray-600 hover:text-gray-400 cursor-grab active:cursor-grabbing p-2 touch-none shrink-0 mt-0.5">
+          <GripVertical size={14} />
+        </button>
+        <Info size={14} className="text-amber-500 shrink-0 mt-1" />
+        <div className="flex-1 min-w-0 py-0.5">
+          <p className="text-sm font-medium text-white leading-snug">{song.title}</p>
+          {song.body && (
+            <p className="text-xs text-gray-500 mt-1 line-clamp-2 whitespace-pre-line">{song.body}</p>
+          )}
+        </div>
+        <button onClick={() => onEdit(song)}
+          className="text-gray-500 hover:text-white p-2.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+          <Pencil size={14} />
+        </button>
+        <button onClick={() => onDelete(song.id)}
+          className="text-gray-600 hover:text-red-500 p-2.5 rounded-lg hover:bg-gray-800 transition-colors shrink-0">
+          <X size={14} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export default function SortableSong({
+  song, moments, expanded, onToggle, onEdit, onDelete, onAddMoment,
+  onDeleteMoment, onReorderMoments, showId, activeDragId, repSong, micAssignments, members,
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: song.id })
   const isOtherDragging = activeDragId && activeDragId !== song.id
   const style = {
@@ -32,6 +99,26 @@ export default function SortableSong({ song, moments, expanded, onToggle, onEdit
     onReorderMoments(song.id, arrayMove(moments, oldIndex, newIndex))
   }
 
+  const type = song.type ?? 'song'
+
+  if (type === 'text') {
+    return (
+      <div ref={setNodeRef}>
+        <TextItem song={song} members={members ?? []} onEdit={onEdit} onDelete={onDelete}
+          listeners={listeners} attributes={attributes} style={style} />
+      </div>
+    )
+  }
+
+  if (type === 'indication') {
+    return (
+      <div ref={setNodeRef}>
+        <IndicationItem song={song} onEdit={onEdit} onDelete={onDelete}
+          listeners={listeners} attributes={attributes} style={style} />
+      </div>
+    )
+  }
+
   return (
     <div ref={setNodeRef} style={style} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
       {/* Song header */}
@@ -48,8 +135,7 @@ export default function SortableSong({ song, moments, expanded, onToggle, onEdit
           const Icon = rt.icon
           return <Icon size={14} className={`${rt.color} shrink-0`} />
         })()}
-        <button onClick={onToggle}
-          className="flex-1 text-left min-w-0 py-2">
+        <button onClick={onToggle} className="flex-1 text-left min-w-0 py-2">
           <span className="text-sm font-medium text-white block truncate">
             {repSong ? repSong.title : song.title}
           </span>

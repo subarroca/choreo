@@ -246,7 +246,7 @@ export default function Setlist() {
           {!creating && (
             <button onClick={() => setCreating(true)}
               className="bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-              + Nova cançó
+              + Nou element
             </button>
           )}
         </div>
@@ -271,14 +271,15 @@ export default function Setlist() {
         {/* Song forms */}
         {creating && (
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Nova cançó</h3>
-            <SongForm parts={parts} repertoire={repertoire} onSave={handleCreateSong} onCancel={() => setCreating(false)} />
+            <h3 className="text-sm font-medium text-gray-300 mb-3">Nou element</h3>
+            <SongForm parts={parts} repertoire={repertoire} members={allMembers}
+              onSave={handleCreateSong} onCancel={() => setCreating(false)} />
           </div>
         )}
         {editingSong && (
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Editar cançó</h3>
-            <SongForm initial={editingSong} parts={parts} repertoire={repertoire}
+            <h3 className="text-sm font-medium text-gray-300 mb-3">Editar element</h3>
+            <SongForm initial={editingSong} parts={parts} repertoire={repertoire} members={allMembers}
               onSave={fields => handleUpdateSong(editingSong.id, fields)}
               onCancel={() => setEditingSong(null)} />
           </div>
@@ -337,7 +338,8 @@ export default function Setlist() {
                               showId={showId}
                               activeDragId={activeDragId}
                               repSong={song.repertoire_song_id ? repMap[song.repertoire_song_id] : null}
-                              micAssignments={micAssignments} />
+                              micAssignments={micAssignments}
+                              members={allMembers} />
                           ))}
                         </SortableContext>
                         {sectionSongs.length === 0 && (

@@ -231,9 +231,18 @@ export function drawAll(canvas, { placements, members, mode, highlightId, direct
   }
 
   if (mode !== 'semicircle') {
-    ctx.fillStyle = '#94a3b8'; ctx.font = '10px system-ui'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
-    for (let r = 0; r < ROWS; r++)
-      fillTextFlipped(ctx, rowLabels[r] ?? `Fila ${r + 1}`, LABEL_W - 6, r * CELL + CELL / 2, rotated)
+    ctx.fillStyle = '#94a3b8'; ctx.font = '10px system-ui'; ctx.textBaseline = 'middle'
+    if (rotated) {
+      // When CSS-rotated 180°, draw labels at right edge of canvas → they appear on the left on screen
+      ctx.textAlign = 'center'
+      const lx = CW - LABEL_W / 2
+      for (let r = 0; r < ROWS; r++)
+        fillTextFlipped(ctx, rowLabels[r] ?? `Fila ${r + 1}`, lx, r * CELL + CELL / 2, rotated)
+    } else {
+      ctx.textAlign = 'right'
+      for (let r = 0; r < ROWS; r++)
+        fillTextFlipped(ctx, rowLabels[r] ?? `Fila ${r + 1}`, LABEL_W - 6, r * CELL + CELL / 2, rotated)
+    }
   }
 
   if (mode !== 'free') {
@@ -248,7 +257,13 @@ export function drawAll(canvas, { placements, members, mode, highlightId, direct
   ctx.beginPath(); ctx.moveTo(0, GH); ctx.lineTo(CW, GH); ctx.stroke()
   ctx.fillStyle = '#475569'; ctx.font = '9px system-ui'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
   const dirLabel = directorMember ? (directorMember.initials || (directorMember.first_name ?? '').slice(0,1) + (directorMember.last_name ?? '').slice(0,1)) : 'DIR'
-  fillTextFlipped(ctx, dirLabel.toUpperCase(), LABEL_W - 6, GH + DIRECTOR_H / 2, rotated)
+  if (rotated) {
+    ctx.textAlign = 'center'
+    fillTextFlipped(ctx, dirLabel.toUpperCase(), CW - LABEL_W / 2, GH + DIRECTOR_H / 2, rotated)
+  } else {
+    ctx.textAlign = 'right'
+    fillTextFlipped(ctx, dirLabel.toUpperCase(), LABEL_W - 6, GH + DIRECTOR_H / 2, rotated)
+  }
 
   if (trajectoryConfig) {
     drawTrajectoryOverlay(ctx, trajectoryConfig, mode, dims, members)

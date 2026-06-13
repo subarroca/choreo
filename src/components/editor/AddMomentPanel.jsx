@@ -1,6 +1,9 @@
+import { POSITION_TEMPLATES } from '../../lib/editorArrange'
+
 export default function AddMomentPanel({
   newMomentTitle, setNewMomentTitle, cloneFrom, moments,
   momentId, otherSongs, otherSongMoments, selectedOtherSongId, selectedOtherMomentId,
+  selectedTemplate, setSelectedTemplate,
   setSelectedOtherSongId, setSelectedOtherMomentId, onCloneFromChange, onCreate, onCancel, inputCls,
 }) {
   return (
@@ -24,6 +27,21 @@ export default function AddMomentPanel({
             <option value="other">D'altra cançó…</option>
           </select>
         </div>
+
+        {/* Template picker — only visible when starting from scratch */}
+        {!cloneFrom && (
+          <div className="space-y-0.5">
+            <label className="text-xs text-gray-500">Template</label>
+            <select value={selectedTemplate} onChange={e => setSelectedTemplate(e.target.value)}
+              className={inputCls}>
+              <option value="">Buit</option>
+              {POSITION_TEMPLATES.map(t => (
+                <option key={t.id} value={t.id}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {cloneFrom === 'other' && otherSongs !== null && (
           <div className="space-y-0.5">
             <label className="text-xs text-gray-500">Cançó</label>

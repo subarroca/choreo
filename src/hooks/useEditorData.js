@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
+import { POSITION_TEMPLATES, computeArrangementPositions } from '../lib/editorArrange'
+import { DEFAULT_ROW_LABELS, DEFAULT_COLS, CELL, LABEL_W, DIRECTOR_H } from '../lib/editorCanvas'
 
 export function useEditorData({ showId, songId, momentId, navigate }) {
   const [show, setShow] = useState(null)
@@ -122,7 +124,7 @@ export function useEditorData({ showId, songId, momentId, navigate }) {
     if (data?.length) navigate(`/show/${showId}/song/${targetSongId}/moment/${data[0].id}`)
   }
 
-  async function createMoment(title, cloneFrom, selectedOtherMomentId, mode) {
+  async function createMoment(title, cloneFrom, selectedOtherMomentId, mode, templateId = '') {
     if (!title.trim()) return null
     const { data: newMom, error } = await supabase.from('moments')
       .insert({ song_id: songId, title: title.trim(), subtitle: '', order_index: moments.length, grid_mode: mode })
@@ -138,6 +140,21 @@ export function useEditorData({ showId, songId, momentId, navigate }) {
           moment_id: newMom.id, member_id: p.member_id,
           grid_row: p.grid_row, grid_col: p.grid_col, free_x: p.free_x, free_y: p.free_y,
         })))
+      }
+    } else if (templateId) {
+      const tpl = POSITION_TEMPLATES.find(t => t.id === templateId)
+      if (tpl) {
+        const rowLabels = show?.grid_rows ?? DEFAULT_ROW_LABELS
+        const ROWS = rowLabels.length
+        const COLS = show?.grid_cols ?? DEFAULT_COLS
+        const GW = COLS * CELL, GH = ROWS * CELL
+        const dims = { ROWS, COLS, rowLabels, GW, GH, CW: LABEL_W + GW, CH: GH + DIRECTOR_H, rowElevations: [] }
+        const placements = computeArrangementPositions(tpl.pattern, tpl.axis, membersRef.current, dims)
+        const rows = Object.entries(placements).map(([memberId, pos]) => ({
+          moment_id: newMom.id, member_id: memberId,
+          grid_row: pos.row, grid_col: pos.col, free_x: null, free_y: null,
+        }))
+        if (rows.length) await supabase.from('positions').insert(rows)
       }
     }
     setMoments(prev => [...prev, newMom])
