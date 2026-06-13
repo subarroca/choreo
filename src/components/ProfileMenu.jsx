@@ -54,6 +54,7 @@ export default function ProfileMenu({ onSignOut }) {
   const ref = useRef(null)
 
   const isAdmin = role === 'admin' || role === 'director'
+  const displayRole = isAdmin ? 'admin' : role
   const initials = getInitials(profile, user)
   const displayName = profile?.full_name ?? user?.email ?? ''
 
@@ -126,7 +127,7 @@ export default function ProfileMenu({ onSignOut }) {
               <span className={`px-2 py-0.5 rounded text-xs uppercase tracking-wide ${
                 isSimulating ? 'bg-amber-800/50 text-amber-300' : 'bg-gray-700 text-gray-300'
               }`}>
-                {isSimulating ? 'simulació activa' : role}
+                {isSimulating ? 'simulació activa' : displayRole}
               </span>
             </div>
           </div>

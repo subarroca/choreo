@@ -19,7 +19,7 @@ export const VOICE_LABELS = {
   alto1:    'Alto 1',    alto2:    'Alto 2',
   tenor1:   'Tenor 1',   tenor2:   'Tenor 2',
   baritone: 'Baríton',   bass:     'Baix',
-  director: 'Director',
+  director: 'Admin',
   musician: 'Músic',
   extra:    'Extra',
 }
@@ -29,12 +29,12 @@ export const VOICE_SHORT = {
   alto1: 'A1', alto2: 'A2',
   tenor1: 'T1', tenor2: 'T2',
   baritone: 'B1', bass: 'B2',
-  director: 'D', musician: 'M', extra: 'X',
+  director: 'A', musician: 'M', extra: 'X',
 }
 
 export const ROLE_LABELS = {
   choir:    'Cor',
-  director: 'Director',
+  director: 'Admin',
   musician: 'Músic',
   extra:    'Extra',
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Clapperboard, Pencil, Trash2, MapPin, ImageIcon, X } from 'lucide-react'
+import { Clapperboard, Pencil, Trash2, ImageIcon, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import Layout from '../components/Layout'
@@ -19,9 +19,7 @@ function ShowForm({ initial, onSave, onCancel }) {
   async function handlePosterChange(e) {
     const file = e.target.files?.[0]
     if (!file) return
-    // Local preview immediately
-    const localUrl = URL.createObjectURL(file)
-    setPosterPreview(localUrl)
+    setPosterPreview(URL.createObjectURL(file))
     setUploading(true)
     try {
       const ext = file.name.split('.').pop()
@@ -61,7 +59,6 @@ function ShowForm({ initial, onSave, onCancel }) {
         </div>
       </div>
 
-      {/* Poster */}
       <div className="flex items-start gap-3">
         <div className="space-y-1 flex-1">
           <label className="text-xs text-gray-400">Poster</label>
@@ -94,22 +91,56 @@ function ShowForm({ initial, onSave, onCancel }) {
   )
 }
 
+function ShowCard({ show, canEdit, onEdit, onDelete, onClick }) {
+  return (
+    <div className="group cursor-pointer" onClick={onClick}>
+      <div className="relative aspect-[2/3] rounded-xl overflow-hidden border border-gray-800 group-hover:border-gray-600 transition-colors">
+        {show.poster_url ? (
+          <img src={show.poster_url} alt={show.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-gradient-to-b from-gray-800 to-gray-900 p-4">
+            <Clapperboard size={28} className="text-gray-600" />
+            <p className="text-white text-sm font-semibold text-center leading-snug">{show.name}</p>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        {canEdit && (
+          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={e => { e.stopPropagation(); onEdit() }}
+              className="p-1.5 rounded-lg bg-gray-950/80 text-gray-400 hover:text-white transition-colors backdrop-blur-sm">
+              <Pencil size={12} />
+            </button>
+            <button onClick={e => { e.stopPropagation(); onDelete() }}
+              className="p-1.5 rounded-lg bg-gray-950/80 text-gray-500 hover:text-red-400 transition-colors backdrop-blur-sm">
+              <Trash2 size={12} />
+            </button>
+          </div>
+        )}
+      </div>
+      <div className="mt-2 px-0.5 space-y-0.5">
+        <p className="text-white text-sm font-medium truncate">{show.name}</p>
+        <p className="text-xs text-gray-500 truncate">
+          {show.date && new Date(show.date).toLocaleDateString('ca-ES')}
+          {show.date && show.venue && ' · '}
+          {show.venue}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export default function Shows() {
   const { user, permissions, role } = useAuth()
   const canEdit = role === 'admin' || role === 'director' || permissions?.shows?.edit
   const navigate = useNavigate()
-  const [creating, setCreating] = useState(false)
-  const [editingId, setEditingId] = useState(null)
+  const [formShow, setFormShow] = useState(null) // null | 'new' | show_object
 
   const { data: shows = [], setData: setShows, loading } = useSupabaseQuery(async () => {
-    const { data } = await supabase
-      .from('shows')
-      .select('*')
-      .order('created_at', { ascending: false })
+    const { data } = await supabase.from('shows').select('*').order('created_at', { ascending: false })
     return data ?? []
   }, [])
 
-  // Auto-navigate when there is exactly one show and the user isn't an editor
   useEffect(() => {
     if (!loading && shows.length === 1 && !canEdit) {
       navigate(`/show/${shows[0].id}`, { replace: true })
@@ -117,27 +148,18 @@ export default function Shows() {
   }, [loading])
 
   async function handleCreate(fields) {
-    const { data, error } = await supabase
-      .from('shows')
-      .insert({ ...fields, created_by: user.id })
-      .select()
-      .single()
+    const { data, error } = await supabase.from('shows').insert({ ...fields, created_by: user.id }).select().single()
     if (!error) {
       setShows(prev => [data, ...prev])
-      setCreating(false)
+      setFormShow(null)
     }
   }
 
   async function handleUpdate(id, fields) {
-    const { data, error } = await supabase
-      .from('shows')
-      .update(fields)
-      .eq('id', id)
-      .select()
-      .single()
+    const { data, error } = await supabase.from('shows').update(fields).eq('id', id).select().single()
     if (!error) {
       setShows(prev => prev.map(s => s.id === id ? data : s))
-      setEditingId(null)
+      setFormShow(null)
     }
   }
 
@@ -148,24 +170,28 @@ export default function Shows() {
   }
 
   return (
-    <Layout narrow>
+    <Layout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">Espectacles</h1>
-          {!creating && canEdit && (
-            <button
-              onClick={() => setCreating(true)}
-              className="bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors"
-            >
+          {!formShow && canEdit && (
+            <button onClick={() => setFormShow('new')}
+              className="bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors">
               + Nou espectacle
             </button>
           )}
         </div>
 
-        {creating && (
+        {formShow && (
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Nou espectacle</h3>
-            <ShowForm onSave={handleCreate} onCancel={() => setCreating(false)} />
+            <h3 className="text-sm font-medium text-gray-300 mb-3">
+              {formShow === 'new' ? 'Nou espectacle' : `Editar: ${formShow.name}`}
+            </h3>
+            <ShowForm
+              initial={formShow === 'new' ? null : formShow}
+              onSave={formShow === 'new' ? handleCreate : fields => handleUpdate(formShow.id, fields)}
+              onCancel={() => setFormShow(null)}
+            />
           </div>
         )}
 
@@ -178,60 +204,16 @@ export default function Shows() {
             <p className="text-sm mt-1">Crea el primer amb el botó de dalt.</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {shows.map(show => (
-              <div key={show.id}
+              <ShowCard
+                key={show.id}
+                show={show}
+                canEdit={canEdit}
+                onEdit={() => setFormShow(show)}
+                onDelete={() => handleDelete(show.id)}
                 onClick={() => navigate(`/show/${show.id}`)}
-                className="bg-gray-900 border border-gray-800 rounded-xl p-4 hover:border-gray-700 hover:bg-gray-800/30 transition-colors cursor-pointer">
-                {editingId === show.id ? (
-                  <ShowForm
-                    initial={show}
-                    onSave={fields => handleUpdate(show.id, fields)}
-                    onCancel={() => setEditingId(null)}
-                  />
-                ) : (
-                  <div className="flex items-center justify-between gap-4">
-                    {show.poster_url && (
-                      <img src={show.poster_url} alt="Poster" className="w-10 h-12 object-cover rounded-lg border border-gray-700 shrink-0" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white font-semibold">{show.name}</p>
-                      <div className="flex gap-3 mt-1 text-xs text-gray-500 items-center">
-                        {show.date && <span>{new Date(show.date).toLocaleDateString('ca-ES')}</span>}
-                        {show.venue && (
-                          <span className="flex items-center gap-1">
-                            {show.venue}
-                            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(show.venue)}`}
-                              target="_blank" rel="noopener noreferrer"
-                              onClick={e => e.stopPropagation()}
-                              className="text-gray-600 hover:text-cyan-400 transition-colors p-1.5 -m-1" title="Veure al mapa">
-                              <MapPin size={13} />
-                            </a>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {canEdit && (
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          onClick={e => { e.stopPropagation(); setEditingId(show.id) }}
-                          className="text-gray-500 hover:text-white p-2 rounded-lg hover:bg-gray-700 transition-colors"
-                          title="Editar"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          onClick={e => { e.stopPropagation(); handleDelete(show.id) }}
-                          className="text-gray-600 hover:text-red-500 p-2 rounded-lg hover:bg-gray-700 transition-colors"
-                          title="Eliminar"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              />
             ))}
           </div>
         )}

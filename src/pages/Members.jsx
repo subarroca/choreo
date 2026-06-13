@@ -93,6 +93,7 @@ export default function Members() {
   return (
     <Layout narrow>
       <div className="space-y-4">
+        <h1 className="text-2xl font-bold text-white">Persones</h1>
 
         {/* ── Header ── */}
         <div className="space-y-3">
