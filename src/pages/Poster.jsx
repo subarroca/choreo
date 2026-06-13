@@ -4,6 +4,8 @@ import { ImageIcon, Upload, X, Download } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 import ShowToolbar from '../components/ShowToolbar'
+import Button from '../components/ui/Button'
+import { ICON } from '../lib/ui'
 
 const DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true'
 const DIN_RATIO = 420 / 297
@@ -83,10 +85,9 @@ export default function Poster() {
                 ) : (
                   <>
                     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
-                    <button onClick={() => fileRef.current?.click()} disabled={uploading}
-                      className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors disabled:opacity-50">
-                      <Upload size={14} /> {uploading ? 'Pujant…' : show?.poster_url ? 'Canviar imatge' : 'Pujar imatge'}
-                    </button>
+                    <Button onClick={() => fileRef.current?.click()} disabled={uploading}>
+                      <Upload size={ICON.sm} /> {uploading ? 'Pujant…' : show?.poster_url ? 'Canviar imatge' : 'Pujar imatge'}
+                    </Button>
                   </>
                 )}
                 {show?.poster_url && (

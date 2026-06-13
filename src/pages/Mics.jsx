@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase'
 import { VOICE_COLORS } from '../lib/constants'
 import Layout from '../components/Layout'
 import ShowToolbar from '../components/ShowToolbar'
+import Button from '../components/ui/Button'
+import { ICON } from '../lib/ui'
 
 // ─── Helpers ──────────────────────────────────────────────────
 function memberInitials(m) {
@@ -160,10 +162,9 @@ export default function Mics() {
                 <input value={newMicLabel} onChange={e => setNewMicLabel(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addMic()}
                   placeholder={String(mics.length + 1)} className={inputCls + ' flex-1 min-w-0'} />
-                <button onClick={addMic}
-                  className="w-9 h-9 flex items-center justify-center bg-cyan-600 hover:bg-cyan-300 rounded-lg text-white transition-colors shrink-0">
-                  <Plus size={15} />
-                </button>
+                <Button onClick={addMic} className="w-9 h-9 !p-0 shrink-0">
+                  <Plus size={ICON.md} />
+                </Button>
               </div>
             </div>
 

@@ -1,5 +1,7 @@
 import { useParams } from 'react-router-dom'
 import { Printer, Moon, Wind, Sparkles, Move, Pause, Theater, ScanFace, Spotlight } from 'lucide-react'
+import Button from '../components/ui/Button'
+import { ICON } from '../lib/ui'
 import { useLightCues } from '../hooks/useLightCues'
 import { formatCueNumber, cueSummary, sideColorHexes, cueEffects, effectIcon, sortCues } from '../lib/lights'
 import ShowToolbar from '../components/ShowToolbar'
@@ -65,10 +67,9 @@ export default function Rider() {
         <ShowToolbar showId={showId} showName={show?.name} />
         <div className="flex items-center justify-between px-4 py-2 border-t border-rim">
           <span className="text-sm text-faint truncate">Rider tècnic</span>
-          <button onClick={() => window.print()}
-            className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-300 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-            <Printer size={14} /> Imprimir / PDF
-          </button>
+          <Button onClick={() => window.print()}>
+            <Printer size={ICON.sm} /> Imprimir / PDF
+          </Button>
         </div>
       </div>
 
