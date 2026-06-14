@@ -44,7 +44,7 @@ function SectionRow({ label, value, onChange }) {
   )
 }
 
-export default function ProfileMenu({ onSignOut }) {
+export default function ProfileMenu({ onSignOut, expanded = true }) {
   const {
     user, profile, role,
     simulatedPermissions, setSimulatedPermissions,
@@ -101,10 +101,12 @@ export default function ProfileMenu({ onSignOut }) {
         } text-body`}>
           {initials}
         </div>
-        <span className="hidden md:block text-sm text-soft max-w-[120px] truncate">
-          {displayName}
-        </span>
-        <ChevronDown size={13} className={`hidden md:block text-faint transition-transform ${open ? 'rotate-180' : ''}`} />
+        {expanded && (
+          <>
+            <span className="text-sm text-soft max-w-[120px] truncate">{displayName}</span>
+            <ChevronDown size={13} className={`text-faint transition-transform ${open ? 'rotate-180' : ''}`} />
+          </>
+        )}
       </button>
 
       {open && (

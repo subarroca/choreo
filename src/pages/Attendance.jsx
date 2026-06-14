@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
-import { CalendarDays, Plus, Check, X, Clock, ChevronDown, ChevronUp, Trash2, Bell, Plane, Briefcase, HeartPulse, MessageSquare, Pencil } from 'lucide-react'
+import { CalendarDays, Plus, Check, X, Clock, Bell, Plane, Briefcase, HeartPulse, MessageSquare } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
 import Layout from '../components/Layout'
+import PageContainer from '../components/ui/PageContainer'
+import PageHeader from '../components/ui/PageHeader'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
 
 const STATUS_CONFIG = {
@@ -18,6 +20,28 @@ const REASONS = {
   feina:    { label: 'Feina',    icon: Briefcase },
   malaltia: { label: 'Malaltia', icon: HeartPulse },
   altre:    { label: 'Altre',    icon: MessageSquare },
+}
+
+const REHEARSAL_TYPES = {
+  veu:         'Veu',
+  coreo:       'Coreo',
+  ambdues:     'Veu + Coreo',
+  masterclass: 'Masterclass',
+  posicions:   'Passi de posicions',
+}
+
+function parseRehearsalMeta(notes) {
+  if (!notes) return { type: '', freeNotes: '' }
+  try {
+    const p = JSON.parse(notes)
+    if (p && typeof p === 'object' && 'type' in p) return { type: p.type ?? '', freeNotes: p.notes ?? '' }
+  } catch {}
+  return { type: '', freeNotes: notes }
+}
+
+function serializeRehearsalMeta(type, freeNotes) {
+  if (!type) return freeNotes || null
+  return JSON.stringify({ type, notes: freeNotes || '' })
 }
 
 function deriveInitials(m) {
@@ -49,6 +73,7 @@ export default function Attendance() {
   // New rehearsal form
   const [addingDate, setAddingDate] = useState(false)
   const [newDate, setNewDate] = useState('')
+  const [newType, setNewType] = useState('')
   const [newNotes, setNewNotes] = useState('')
 
   // Absence notification form
@@ -99,13 +124,14 @@ export default function Attendance() {
 
   async function addRehearsalDate() {
     if (!newDate) return
-    const { data } = await supabase.from('rehearsals').insert({ date: newDate, notes: newNotes }).select().single()
+    const notes = serializeRehearsalMeta(newType, newNotes)
+    const { data } = await supabase.from('rehearsals').insert({ date: newDate, notes }).select().single()
     if (data) {
       const updated = [...rehearsals, data].sort((a, b) => a.date < b.date ? -1 : 1)
       setRehearsals(updated)
       setSelectedId(data.id)
     }
-    setNewDate(''); setNewNotes(''); setAddingDate(false)
+    setNewDate(''); setNewType(''); setNewNotes(''); setAddingDate(false)
   }
 
   async function deleteRehearsal(id) {
@@ -164,32 +190,37 @@ export default function Attendance() {
 
   const inputCls = 'bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300'
 
+  const tabs = (
+    <div className="flex gap-1">
+      {[['assajos', 'Assajos'], ['resum', 'Resum acumulat']].map(([key, label]) => (
+        <button key={key} onClick={() => setTab(key)}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            tab === key ? 'border-cyan-500 text-cyan-600 dark:border-cyan-400 dark:text-cyan-300' : 'border-transparent text-muted hover:text-body'
+          }`}>
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+
   return (
     <Layout>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-xl font-bold text-body flex items-center gap-2">
-            <CalendarDays size={20} className="text-cyan-500" /> Assistència als assajos
-          </h1>
-          {saving && <span className="text-xs text-ghost">Guardant…</span>}
-        </div>
-
-        {/* Main tabs */}
-        <div className="flex gap-1 border-b border-rim">
-          {[['assajos', 'Assajos'], ['resum', 'Resum acumulat']].map(([key, label]) => (
-            <button key={key} onClick={() => setTab(key)}
-              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                tab === key ? 'border-cyan-400 text-cyan-300' : 'border-transparent text-muted hover:text-body'
-              }`}>
-              {label}
-            </button>
-          ))}
-        </div>
+      <PageContainer
+        header={
+          <PageHeader
+            title="Assistència als assajos"
+            icon={CalendarDays}
+            actions={saving ? <span className="text-xs text-ghost">Guardant…</span> : null}
+            tabs={tabs}
+          />
+        }
+      >
+      <div className="space-y-4 pt-2">
 
         {loading ? <p className="text-faint text-sm">Carregant...</p> : tab === 'assajos' ? (
           <div className="space-y-4">
-            {/* Date tabs */}
-            <div className="flex items-center gap-2 flex-wrap">
+            {/* Date tabs — horizontal scroll */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
               {rehearsals.map(r => (
                 <div key={r.id} className="relative group">
                   <button onClick={() => setSelectedId(r.id)}
@@ -212,11 +243,15 @@ export default function Attendance() {
                 </div>
               ))}
               {isAdmin && (addingDate ? (
-                <div className="flex flex-col gap-2 p-3 bg-pane border border-line rounded-xl">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-2 p-3 bg-pane border border-line rounded-xl shrink-0">
+                  <div className="flex flex-wrap items-center gap-2">
                     <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className={inputCls + ' py-1'} />
+                    <select value={newType} onChange={e => setNewType(e.target.value)} className={inputCls + ' py-1'}>
+                      <option value="">— Tipus —</option>
+                      {Object.entries(REHEARSAL_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    </select>
                     <button onClick={addRehearsalDate} className="bg-cyan-600 hover:bg-cyan-500 text-white text-sm px-3 py-1.5 rounded-lg transition-colors">Afegir</button>
-                    <button onClick={() => { setAddingDate(false); setNewDate(''); setNewNotes('') }} className="text-faint hover:text-body text-sm">Cancel·lar</button>
+                    <button onClick={() => { setAddingDate(false); setNewDate(''); setNewType(''); setNewNotes('') }} className="text-faint hover:text-body text-sm">Cancel·lar</button>
                   </div>
                   <input type="text" placeholder="Notes (opcional)" value={newNotes} onChange={e => setNewNotes(e.target.value)} className={inputCls + ' py-1'} />
                 </div>
@@ -236,11 +271,15 @@ export default function Attendance() {
             ) : (
               <>
                 {/* Header */}
+                {(() => {
+                  const meta = parseRehearsalMeta(selected.notes)
+                  return (
                 <div className="flex items-center gap-3 px-4 py-3 bg-pane border border-rim rounded-xl">
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold text-body">{formatDate(selected.date)}</span>
-                    {selected.notes && <span className="ml-2 text-xs text-ghost">{selected.notes}</span>}
-                    {upcoming && <span className="ml-2 text-xs bg-amber-700/30 text-amber-300 border border-amber-700/40 px-2 py-0.5 rounded-full">Proper</span>}
+                    {meta.type && <span className="text-xs bg-cyan-100 text-cyan-700 dark:bg-cyan-700/20 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700/40 px-2 py-0.5 rounded-full">{REHEARSAL_TYPES[meta.type]}</span>}
+                    {meta.freeNotes && <span className="text-xs text-ghost">{meta.freeNotes}</span>}
+                    {upcoming && <span className="text-xs bg-amber-700/30 text-amber-300 border border-amber-700/40 px-2 py-0.5 rounded-full">Proper</span>}
                   </div>
                   {!upcoming && (
                     <div className="flex items-center gap-3">
@@ -251,6 +290,8 @@ export default function Attendance() {
                     </div>
                   )}
                 </div>
+                  )
+                })()}
 
                 {/* Absence notification for upcoming */}
                 {upcoming && (
@@ -382,6 +423,7 @@ export default function Attendance() {
           <SummaryView members={members} rehearsals={rehearsals} summaryData={summaryData} />
         )}
       </div>
+      </PageContainer>
     </Layout>
   )
 }

@@ -174,8 +174,18 @@ export default function Editor() {
       : null
     const directorMember = members.find(m => m.role === 'director') ?? null
     const soloistMicMap = Object.fromEntries((momentSoloists ?? []).map(s => [s.member_id, s.mic_number || true]))
-    drawAll(canvasRef.current, { placements, members, mode, highlightId, directorAbsX, directorMember,
-      drag: null, selectedIds, rotated, dims, trajectoryConfig: tConfig, soloistMicMap })
+    function redraw() {
+      drawAll(canvasRef.current, { placements, members, mode, highlightId, directorAbsX, directorMember,
+        drag: null, selectedIds, rotated, dims, trajectoryConfig: tConfig, soloistMicMap })
+    }
+    redraw()
+    // Redraw when OS color scheme changes (system theme)
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    mq.addEventListener('change', redraw)
+    // Redraw when dark class toggles (manual theme switch)
+    const obs = new MutationObserver(redraw)
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => { mq.removeEventListener('change', redraw); obs.disconnect() }
   }, [placements, members, mode, highlightId, directorAbsX, selectedIds, rotated,
     dims, trajectoryMode, trajectoryMemberId, allSongPositions, momentId, moments, momentSoloists])
 
@@ -444,7 +454,7 @@ export default function Editor() {
           VOICE_GROUPS={VOICE_GROUPS} ARRANGEMENT_PATTERNS={ARRANGEMENT_PATTERNS} VOICE_COLORS={VOICE_COLORS}
         />
 
-        <MomentLightsBar showId={showId} momentId={momentId} />
+        {/* MomentLightsBar removed — llums actius no cal veure-los en mode posicions */}
 
         <div className="flex flex-1 min-h-0 relative overflow-hidden">
           {sidebarOpen && <div className="absolute inset-0 bg-black/60 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />}

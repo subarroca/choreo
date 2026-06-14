@@ -143,28 +143,42 @@ function drawArrow(ctx, x1, y1, x2, y2, color) {
   ctx.closePath(); ctx.fill()
 }
 
+// ─── Canvas palette ───────────────────────────────────────────
+function palette(dark) {
+  return dark ? {
+    bg: '#0f172a', grid: '#1e293b', gridLine: '#334155',
+    altRow: '#243044', semiInterior: '#162032', radialDiv: '#1e3050',
+    faintText: '#475569', labelText: '#94a3b8',
+  } : {
+    bg: '#f1f5f9', grid: '#e2e8f0', gridLine: '#cbd5e1',
+    altRow: '#dde4ef', semiInterior: '#d4e4f4', radialDiv: '#b8cfe0',
+    faintText: '#94a3b8', labelText: '#475569',
+  }
+}
+
 // ─── Canvas draw ──────────────────────────────────────────────
 export function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX, directorMember,
   drag, selectedIds, rotated, dims, trajectoryConfig, soloistMicMap = {} }) {
   if (!canvas) return
   const { ROWS, COLS, rowLabels, GW, GH, CW, CH } = dims
+  const dark = document.documentElement.classList.contains('dark')
+  const P = palette(dark)
   const dpr = window.devicePixelRatio || 1
   canvas.width = CW * dpr; canvas.height = CH * dpr
   const ctx = canvas.getContext('2d')
   ctx.scale(dpr, dpr)
   const hasHighlight = !!highlightId
 
-  ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, CW, CH)
+  ctx.fillStyle = P.bg; ctx.fillRect(0, 0, CW, CH)
 
   if (mode === 'semicircle') {
-    ctx.fillStyle = '#1e293b'; ctx.fillRect(LABEL_W, 0, GW, GH)
+    ctx.fillStyle = P.grid; ctx.fillRect(LABEL_W, 0, GW, GH)
     const { cx, cy, arcParams } = semiGeometry(dims)
     const NSEG = 80
 
-    // Fill interior of outermost arc
     const ap0 = arcParams[0]
     if (ap0) {
-      ctx.fillStyle = '#162032'
+      ctx.fillStyle = P.semiInterior
       ctx.beginPath()
       for (let j = 0; j <= NSEG; j++) {
         const phi = -Math.PI / 2 + j * Math.PI / NSEG
@@ -174,9 +188,8 @@ export function drawAll(canvas, { placements, members, mode, highlightId, direct
       ctx.lineTo(cx + ap0.a, cy); ctx.lineTo(cx - ap0.a, cy); ctx.closePath(); ctx.fill()
     }
 
-    // Draw arc lane for each row
     arcParams.forEach(({ a, b }, i) => {
-      ctx.strokeStyle = '#334155'; ctx.lineWidth = 1
+      ctx.strokeStyle = P.gridLine; ctx.lineWidth = 1
       ctx.beginPath()
       for (let j = 0; j <= NSEG; j++) {
         const phi = -Math.PI / 2 + j * Math.PI / NSEG
@@ -184,15 +197,13 @@ export function drawAll(canvas, { placements, members, mode, highlightId, direct
         j === 0 ? ctx.moveTo(px2, py2) : ctx.lineTo(px2, py2)
       }
       ctx.stroke()
-      // Row label above arc top
-      ctx.fillStyle = '#475569'; ctx.font = '9px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'
+      ctx.fillStyle = P.faintText; ctx.font = '9px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'
       ctx.fillText(rowLabels[i] ?? `Fila ${i + 1}`, cx, cy - b - 2)
     })
 
-    // Light radial dividers at each column
     const innerAp = arcParams[arcParams.length - 1] ?? ap0
     if (innerAp && ap0) {
-      ctx.strokeStyle = '#1e3050'; ctx.lineWidth = 0.5
+      ctx.strokeStyle = P.radialDiv; ctx.lineWidth = 0.5
       for (let c = 0; c < COLS; c++) {
         const phi = -Math.PI / 2 + c * Math.PI / Math.max(1, COLS - 1)
         ctx.beginPath()
@@ -202,19 +213,19 @@ export function drawAll(canvas, { placements, members, mode, highlightId, direct
       }
     }
   } else if (mode === 'free') {
-    ctx.fillStyle = '#1e293b'; ctx.fillRect(LABEL_W, 0, GW, GH)
-    ctx.fillStyle = '#334155'
+    ctx.fillStyle = P.grid; ctx.fillRect(LABEL_W, 0, GW, GH)
+    ctx.fillStyle = P.gridLine
     for (let r = 0; r <= ROWS; r++)
       for (let c = 0; c <= COLS; c++) {
         ctx.beginPath(); ctx.arc(LABEL_W + c * CELL, r * CELL, 1.5, 0, Math.PI * 2); ctx.fill()
       }
   } else {
-    ctx.fillStyle = '#1e293b'; ctx.fillRect(LABEL_W, 0, GW, GH)
+    ctx.fillStyle = P.grid; ctx.fillRect(LABEL_W, 0, GW, GH)
     if (mode === 'alternate') {
-      ctx.fillStyle = '#243044'
+      ctx.fillStyle = P.altRow
       for (let r = 1; r < ROWS; r += 2) ctx.fillRect(LABEL_W, r * CELL, GW, CELL)
     }
-    ctx.strokeStyle = '#334155'; ctx.lineWidth = 1
+    ctx.strokeStyle = P.gridLine; ctx.lineWidth = 1
     for (let r = 0; r <= ROWS; r++) {
       ctx.beginPath(); ctx.moveTo(LABEL_W, r * CELL); ctx.lineTo(LABEL_W + GW, r * CELL); ctx.stroke()
     }
@@ -225,17 +236,17 @@ export function drawAll(canvas, { placements, members, mode, highlightId, direct
         ctx.beginPath(); ctx.moveTo(x, r * CELL); ctx.lineTo(x, (r + 1) * CELL); ctx.stroke()
       }
     }
-    ctx.fillStyle = '#475569'; ctx.font = '9px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'
+    ctx.fillStyle = P.faintText; ctx.font = '9px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'
     for (let c = 0; c < COLS; c += 2)
       fillTextFlipped(ctx, c + 1, LABEL_W + c * CELL + CELL / 2, 3, rotated)
   }
 
   if (mode !== 'semicircle') {
-    ctx.fillStyle = '#94a3b8'; ctx.font = '10px system-ui'; ctx.textBaseline = 'middle'
+    ctx.fillStyle = P.labelText; ctx.font = '10px system-ui'; ctx.textBaseline = 'middle'
+    // When rotated, labels must be drawn at canvas LEFT (= visual RIGHT after CSS rotate 180°)
     if (rotated) {
-      // When CSS-rotated 180°, draw labels at right edge of canvas → they appear on the left on screen
       ctx.textAlign = 'center'
-      const lx = CW - LABEL_W / 2
+      const lx = LABEL_W / 2
       for (let r = 0; r < ROWS; r++)
         fillTextFlipped(ctx, rowLabels[r] ?? `Fila ${r + 1}`, lx, r * CELL + CELL / 2, rotated)
     } else {
@@ -253,13 +264,13 @@ export function drawAll(canvas, { placements, members, mode, highlightId, direct
     }
   }
 
-  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1
+  ctx.strokeStyle = P.gridLine; ctx.lineWidth = 1
   ctx.beginPath(); ctx.moveTo(0, GH); ctx.lineTo(CW, GH); ctx.stroke()
-  ctx.fillStyle = '#475569'; ctx.font = '9px system-ui'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
+  ctx.fillStyle = P.faintText; ctx.font = '9px system-ui'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
   const dirLabel = directorMember ? (directorMember.initials || (directorMember.first_name ?? '').slice(0,1) + (directorMember.last_name ?? '').slice(0,1)) : 'DIR'
   if (rotated) {
     ctx.textAlign = 'center'
-    fillTextFlipped(ctx, dirLabel.toUpperCase(), CW - LABEL_W / 2, GH + DIRECTOR_H / 2, rotated)
+    fillTextFlipped(ctx, dirLabel.toUpperCase(), LABEL_W / 2, GH + DIRECTOR_H / 2, rotated)
   } else {
     ctx.textAlign = 'right'
     fillTextFlipped(ctx, dirLabel.toUpperCase(), LABEL_W - 6, GH + DIRECTOR_H / 2, rotated)

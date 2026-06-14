@@ -13,7 +13,7 @@ export default function MomentThumbnail({ positions = [], changedMembers, gridRo
   return (
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}
       className="shrink-0 rounded opacity-70 group-hover:opacity-100 transition-opacity">
-      <rect width={W} height={H} rx={2} fill="#111827" />
+      <rect width={W} height={H} rx={2} fill="transparent" />
       {positions.map((p, i) => {
         const cx = (p.col + 0.5) * cellW
         const cy = (p.row + 0.5) * cellH

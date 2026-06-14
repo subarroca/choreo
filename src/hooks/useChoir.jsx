@@ -15,9 +15,9 @@ export function ChoirProvider({ children }) {
       const list = data ?? []
       setChoirs(list)
       if (list.length && !list.find(c => c.id === currentChoirId)) {
-        const id = list[0].id
-        setCurrentChoirId(id)
-        localStorage.setItem('currentChoirId', id)
+        const preferred = list.find(c => c.name === 'Cor del Condal') ?? list[0]
+        setCurrentChoirId(preferred.id)
+        localStorage.setItem('currentChoirId', preferred.id)
       }
     }
     load()
