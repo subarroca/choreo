@@ -3,11 +3,12 @@ import { X } from 'lucide-react'
 import { ICON } from '../../lib/ui.js'
 
 const WIDTHS = {
-  sm:  'sm:max-w-sm',
-  md:  'sm:max-w-md',
-  lg:  'sm:max-w-lg',
-  xl:  'sm:max-w-xl',
-  '2xl': 'sm:max-w-2xl',
+  sm:   'sm:max-w-sm',
+  md:   'sm:max-w-md',
+  lg:   'sm:max-w-lg',
+  xl:   'sm:max-w-xl',
+  '2xl':'sm:max-w-2xl',
+  half: 'sm:w-1/2 sm:max-w-[600px]',
 }
 
 /**
@@ -34,7 +35,7 @@ export default function Modal({ open, onClose, title, children, width = 'md', fo
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-stretch sm:justify-end">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60"
+        className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -44,7 +45,7 @@ export default function Modal({ open, onClose, title, children, width = 'md', fo
         aria-modal="true"
         aria-label={title}
         className={`relative w-full ${WIDTHS[width] ?? WIDTHS.md} max-h-[90dvh] sm:max-h-none sm:h-full bg-page border-rim flex flex-col shadow-2xl
-          rounded-t-2xl border-t sm:rounded-none sm:border-t-0 sm:border-l`}
+          rounded-t-2xl border-t sm:rounded-none sm:border-t-0 sm:border-l animate-slide-right`}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-rim shrink-0">

@@ -90,7 +90,7 @@ export default function Admin() {
     <Layout fullWidth>
       <PageContainer
         header={
-          <PageHeader title="Gestió d'usuaris" icon={Shield} />
+          <PageHeader title="Gestió d'usuaris" icon={Shield} subtitle="Gestiona els rols i permisos dels membres de l'aplicació" />
         }
       >
         {loading ? (

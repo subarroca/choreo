@@ -69,7 +69,7 @@ export default function EditorToolbar({
         {/* Centre: show/song + moment selector */}
         <div className="min-w-0 px-1">
           <div className="flex items-center gap-1 text-xs text-faint leading-none mb-0.5 truncate">
-            <Link to="/" className="hover:text-soft shrink-0 truncate max-w-[80px]">{show?.name ?? '…'}</Link>
+            <Link to={`/show/${showId}`} className="hover:text-soft shrink-0 truncate max-w-[80px]">{show?.name ?? '…'}</Link>
             <span className="shrink-0">/</span>
             <Link to={`/show/${showId}`} className="hover:text-soft truncate">{song?.title ?? '…'}</Link>
           </div>

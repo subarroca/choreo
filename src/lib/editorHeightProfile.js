@@ -80,6 +80,10 @@ export function drawSilhouette(ctx, px, yTop, yFloor, figW, headFill, bodyFill, 
 
 export function drawHeightProfile(canvas, { placements, members, mode, dims, rowElevations, hoverMemberId, highlightId, hoverRow }) {
   if (!canvas) return
+  const dark = document.documentElement.classList.contains('dark')
+  const pal = dark
+    ? { bg: '#0f172a', floor: '#334155', platform: '#2d3f55', labelActive: '#e2e8f0', label: '#475569', tooltip: '#1e293b', highlight: '#0f172a' }
+    : { bg: '#f1f5f9', floor: '#cbd5e1', platform: '#bfcfe0', labelActive: '#1e293b', label: '#64748b', tooltip: '#f8fafc', highlight: '#f1f5f9' }
   const dpr = window.devicePixelRatio || 1
   const W = canvas.offsetWidth || 800
   const H = 200
@@ -90,7 +94,7 @@ export function drawHeightProfile(canvas, { placements, members, mode, dims, row
   const ctx = canvas.getContext('2d')
   ctx.scale(dpr, dpr)
 
-  ctx.fillStyle = '#0f172a'
+  ctx.fillStyle = pal.bg
   ctx.fillRect(0, 0, W, H)
 
   const placed = members.filter(m => m.role !== 'director' && placements[m.id])
@@ -115,7 +119,7 @@ export function drawHeightProfile(canvas, { placements, members, mode, dims, row
   function toY(cm) { return PAD_T + drawH * (1 - cm / maxH) }
 
   // floor line
-  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1
+  ctx.strokeStyle = pal.floor; ctx.lineWidth = 1
   ctx.beginPath(); ctx.moveTo(AXIS_X, toY(0)); ctx.lineTo(W - PAD_R, toY(0)); ctx.stroke()
 
   // dashed platform / ground-level lines + clickable labels
@@ -131,7 +135,7 @@ export function drawHeightProfile(canvas, { placements, members, mode, dims, row
 
   ctx.setLineDash([4, 4]); ctx.lineWidth = 0.8
   for (const elev of uniqueElevs) {
-    ctx.strokeStyle = '#2d3f55'
+    ctx.strokeStyle = pal.platform
     ctx.beginPath(); ctx.moveTo(AXIS_X, toY(elev)); ctx.lineTo(W - PAD_R, toY(elev)); ctx.stroke()
   }
   ctx.setLineDash([])
@@ -144,7 +148,7 @@ export function drawHeightProfile(canvas, { placements, members, mode, dims, row
       ? dims.rowLabels[rowsAtLevel[rowsAtLevel.length - 1]] ?? `Fila ${rowsAtLevel[0] + 1}`
       : elev === 0 ? 'Terra' : `${elev} cm`
     const isActive = hoverRow != null && rowsAtLevel.includes(hoverRow)
-    ctx.fillStyle = isActive ? '#e2e8f0' : '#475569'
+    ctx.fillStyle = isActive ? pal.labelActive : pal.label
     ctx.textAlign = 'right'
     ctx.fillText(rowName, AXIS_X - 3, y)
     // hit area
@@ -203,11 +207,11 @@ export function drawHeightProfile(canvas, { placements, members, mode, dims, row
       drawSilhouette(ctx, px, yTop, yFloor, FIG_W, c.bg, grad)
     } else if (highlightId && !isHighlight) {
       const strokeAlpha = rowDimmed ? '44' : fullAlpha
-      drawSilhouette(ctx, px, yTop, yFloor, FIG_W, '#0f172a', '#0f172a', c.bg + strokeAlpha)
+      drawSilhouette(ctx, px, yTop, yFloor, FIG_W, pal.highlight, pal.highlight, c.bg + strokeAlpha)
       // row-hover: white head override
       if (hoverRow != null && row === hoverRow) {
         const headR = Math.max(2.5, totalPx * 0.115)
-        ctx.fillStyle = '#ffffffdd'
+        ctx.fillStyle = dark ? '#ffffffdd' : '#000000cc'
         ctx.beginPath(); ctx.arc(px, yTop + headR, headR, 0, Math.PI * 2); ctx.fill()
       }
     } else {
@@ -218,7 +222,7 @@ export function drawHeightProfile(canvas, { placements, members, mode, dims, row
       // row-hover: white head override
       if (hoverRow != null && row === hoverRow) {
         const headR = Math.max(2.5, totalPx * 0.115)
-        ctx.fillStyle = '#ffffffdd'
+        ctx.fillStyle = dark ? '#ffffffdd' : '#000000cc'
         ctx.beginPath(); ctx.arc(px, yTop + headR, headR, 0, Math.PI * 2); ctx.fill()
       }
     }
@@ -235,7 +239,7 @@ export function drawHeightProfile(canvas, { placements, members, mode, dims, row
     const bw = tw + 10, bh = 15
     const bx = Math.min(Math.max(px - bw / 2, AXIS_X + 2), W - PAD_R - bw - 2)
     const by = Math.min(yFloor + 3, H - bh - 2)
-    ctx.fillStyle = '#1e293b'
+    ctx.fillStyle = pal.tooltip
     fillRoundRect(ctx, bx, by, bw, bh, 3)
     ctx.strokeStyle = c.bg + '77'; ctx.lineWidth = 1; ctx.stroke()
     ctx.fillStyle = c.bg

@@ -110,7 +110,7 @@ export default function ProfileMenu({ onSignOut, expanded = true }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-72 bg-pane border border-line rounded-xl shadow-2xl z-50 overflow-hidden">
+        <div className="absolute left-0 bottom-full mb-2 w-72 bg-pane border border-line rounded-xl shadow-2xl z-50 overflow-hidden">
 
           {/* Capçalera de perfil */}
           <div className="px-4 py-3 border-b border-rim">

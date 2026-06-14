@@ -46,11 +46,7 @@ function MemberRow({ member, onClick, dim = false }) {
       className={dim ? 'opacity-50 hover:opacity-75' : ''}
       leading={<Avatar member={member} size="sm" />}
       title={<span className={dim ? 'line-through' : ''}>{label}</span>}
-      meta={
-        dim
-          ? <span className="text-amber-600 dark:text-amber-400">De baixa</span>
-          : <span style={{ color: c.bg }}><MemberMeta member={member} /></span>
-      }
+      meta={dim ? <span className="text-amber-600 dark:text-amber-400">De baixa</span> : undefined}
     />
   )
 }
@@ -62,6 +58,7 @@ export default function Members() {
   const [showInactive, setShowInactive] = useState(false)
   const [filterVoice, setFilterVoice]   = useState('')
   const [search, setSearch]             = useState('')
+  const [sortBy, setSortBy]             = useState('last_name')
   const [overlayMember, setOverlayMember] = useState(null) // member obj | 'new'
 
   const { data: members = [], setData: setMembers, loading } = useSupabaseQuery(async () => {
@@ -111,12 +108,21 @@ export default function Members() {
     acc[v] = activeMembers.filter(m => m.voice === v).length; return acc
   }, {})
   const searchLower = search.toLowerCase()
-  const listMembers = activeMembers.filter(m =>
-    (!filterVoice || m.voice === filterVoice) &&
-    (!search || m.name?.toLowerCase().includes(searchLower) ||
-      m.first_name?.toLowerCase().includes(searchLower) ||
-      m.last_name?.toLowerCase().includes(searchLower))
-  )
+  const listMembers = activeMembers
+    .filter(m =>
+      (!filterVoice || m.voice === filterVoice) &&
+      (!search || m.name?.toLowerCase().includes(searchLower) ||
+        m.first_name?.toLowerCase().includes(searchLower) ||
+        m.last_name?.toLowerCase().includes(searchLower))
+    )
+    .sort((a, b) => {
+      if (sortBy === 'voice') {
+        return VOICE_ORDER.indexOf(a.voice) - VOICE_ORDER.indexOf(b.voice) ||
+               (a.last_name || '').localeCompare(b.last_name || '', 'ca')
+      }
+      if (sortBy === 'first_name') return (a.first_name || '').localeCompare(b.first_name || '', 'ca')
+      return (a.last_name || a.name || '').localeCompare(b.last_name || b.name || '', 'ca')
+    })
 
   const isNew = overlayMember === 'new'
   const overlayData = isNew ? null : overlayMember
@@ -128,7 +134,6 @@ export default function Members() {
           <PageHeader
             title="Persones"
             icon={Users}
-            subtitle="ordenades per cognom"
             actions={canEdit && (
               <Button onClick={() => setOverlayMember('new')}>
                 <Plus size={ICON.sm} /> Afegir
@@ -145,6 +150,16 @@ export default function Members() {
                     placeholder="Cerca per nom…"
                     className="w-full bg-fill border border-line rounded-lg pl-8 pr-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-500"
                   />
+                </div>
+                {/* Sort buttons */}
+                <div className="flex items-center gap-1.5 pb-1">
+                  <span className="text-xs text-ghost">Ordenar:</span>
+                  {[['last_name','Cognom'],['first_name','Nom'],['voice','Corda']].map(([k,l]) => (
+                    <button key={k} onClick={() => setSortBy(k)}
+                      className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
+                        sortBy === k ? 'border-cyan-600 text-cyan-400' : 'border-line text-faint hover:text-body'
+                      }`}>{l}</button>
+                  ))}
                 </div>
                 {/* Voice filter pills */}
                 <div className="flex flex-wrap gap-1.5 pb-0.5">

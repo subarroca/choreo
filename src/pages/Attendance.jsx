@@ -8,6 +8,8 @@ import Layout from '../components/Layout'
 import PageContainer from '../components/ui/PageContainer'
 import PageHeader from '../components/ui/PageHeader'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
+import Modal from '../components/ui/Modal'
+import SummaryView from '../components/SummaryView'
 
 const STATUS_CONFIG = {
   present:  { label: 'Present',  icon: Check,  cls: 'bg-green-700/30 text-green-300 border-green-700/50' },
@@ -82,6 +84,13 @@ export default function Attendance() {
   const [newType, setNewType] = useState('')
   const [newNotes, setNewNotes] = useState('')
 
+  // Rehearsal detail panel
+  const [detailRehearsal, setDetailRehearsal] = useState(null) // rehearsal obj
+  const [editTime, setEditTime] = useState('')
+  const [editLocation, setEditLocation] = useState('')
+  const [editType, setEditType] = useState('')
+  const [editNotes, setEditNotes] = useState('')
+
   // Absence notification form
   const [notifyMemberId, setNotifyMemberId] = useState('')
   const [notifyReason, setNotifyReason] = useState('viatge')
@@ -143,6 +152,25 @@ export default function Attendance() {
       setSelectedId(data.id)
     }
     resetForm()
+  }
+
+  function openDetail(r) {
+    const meta = parseRehearsalMeta(r.notes)
+    setEditTime(meta.time)
+    setEditLocation(meta.location)
+    setEditType(meta.type)
+    setEditNotes(meta.freeNotes)
+    setDetailRehearsal(r)
+  }
+
+  async function saveDetail() {
+    if (!detailRehearsal) return
+    const notes = serializeRehearsalMeta(editType, editTime, editLocation, editNotes)
+    const { data } = await supabase.from('rehearsals').update({ notes }).eq('id', detailRehearsal.id).select().single()
+    if (data) {
+      setRehearsals(prev => prev.map(r => r.id === data.id ? data : r))
+    }
+    setDetailRehearsal(null)
   }
 
   async function deleteRehearsal(id) {
@@ -281,12 +309,10 @@ export default function Attendance() {
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
               {rehearsals.map(r => (
                 <div key={r.id} className="relative group shrink-0">
-                  <button onClick={() => setSelectedId(r.id)}
+                  <button onClick={() => { setSelectedId(r.id); openDetail(r) }}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
                       selectedId === r.id
-                        ? isUpcoming(r.date)
-                          ? 'bg-amber-100 border border-amber-300 text-amber-700 dark:bg-amber-700/30 dark:border-amber-600 dark:text-amber-300'
-                          : 'bg-cyan-100 border border-cyan-300 text-cyan-700 dark:bg-cyan-700/30 dark:border-cyan-600 dark:text-cyan-300'
+                          ? 'bg-cyan-100 border border-cyan-300 text-cyan-700 dark:bg-cyan-700/30 dark:border-cyan-600 dark:text-cyan-300'
                         : 'border border-line text-muted hover:text-body hover:bg-fill'
                     }`}>
                     {isUpcoming(r.date) && <span className="mr-1 opacity-60">·</span>}
@@ -469,77 +495,57 @@ export default function Attendance() {
         )}
       </div>
       </PageContainer>
+
+      {/* Rehearsal detail side panel */}
+      <Modal
+        open={!!detailRehearsal}
+        onClose={() => setDetailRehearsal(null)}
+        title={detailRehearsal ? formatDate(detailRehearsal.date) : ''}
+        width="half"
+        footer={isAdmin && (
+          <div className="flex gap-2">
+            <Button onClick={saveDetail}>Guardar</Button>
+            <Button variant="ghost" onClick={() => setDetailRehearsal(null)}>Cancel·lar</Button>
+          </div>
+        )}
+      >
+        {detailRehearsal && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted">Hora</label>
+                <input type="time" value={editTime} onChange={e => setEditTime(e.target.value)}
+                  disabled={!isAdmin}
+                  className="bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300 disabled:opacity-60" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted">Lloc</label>
+                <input type="text" placeholder="Sala, adreça…" value={editLocation} onChange={e => setEditLocation(e.target.value)}
+                  disabled={!isAdmin}
+                  className="bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300 disabled:opacity-60" />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted">Tipus</label>
+              <select value={editType} onChange={e => setEditType(e.target.value)}
+                disabled={!isAdmin}
+                className="bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300 disabled:opacity-60">
+                <option value="">— Tipus —</option>
+                {Object.entries(REHEARSAL_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted">Notes</label>
+              <textarea rows={3} value={editNotes} onChange={e => setEditNotes(e.target.value)}
+                disabled={!isAdmin}
+                placeholder="Notes opcionals"
+                className="bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300 resize-y disabled:opacity-60" />
+            </div>
+            {!isAdmin && <p className="text-xs text-ghost">Només els directors poden editar els detalls.</p>}
+          </div>
+        )}
+      </Modal>
     </Layout>
   )
 }
 
-function SummaryView({ members, rehearsals, summaryData }) {
-  if (!summaryData) return <p className="text-sm text-faint">Carregant resum…</p>
-  if (!rehearsals.length) return <p className="text-sm text-ghost">Sense dades d'assistència.</p>
-
-  const past = rehearsals.filter(r => !isUpcoming(r.date))
-
-  return (
-    <div className="space-y-4">
-      <div className="overflow-x-auto">
-        <table className="text-xs border-collapse w-full">
-          <thead>
-            <tr>
-              <th className="text-left px-2 py-2 text-ghost font-normal border-b border-rim sticky left-0 bg-page z-10 whitespace-nowrap">Persona</th>
-              {past.map(r => (
-                <th key={r.id} className="px-2 py-2 text-ghost font-normal border-b border-rim text-center whitespace-nowrap">
-                  {formatDate(r.date)}
-                </th>
-              ))}
-              <th className="px-3 py-2 text-ghost font-normal border-b border-rim text-center whitespace-nowrap">% Assist.</th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.map(m => {
-              const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
-              const memberData = summaryData[m.id] ?? {}
-              const presents = past.filter(r => (memberData[r.id]?.status ?? 'present') === 'present').length
-              const pct = past.length ? Math.round((presents / past.length) * 100) : null
-              return (
-                <tr key={m.id} className="hover:bg-fill/20 transition-colors">
-                  <td className="px-2 py-2 border-b border-rim/40 sticky left-0 bg-page z-10">
-                    <span className="font-semibold text-body">
-                      {m.last_name ?? m.name}
-                    </span>
-                    <span className="ml-1 font-medium" style={{ color: c.bg + 'cc' }}>
-                      {VOICE_LABELS[m.voice]?.slice(0, 1)}
-                    </span>
-                  </td>
-                  {past.map(r => {
-                    const rec = memberData[r.id]
-                    const s = rec?.status ?? 'present'
-                    const reason = rec?.reason
-                    const ReasonIcon = reason ? REASONS[reason]?.icon : null
-                    return (
-                      <td key={r.id} className="px-2 py-2 border-b border-rim/40 text-center" title={reason ? REASONS[reason]?.label : undefined}>
-                        {s === 'present' && <span className="text-green-400 font-bold">✓</span>}
-                        {s === 'absent'  && <span className="text-red-400 font-bold">✗</span>}
-                        {s === 'excused' && (
-                          <span className="text-amber-400" title={reason ? REASONS[reason]?.label : 'Excusat'}>~</span>
-                        )}
-                        {!rec && <span className="text-gray-700">—</span>}
-                      </td>
-                    )
-                  })}
-                  <td className="px-3 py-2 border-b border-rim/40 text-center font-semibold">
-                    {pct !== null ? (
-                      <span className={pct >= 80 ? 'text-green-400' : pct >= 60 ? 'text-amber-400' : 'text-red-400'}>
-                        {pct}%
-                      </span>
-                    ) : <span className="text-ghost">—</span>}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-      <p className="text-xs text-ghost">Mostra només assajos passats ({past.length} de {rehearsals.length} totals).</p>
-    </div>
-  )
-}

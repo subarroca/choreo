@@ -1,17 +1,17 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ListOrdered, Users, ImageIcon, MicVocal, Lightbulb, FileText, ChevronDown, PlayCircle } from 'lucide-react'
+import { ListOrdered, ImageIcon, MicVocal, Lightbulb, FileText, ChevronDown, PlayCircle, ChevronLeft } from 'lucide-react'
 
 const MAIN_TABS = [
-  { key: 'setlist', path: '',       label: 'Escaleta', icon: ListOrdered },
+  { key: 'setlist', path: '',        label: 'Escaleta', icon: ListOrdered },
   { key: 'assaig',  path: '/assaig', label: 'Assaig',   icon: PlayCircle  },
+  { key: 'llums',   path: '/llums',  label: 'Llums',    icon: Lightbulb  },
   { key: 'poster',  path: '/poster', label: 'Pòster',   icon: ImageIcon   },
 ]
 
 const RIDER_TABS = [
-  { key: 'mics',  path: '/mics',  label: 'Micros',    icon: MicVocal  },
-  { key: 'llums', path: '/llums', label: 'Llums',     icon: Lightbulb },
-  { key: 'rider', path: '/rider', label: 'Document',  icon: FileText  },
+  { key: 'mics',  path: '/mics',  label: 'Micros',   icon: MicVocal  },
+  { key: 'rider', path: '/rider', label: 'Document', icon: FileText  },
 ]
 
 export default function ShowToolbar({ showId, showName }) {
@@ -32,6 +32,9 @@ export default function ShowToolbar({ showId, showName }) {
 
   return (
     <div className="flex items-center gap-2 px-4 py-2.5 bg-pane border-b border-rim shrink-0">
+      <Link to="/shows" className="flex items-center justify-center w-8 h-8 rounded-lg text-faint hover:text-body hover:bg-fill transition-colors shrink-0">
+        <ChevronLeft size={16} />
+      </Link>
       <nav className="flex items-center gap-1.5 text-sm text-faint min-w-0 mr-1 shrink-0">
         <Link to="/" className="hover:text-soft">Espectacles</Link>
         <span>/</span>
@@ -57,11 +60,6 @@ export default function ShowToolbar({ showId, showName }) {
           )
         })}
 
-        <Link to="/members"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors text-muted hover:text-body hover:bg-fill">
-          <Users size={13} />
-          Persones
-        </Link>
       </div>
 
       {/* Rider dropdown — outside overflow-x-auto so the popover isn't clipped */}

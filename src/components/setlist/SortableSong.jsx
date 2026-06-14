@@ -1,15 +1,29 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import {
-  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
-} from '@dnd-kit/core'
-import {
-  arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
+import { Link } from 'react-router-dom'
 import { GripVertical, Pencil, X, ChevronDown, ChevronRight, Plus, MessageSquare, Info, Clipboard } from 'lucide-react'
-import SortableMomentRow from './SortableMomentRow'
 import { formatDuration } from './SongForm'
 import { repertoireType, isSongType } from '../../lib/repertoireTypes'
+import { VOICE_COLORS } from '../../lib/constants'
+
+function MomentThumbnailLarge({ positions = [], changedMembers, gridRows = 8, gridCols = 14 }) {
+  if (!positions.length) return null
+  const W = 88, H = 50
+  const cellW = W / gridCols
+  const cellH = H / gridRows
+  const r = Math.min(cellW, cellH) * 0.38
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      {positions.map((p, i) => {
+        const cx = (p.col + 0.5) * cellW
+        const cy = (p.row + 0.5) * cellH
+        const moved = changedMembers?.has(p.memberId)
+        const color = p.voice ? (VOICE_COLORS[p.voice]?.bg ?? '#6b7280') : '#6b7280'
+        return <circle key={i} cx={cx} cy={cy} r={moved ? r * 1.3 : r} fill={color} stroke={moved ? '#fff' : 'none'} strokeWidth={moved ? 0.8 : 0} />
+      })}
+    </svg>
+  )
+}
 
 function TextItem({ song, members, onEdit, onDelete, listeners, attributes, style }) {
   const speakerIds = song.speakers ? JSON.parse(song.speakers) : []
@@ -88,18 +102,6 @@ export default function SortableSong({
     opacity: isDragging ? 0 : isOtherDragging ? 0.4 : 1,
   }
 
-  const momentSensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  )
-
-  function handleMomentDragEnd({ active, over }) {
-    if (!over || active.id === over.id) return
-    const oldIndex = moments.findIndex(m => m.id === active.id)
-    const newIndex = moments.findIndex(m => m.id === over.id)
-    onReorderMoments(song.id, arrayMove(moments, oldIndex, newIndex))
-  }
-
   const type = song.type ?? 'song'
 
   if (type === 'text') {
@@ -164,46 +166,57 @@ export default function SortableSong({
 
       {/* Moments list */}
       {expanded && (
-        <div className="border-t border-rim">
-          {moments.length === 0
-            ? <p className="px-4 py-3 text-xs text-ghost italic">Sense moments</p>
-            : (
-              <DndContext sensors={momentSensors} collisionDetection={closestCenter} onDragEnd={handleMomentDragEnd}>
-                <SortableContext items={moments.map(m => m.id)} strategy={verticalListSortingStrategy}>
-                  {moments.map((m, i) => (
-                    <SortableMomentRow key={m.id} moment={m} index={i}
-                      showId={showId} songId={song.id}
-                      onDelete={onDeleteMoment} onCopy={onCopyMoment}
-                      micAssignments={micAssignments}
-                      positions={positionsByMoment?.[m.id]}
-                      changedMembers={diffByMoment?.[m.id]}
-                      soloists={soloistsByMoment?.[m.id]}
-                      allMembers={allMembers}
-                      gridRows={gridRows} gridCols={gridCols} />
-                  ))}
-                </SortableContext>
-              </DndContext>
-            )}
-          <div className="flex border-t border-rim">
-            <button onClick={() => onAddMoment(song.id, false)}
-              className="flex items-center gap-1.5 flex-1 px-4 py-3 text-xs text-cyan-600 hover:text-cyan-400 hover:bg-fill transition-colors">
-              <Plus size={12} /> Afegir moment
-            </button>
-            {copiedMoment && onPasteMoment && (
-              <button onClick={() => onPasteMoment(song.id)}
-                className="flex items-center gap-1.5 px-4 py-3 text-xs text-violet-500 hover:text-violet-300 hover:bg-fill transition-colors border-l border-rim"
-                title={`Enganxar "${copiedMoment.title}"`}>
-                <Clipboard size={12} /> Enganxar
+        <div className="border-t border-rim px-3 py-3">
+          {moments.length === 0 ? (
+            <p className="text-xs text-ghost italic py-2">Sense moments</p>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {moments.map((m, i) => {
+                const positions = positionsByMoment?.[m.id] ?? []
+                const changedMembers = diffByMoment?.[m.id]
+                return (
+                  <Link
+                    key={m.id}
+                    to={`/show/${showId}/song/${song.id}/moment/${m.id}`}
+                    className="shrink-0 group flex flex-col items-center gap-1.5 w-24"
+                  >
+                    <div className="w-24 h-14 rounded-lg border border-rim bg-slate-900 dark:bg-slate-950 flex items-center justify-center overflow-hidden group-hover:border-cyan-600 transition-colors">
+                      {positions.length > 0 ? (
+                        <MomentThumbnailLarge positions={positions} changedMembers={changedMembers} gridRows={gridRows} gridCols={gridCols} />
+                      ) : (
+                        <span className="text-ghost text-xs">buit</span>
+                      )}
+                    </div>
+                    <div className="text-center w-full">
+                      <p className="text-xs text-soft font-medium truncate">{i + 1}. {m.title}</p>
+                      {m.subtitle && <p className="text-xs text-ghost truncate">{m.subtitle}</p>}
+                    </div>
+                  </Link>
+                )
+              })}
+              <button onClick={() => onAddMoment(song.id)}
+                className="shrink-0 flex flex-col items-center gap-1.5 w-24 group">
+                <div className="w-24 h-14 rounded-lg border-2 border-dashed border-line flex items-center justify-center group-hover:border-cyan-600 transition-colors">
+                  <Plus size={18} className="text-faint group-hover:text-cyan-400 transition-colors" />
+                </div>
+                <p className="text-xs text-ghost">Nou</p>
               </button>
-            )}
-          </div>
+            </div>
+          )}
+          {copiedMoment && onPasteMoment && (
+            <button onClick={() => onPasteMoment(song.id)}
+              className="flex items-center gap-1.5 mt-2 px-3 py-1.5 text-xs text-violet-500 hover:text-violet-300 hover:bg-fill transition-colors rounded-lg border border-violet-800"
+              title={`Enganxar "${copiedMoment.title}"`}>
+              <Clipboard size={12} /> Enganxar
+            </button>
+          )}
           {song.lyrics && (
-            <details className="border-t border-rim group">
-              <summary className="px-4 py-2.5 text-xs text-faint hover:text-soft cursor-pointer list-none flex items-center gap-1.5 select-none">
+            <details className="mt-2 group">
+              <summary className="py-1.5 text-xs text-faint hover:text-soft cursor-pointer list-none flex items-center gap-1.5 select-none">
                 <ChevronRight size={12} className="group-open:rotate-90 transition-transform" />
                 Lletra
               </summary>
-              <pre className="px-4 pb-4 text-xs text-muted whitespace-pre-wrap font-sans leading-relaxed">{song.lyrics}</pre>
+              <pre className="pt-2 text-xs text-muted whitespace-pre-wrap font-sans leading-relaxed">{song.lyrics}</pre>
             </details>
           )}
         </div>

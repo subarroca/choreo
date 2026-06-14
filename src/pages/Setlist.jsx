@@ -291,34 +291,39 @@ export default function Setlist() {
 
   return (
     <>
-    <Layout>
-      <div className="space-y-5">
-        {/* Toolbar */}
+    <Layout fullWidth>
+      <div className="flex flex-col min-h-0 h-full">
+        {/* Show-level tab toolbar — flush to top */}
         <ShowToolbar showId={showId} showName={show?.name} />
 
-        {/* Action bar */}
-        <div className="flex gap-2 flex-wrap">
+        {/* Action bar — secondary header strip */}
+        <div className="flex items-center gap-2 px-4 py-2 bg-pane border-b border-rim shrink-0 flex-wrap">
           <button onClick={() => {
             const next = !allExpanded
             setAllExpanded(next)
             const expAll = {}; for (const s of songs) expAll[s.id] = next
             setExpandedSongs(expAll)
           }}
-            className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-line text-muted hover:text-body hover:bg-fill transition-colors"
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-line text-muted hover:text-body hover:bg-fill transition-colors"
             title={allExpanded ? 'Replegar tot' : 'Expandir tot'}>
-            {allExpanded ? <ChevronsUp size={14} /> : <ChevronsDown size={14} />}
+            {allExpanded ? <ChevronsUp size={13} /> : <ChevronsDown size={13} />}
           </button>
           <button onClick={() => setShowCast(v => !v)}
-            className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border transition-colors ${showCast ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-line text-muted hover:text-body hover:bg-fill'}`}>
-            <MicVocal size={14} /> Membres {exclusions.size > 0 && <span className="ml-1 text-xs text-yellow-500">({allMembers.length - exclusions.size}/{allMembers.length})</span>}
+            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${showCast ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-line text-muted hover:text-body hover:bg-fill'}`}>
+            <MicVocal size={13} /> Membres {exclusions.size > 0 && <span className="ml-1 text-yellow-500">({allMembers.length - exclusions.size}/{allMembers.length})</span>}
           </button>
-          <Button variant="ghost" onClick={() => setCreatingPart(true)}>
+          <div className="flex-1" />
+          <Button size="sm" variant="ghost" onClick={() => setCreatingPart(true)}>
             <Plus size={ICON.sm} /> Nova part
           </Button>
-          <Button onClick={() => setCreating(true)}>
+          <Button size="sm" onClick={() => setCreating(true)}>
             <Plus size={ICON.sm} /> Nou element
           </Button>
         </div>
+
+        {/* Scrollable content */}
+        <div className="flex-1 min-h-0 overflow-y-auto pb-16 md:pb-0">
+        <div className="p-4 md:p-6 space-y-4">
 
         {/* Cast panel */}
         {showCast && <CastPanel showId={showId} allMembers={allMembers} exclusions={exclusions} onToggle={toggleExclusion} onEditMember={setEditingMember} />}
@@ -377,7 +382,7 @@ export default function Setlist() {
                         <span className="text-faint p-0.5 shrink-0">
                           {isPartExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                         </span>
-                        <span className="font-semibold text-sm text-gray-200 flex-1">{part.title}</span>
+                        <span className="font-semibold text-sm text-body flex-1">{part.title}</span>
                         <span className="text-xs text-ghost">{sectionSongs.length} cançó{sectionSongs.length !== 1 ? 'ns' : ''}</span>
                         <button onClick={e => { e.stopPropagation(); setEditingPart(part) }}
                           className="text-faint hover:text-body p-2.5 rounded-lg hover:bg-fill transition-colors"><Pencil size={15} /></button>
@@ -453,7 +458,9 @@ export default function Setlist() {
             </DragOverlay>
           </DndContext>
         )}
-      </div>
+        </div>{/* /p-4 */}
+        </div>{/* /overflow-y-auto */}
+      </div>{/* /flex-col */}
     </Layout>
 
     {/* Member profile overlay */}

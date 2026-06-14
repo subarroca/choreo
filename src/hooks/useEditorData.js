@@ -122,6 +122,7 @@ export function useEditorData({ showId, songId, momentId, navigate }) {
   async function navigateToSong(targetSongId) {
     const { data } = await supabase.from('moments').select('id').eq('song_id', targetSongId).order('order_index').limit(1)
     if (data?.length) navigate(`/show/${showId}/song/${targetSongId}/moment/${data[0].id}`)
+    else navigate(`/show/${showId}`)
   }
 
   async function createMoment(title, cloneFrom, selectedOtherMomentId, mode, templateId = '') {

@@ -19,16 +19,15 @@ export default function EditorSidebar({
     <div className={`absolute lg:relative inset-y-0 left-0 z-30 lg:z-auto w-56 lg:w-44 shrink-0 border-r border-rim bg-page flex flex-col overflow-y-auto transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
       <div className="p-2.5 space-y-3">
 
-        <SidebarSection title="Mode" open={isPanelOpen('mode')} onToggle={() => togglePanel('mode')}>
-          <div className="grid grid-cols-2 gap-px rounded-lg border border-line overflow-hidden bg-fill">
-            {MODES.map(({ id, Icon, label }) => (
-              <button key={id} onClick={() => onChangeMode(id)} title={label}
-                className={`flex flex-col items-center gap-1 py-2.5 min-h-[56px] text-xs transition-colors ${mode === id ? 'bg-cyan-600 text-white' : 'bg-page text-faint hover:text-body hover:bg-fill'}`}>
-                <Icon size={18} /><span className="text-xs leading-none">{label}</span>
-              </button>
-            ))}
-          </div>
-        </SidebarSection>
+        {/* Mode selector — compact icon strip */}
+        <div className="flex gap-1 rounded-lg border border-line bg-fill p-1">
+          {MODES.map(({ id, Icon, label }) => (
+            <button key={id} onClick={() => onChangeMode(id)} title={label}
+              className={`flex-1 flex items-center justify-center h-8 rounded transition-colors ${mode === id ? 'bg-cyan-600 text-white shadow-sm' : 'text-faint hover:text-body hover:bg-page'}`}>
+              <Icon size={16} />
+            </button>
+          ))}
+        </div>
 
         <SidebarSection title="Graella" open={isPanelOpen('grid', false)} onToggle={() => togglePanel('grid', false)}>
           <div className="space-y-0.5">

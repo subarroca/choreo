@@ -344,13 +344,13 @@ export default function PersonProfileOverlay({ member, isNew, readOnly = false, 
   if (!member) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-stretch sm:justify-end">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+      <div className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in"
         onClick={() => editing && !isNew ? setEditing(false) : onClose()} />
 
-      {/* Card */}
-      <div className="relative z-10 bg-pane border border-line/80 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-sm flex flex-col h-[100dvh] sm:h-[90vh]" style={{ overflow: 'hidden' }}>
+      {/* Panel */}
+      <div className="relative z-10 bg-pane border-l border-rim shadow-2xl w-full sm:w-1/2 sm:max-w-[600px] flex flex-col max-h-[90dvh] sm:max-h-none sm:h-full rounded-t-2xl border-t sm:rounded-none sm:border-t-0 animate-slide-right" style={{ overflow: 'hidden' }}>
 
         {/* Close button (top-right) */}
         <button onClick={onClose}

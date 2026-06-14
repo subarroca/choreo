@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { BookOpen, Plus, Pencil, ExternalLink, Music, Globe, Lock, FileText, Upload, X, Search } from 'lucide-react'
+import { BookOpen, Plus, Pencil, ExternalLink, Music, Globe, Lock, FileText, Upload, X, Search, Archive } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'
@@ -133,6 +133,7 @@ function SongForm({ initial, onSave, onCancel, onDelete }) {
   const [notes, setNotes]         = useState(initial?.notes ?? '')
   const [lyrics, setLyrics]       = useState(initial?.lyrics ?? '')
   const [isPublic, setIsPublic]   = useState(initial?.is_public ?? false)
+  const [archived, setArchived]   = useState(initial?.archived ?? false)
   const [attachments, setAttachments] = useState(() => {
     if (initial?.attachments) { try { return JSON.parse(initial.attachments) } catch { return [] } }
     const legacy = []
@@ -151,6 +152,7 @@ function SongForm({ initial, onSave, onCancel, onDelete }) {
       notes: notes.trim() || null,
       lyrics: lyrics.trim() || null,
       is_public: isPublic,
+      archived,
       attachments: JSON.stringify(attachments),
       source_url: null, score_url: null, audio_url: null,
     })
@@ -185,13 +187,22 @@ function SongForm({ initial, onSave, onCancel, onDelete }) {
         <p className="text-xs text-faint uppercase tracking-wider">Recursos</p>
         <AttachmentEditor attachments={attachments} onChange={setAttachments} />
       </div>
-      <label className="flex items-center gap-2 cursor-pointer select-none">
-        <div onClick={() => setIsPublic(v => !v)}
-          className={`w-9 h-5 rounded-full transition-colors relative ${isPublic ? 'bg-green-600' : 'bg-raised'}`}>
-          <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${isPublic ? 'left-4' : 'left-0.5'}`} />
-        </div>
-        <span className="text-sm text-muted">{isPublic ? 'Pública' : 'Privada'}</span>
-      </label>
+      <div className="flex items-center gap-4">
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <div onClick={() => setIsPublic(v => !v)}
+            className={`w-9 h-5 rounded-full transition-colors relative ${isPublic ? 'bg-green-600' : 'bg-raised'}`}>
+            <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${isPublic ? 'left-4' : 'left-0.5'}`} />
+          </div>
+          <span className="text-sm text-muted">{isPublic ? 'Pública' : 'Privada'}</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <div onClick={() => setArchived(v => !v)}
+            className={`w-9 h-5 rounded-full transition-colors relative ${archived ? 'bg-amber-600' : 'bg-raised'}`}>
+            <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${archived ? 'left-4' : 'left-0.5'}`} />
+          </div>
+          <span className="text-sm text-muted">{archived ? 'Arxivada' : 'Activa'}</span>
+        </label>
+      </div>
       <div className="flex items-center gap-2 pt-1">
         <Button type="submit">Guardar</Button>
         <Button type="button" variant="ghost" onClick={onCancel}>Cancel·lar</Button>
@@ -217,13 +228,15 @@ export default function Songs() {
   const { currentChoirId } = useChoir()
   const [sheetSong, setSheetSong] = useState(null) // song obj | 'new' | null
   const [search, setSearch] = useState('')
+  const [showArchived, setShowArchived] = useState(false)
 
   const { data: songs = [], setData: setSongs, loading } = useSupabaseQuery(async () => {
     let q = supabase.from('repertoire_songs').select('*').eq('type', 'song').order('title')
     if (currentChoirId) q = q.eq('choir_id', currentChoirId)
+    if (!showArchived) q = q.or('archived.is.null,archived.eq.false')
     const { data } = await q
     return data ?? []
-  }, [currentChoirId])
+  }, [currentChoirId, showArchived])
 
   async function handleCreate(fields) {
     const payload = { ...fields, created_by: user?.id }
@@ -273,14 +286,24 @@ export default function Songs() {
               </Button>
             }
             tabs={
-              <div className="relative py-2">
-                <Search size={ICON.sm} className="absolute left-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
-                <input
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Cerca per títol o compositor…"
-                  className="w-full bg-fill border border-line rounded-lg pl-8 pr-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-500"
-                />
+              <div className="space-y-2 py-2">
+                <div className="relative">
+                  <Search size={ICON.sm} className="absolute left-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
+                  <input
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="Cerca per títol o compositor…"
+                    className="w-full bg-fill border border-line rounded-lg pl-8 pr-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setShowArchived(v => !v)}
+                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                      showArchived ? 'border-amber-600 text-amber-400 bg-amber-900/10' : 'border-line text-faint hover:text-body'
+                    }`}>
+                    <Archive size={ICON.xs} /> {showArchived ? 'Amagar arxivades' : 'Mostrar arxivades'}
+                  </button>
+                </div>
               </div>
             }
           />
@@ -302,10 +325,12 @@ export default function Songs() {
                 <ListRow
                   key={song.id}
                   onClick={() => setSheetSong(song)}
+                  className={song.archived ? 'opacity-60' : ''}
                   leading={<Music size={ICON.sm} className="text-cyan-500" />}
                   title={
                     <span className="flex items-center gap-2">
                       {song.title}
+                      {song.archived && <Archive size={9} className="text-amber-400" />}
                       {song.is_public
                         ? <span className="inline-flex items-center gap-1 text-xs text-green-500"><Globe size={9} /> Pública</span>
                         : <span className="inline-flex items-center gap-1 text-xs text-ghost"><Lock size={9} /> Privada</span>
@@ -325,7 +350,7 @@ export default function Songs() {
         open={!!sheetSong}
         onClose={() => setSheetSong(null)}
         title={isNew ? 'Nova cançó' : 'Editar cançó'}
-        width="lg"
+        width="half"
       >
         <SongForm
           initial={isNew ? undefined : sheetSong}
