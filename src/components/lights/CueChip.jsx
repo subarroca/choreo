@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Spotlight, Copy, Trash2 } from 'lucide-react'
 import { formatCueNumber, cueSummaryCompact, sideColorHexes, cueEffects, cueFollowspots } from '../../lib/lights'
 
-export default function CueChip({ cue, selected, onClick, onDuplicate, onDelete, compact = false }) {
+export default function CueChip({ cue, selected, onClick, onDuplicate, onDelete, compact = false, dragHandleProps }) {
   const frontHexes = sideColorHexes(cue, 'front')
   const backHexes = sideColorHexes(cue, 'back')
   const fosc = cueEffects(cue).includes('fosc')
@@ -32,8 +32,10 @@ export default function CueChip({ cue, selected, onClick, onDuplicate, onDelete,
     <button
       onClick={onClick}
       onContextMenu={handleContextMenu}
+      {...(dragHandleProps ?? {})}
       className={`inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-colors min-h-[40px] ${
-        selected ? 'border-cyan-300 bg-cyan-900/30' : 'border-line bg-pane hover:border-gray-500'
+        dragHandleProps ? 'cursor-grab active:cursor-grabbing select-none' : ''
+      } ${selected ? 'border-cyan-300 bg-cyan-900/30' : 'border-line bg-pane hover:border-gray-500'
       }`}>
       <span className={`shrink-0 min-w-[34px] text-center text-xs font-bold rounded-md px-1.5 py-1 ${
         fosc ? 'bg-page text-muted border border-line' : 'bg-raised text-body'

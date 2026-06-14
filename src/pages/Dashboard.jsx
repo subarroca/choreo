@@ -13,6 +13,7 @@ import PageContainer from '../components/ui/PageContainer'
 import PageHeader from '../components/ui/PageHeader'
 import Button from '../components/ui/Button'
 import { ICON } from '../lib/ui'
+import { VOICE_COLORS, VOICE_SHORT } from '../lib/constants'
 
 const REHEARSAL_TYPES = {
   veu:         'Veu',
@@ -50,6 +51,46 @@ function firstName(fullName) {
   return fullName?.split(' ')[0] ?? ''
 }
 
+// ─── Attendance sparkline ─────────────────────────────────────────────────────
+
+function AttendanceSparkline({ data }) {
+  if (!data?.length) return null
+  const W = 120, H = 28
+  const min = 0, max = 100
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * W
+    const y = H - ((v - min) / (max - min)) * H
+    return `${x},${y}`
+  }).join(' ')
+  const avg = Math.round(data.reduce((a, b) => a + b, 0) / data.length)
+  return (
+    <div className="flex items-center gap-2">
+      <svg width={W} height={H} className="shrink-0">
+        <polyline points={pts} fill="none" stroke="#22d3ee" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        {data.map((v, i) => (
+          <circle key={i} cx={(i / (data.length - 1)) * W} cy={H - (v / 100) * H} r="2" fill="#22d3ee" />
+        ))}
+      </svg>
+      <span className="text-xs text-muted">∅ {avg}%</span>
+    </div>
+  )
+}
+
+// ─── Show readiness ───────────────────────────────────────────────────────────
+
+function ReadinessBar({ label, pct, loading }) {
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      <span className="text-xs text-ghost shrink-0 w-14 truncate">{label}</span>
+      <div className="flex-1 h-1.5 bg-raised rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${loading ? 0 : pct}%`, background: pct >= 80 ? '#22c55e' : pct >= 40 ? '#f59e0b' : '#6b7280' }} />
+      </div>
+      <span className="text-xs text-ghost shrink-0 w-7 text-right">{loading ? '…' : `${Math.round(pct)}%`}</span>
+    </div>
+  )
+}
+
 // ─── Next show card ───────────────────────────────────────────────────────────
 
 function daysUntil(dateStr) {
@@ -71,7 +112,7 @@ function CountdownBadge({ days }) {
   )
 }
 
-function NextShowCard({ show }) {
+function NextShowCard({ show, readiness, readinessLoading }) {
   const days = daysUntil(show.date)
 
   return (
@@ -113,6 +154,14 @@ function NextShowCard({ show }) {
             )}
           </div>
 
+          {readiness && (
+            <div className="space-y-1.5 py-1 border-t border-rim">
+              <ReadinessBar label="Posicions" pct={readiness.positions} loading={readinessLoading} />
+              <ReadinessBar label="Llums" pct={readiness.lights} loading={readinessLoading} />
+              <ReadinessBar label="Micròfons" pct={readiness.mics} loading={readinessLoading} />
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2 mt-auto">
             <Link to={`/show/${show.id}`}>
               <Button size="sm">
@@ -130,6 +179,38 @@ function NextShowCard({ show }) {
             </Link>
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Voice distribution bar ───────────────────────────────────────────────────
+
+const CHOIR_VOICES = ['soprano1', 'soprano2', 'alto1', 'alto2', 'tenor1', 'tenor2', 'baritone', 'bass']
+
+function VoiceDistributionBar({ members }) {
+  const counts = {}
+  for (const m of members) {
+    if (CHOIR_VOICES.includes(m.voice)) counts[m.voice] = (counts[m.voice] ?? 0) + 1
+  }
+  const total = Object.values(counts).reduce((a, b) => a + b, 0)
+  if (!total) return null
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex h-3 rounded-full overflow-hidden gap-px">
+        {CHOIR_VOICES.filter(v => counts[v]).map(v => (
+          <div key={v} style={{ width: `${(counts[v] / total) * 100}%`, background: VOICE_COLORS[v].bg }}
+            title={`${VOICE_SHORT[v]}: ${counts[v]}`} />
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {CHOIR_VOICES.filter(v => counts[v]).map(v => (
+          <span key={v} className="flex items-center gap-1 text-xs text-muted">
+            <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ background: VOICE_COLORS[v].bg }} />
+            {VOICE_SHORT[v]} <span className="text-ghost">{counts[v]}</span>
+          </span>
+        ))}
       </div>
     </div>
   )
@@ -324,12 +405,14 @@ export default function Dashboard() {
     return data ?? []
   }, [currentChoirId])
 
-  const { data: membersCount, loading: membersLoading } = useSupabaseQuery(async () => {
-    let q = supabase.from('members').select('id', { count: 'exact', head: true }).eq('active', true)
+  const { data: members = [], loading: membersLoading } = useSupabaseQuery(async () => {
+    let q = supabase.from('members').select('id, voice').eq('active', true)
     if (currentChoirId) q = q.eq('choir_id', currentChoirId)
-    const { count } = await q
-    return count ?? 0
+    const { data } = await q
+    return data ?? []
   }, [currentChoirId])
+
+  const membersCount = members.length
 
   const { data: songsCount, loading: songsLoading } = useSupabaseQuery(async () => {
     let q = supabase.from('repertoire_songs').select('id', { count: 'exact', head: true })
@@ -346,6 +429,54 @@ export default function Dashboard() {
   )
 
   const recentShows = useMemo(() => shows.slice(0, 4), [shows])
+
+  const { data: showReadiness, loading: readinessLoading } = useSupabaseQuery(async () => {
+    if (!nextShow) return null
+    const { data: songList } = await supabase.from('songs').select('id').eq('show_id', nextShow.id)
+    const songs = songList ?? []
+    if (!songs.length) return { positions: 0, lights: 0, mics: 0 }
+    const songIds = songs.map(s => s.id)
+    const [momRes, cueRes] = await Promise.all([
+      supabase.from('moments').select('id').in('song_id', songIds),
+      supabase.from('light_cues').select('song_id').eq('show_id', nextShow.id),
+    ])
+    const momentIds = (momRes.data ?? []).map(m => m.id)
+    let positionedMoments = 0
+    if (momentIds.length) {
+      const { data: posData } = await supabase.from('positions').select('moment_id').in('moment_id', momentIds)
+      positionedMoments = new Set((posData ?? []).map(p => p.moment_id)).size
+    }
+    const songsWithCues = new Set((cueRes.data ?? []).map(c => c.song_id)).size
+    const micAssign = nextShow.mic_assignments
+      ? (typeof nextShow.mic_assignments === 'string' ? JSON.parse(nextShow.mic_assignments) : nextShow.mic_assignments)
+      : {}
+    const micPct = Object.keys(micAssign).length > 0 ? 100 : 0
+    return {
+      positions: momentIds.length ? (positionedMoments / momentIds.length) * 100 : 0,
+      lights: songs.length ? (songsWithCues / songs.length) * 100 : 0,
+      mics: micPct,
+    }
+  }, [nextShow?.id])
+
+  const { data: attendanceSparkData } = useSupabaseQuery(async () => {
+    if (!membersCount) return null
+    const { data: allReh } = await supabase.from('rehearsals').select('id, date').order('date')
+    if (!allReh?.length) return null
+    const nowStr = new Date().toISOString().slice(0, 10)
+    const pastReh = allReh.filter(r => r.date <= nowStr).slice(-10)
+    if (!pastReh.length) return null
+    const rehIds = pastReh.map(r => r.id)
+    const { data: attData } = await supabase.from('attendance').select('rehearsal_id').in('rehearsal_id', rehIds)
+    const absPerReh = {}
+    for (const a of (attData ?? [])) {
+      absPerReh[a.rehearsal_id] = (absPerReh[a.rehearsal_id] ?? 0) + 1
+    }
+    const total = membersCount || 1
+    return pastReh.map(r => {
+      const abs = absPerReh[r.id] ?? 0
+      return Math.round(((total - abs) / total) * 100)
+    })
+  }, [membersCount])
 
   const todayStr = new Date().toISOString().slice(0, 10)
   const { data: upcomingRehearsals = [] } = useSupabaseQuery(async () => {
@@ -391,7 +522,9 @@ export default function Dashboard() {
           </div>
 
           {/* Next show */}
-          {!showsLoading && nextShow && <NextShowCard show={nextShow} />}
+          {!showsLoading && nextShow && (
+            <NextShowCard show={nextShow} readiness={isEditor ? showReadiness : null} readinessLoading={readinessLoading} />
+          )}
 
           {/* Upcoming rehearsals */}
           {upcomingRehearsals.length > 0 && (
@@ -404,11 +537,22 @@ export default function Dashboard() {
               {/* Stats */}
               <div>
                 <h3 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Resum</h3>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-3 mb-4">
                   <StatCard label="Espectacles" value={shows.length} loading={showsLoading} />
                   <StatCard label="Membres actius" value={membersCount} loading={membersLoading} />
                   <StatCard label="Cançons al repertori" value={songsCount} loading={songsLoading} />
                 </div>
+                {!membersLoading && members.length > 0 && (
+                  <div className="space-y-3">
+                    <VoiceDistributionBar members={members} />
+                    {attendanceSparkData && (
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-ghost shrink-0">Assistència</span>
+                        <AttendanceSparkline data={attendanceSparkData} />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Quick actions */}

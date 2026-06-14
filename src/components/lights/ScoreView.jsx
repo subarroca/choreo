@@ -1,8 +1,5 @@
 import { useState } from 'react'
 import { Plus, Pencil } from 'lucide-react'
-import {
-  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
-} from '@dnd-kit/core'
 import { lyricsLines } from '../../lib/lights'
 import { repertoireType, isSongType } from '../../lib/repertoireTypes'
 import CueChip from './CueChip'
@@ -10,19 +7,19 @@ import CueChip from './CueChip'
 function DraggableCueChip({ cue, onDelete, ...props }) {
   const [dragging, setDragging] = useState(false)
 
+  const dragHandleProps = {
+    draggable: true,
+    onDragStart: e => {
+      e.dataTransfer.setData('cue-id', cue.id)
+      e.dataTransfer.effectAllowed = 'move'
+      setDragging(true)
+    },
+    onDragEnd: () => setDragging(false),
+  }
+
   return (
-    <div
-      draggable
-      onContextMenu={e => e.preventDefault()}
-      onDragStart={e => {
-        e.dataTransfer.setData('cue-id', cue.id)
-        e.dataTransfer.effectAllowed = 'move'
-        setDragging(true)
-      }}
-      onDragEnd={() => setDragging(false)}
-      className={`cursor-grab active:cursor-grabbing touch-none select-none ${dragging ? 'opacity-40' : ''}`}
-    >
-      <CueChip cue={cue} onDelete={onDelete} {...props} />
+    <div className={dragging ? 'opacity-40' : ''}>
+      <CueChip cue={cue} onDelete={onDelete} dragHandleProps={dragHandleProps} {...props} />
     </div>
   )
 }

@@ -3,6 +3,8 @@ import { AuthProvider, useAuth } from './hooks/useAuth.jsx'
 import { ChoirProvider } from './hooks/useChoir.jsx'
 import { ThemeProvider } from './hooks/useTheme.jsx'
 import { ConfirmHost } from './components/ui/ConfirmDialog'
+import { ToastHost } from './components/ui/Toast'
+import { GlobalSearchModal, useGlobalSearch } from './components/GlobalSearch'
 import OfflineBanner from './components/OfflineBanner'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -18,6 +20,7 @@ import Rider from './pages/Rider'
 import Poster from './pages/Poster'
 import Rehearsal from './pages/Rehearsal'
 import Attendance from './pages/Attendance'
+import Analytics from './pages/Analytics'
 
 function RequireAuth({ children }) {
   const { session, loading } = useAuth()
@@ -28,6 +31,12 @@ function RequireAuth({ children }) {
   )
   if (!session) return <Navigate to="/login" replace />
   return children
+}
+
+function GlobalSearchHost() {
+  const { open, setOpen } = useGlobalSearch()
+  if (!open) return null
+  return <GlobalSearchModal onClose={() => setOpen(false)} />
 }
 
 function AppRoutes() {
@@ -47,6 +56,7 @@ function AppRoutes() {
       <Route path="/assistencia" element={<RequireAuth><Attendance /></RequireAuth>} />
       <Route path="/songs" element={<RequireAuth><Songs /></RequireAuth>} />
       <Route path="/admin" element={<RequireAuth><Admin /></RequireAuth>} />
+      <Route path="/analytics" element={<RequireAuth><Analytics /></RequireAuth>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
@@ -59,6 +69,8 @@ export default function App() {
         <ChoirProvider>
           <AppRoutes />
           <ConfirmHost />
+          <ToastHost />
+          <GlobalSearchHost />
           <OfflineBanner />
         </ChoirProvider>
       </AuthProvider>

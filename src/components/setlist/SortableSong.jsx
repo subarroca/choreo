@@ -180,11 +180,17 @@ export default function SortableSong({
                     to={`/show/${showId}/song/${song.id}/moment/${m.id}`}
                     className="shrink-0 group flex flex-col items-center gap-1.5 w-24"
                   >
-                    <div className="w-24 h-14 rounded-lg border border-rim bg-slate-900 dark:bg-slate-950 flex items-center justify-center overflow-hidden group-hover:border-cyan-600 transition-colors">
+                    <div className="relative w-24 h-14 rounded-lg border border-rim bg-slate-900 dark:bg-slate-950 flex items-center justify-center overflow-hidden group-hover:border-cyan-600 transition-colors">
                       {positions.length > 0 ? (
                         <MomentThumbnailLarge positions={positions} changedMembers={changedMembers} gridRows={gridRows} gridCols={gridCols} />
                       ) : (
                         <span className="text-ghost text-xs">buit</span>
+                      )}
+                      {changedMembers?.size > 0 && (
+                        <span className="absolute bottom-0.5 right-0.5 text-[9px] font-bold px-1 py-0.5 rounded bg-amber-500/80 text-white leading-none"
+                          title={`${changedMembers.size} canvis`}>
+                          {changedMembers.size}↕
+                        </span>
                       )}
                     </div>
                     <div className="text-center w-full">

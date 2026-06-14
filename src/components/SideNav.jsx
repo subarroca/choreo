@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import {
-  Music, Users, Clapperboard, BookOpen, Shield, CalendarDays,
+  Music, Users, Clapperboard, BookOpen, Shield, CalendarDays, BarChart3, Search,
   Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen, ChevronDown, LayoutDashboard,
 } from 'lucide-react'
+import { useGlobalSearch } from './GlobalSearch'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'
 import { useTheme } from '../hooks/useTheme.jsx'
@@ -22,6 +23,8 @@ function useNavItems() {
   items.push({ to: '/assistencia', label: 'Assajos', Icon: CalendarDays })
   if (effectiveAdmin || permissions?.members?.view)
     items.push({ to: '/members', label: 'Persones', Icon: Users })
+  if (effectiveAdmin || isAdmin)
+    items.push({ to: '/analytics', label: 'Analítica', Icon: BarChart3 })
   if (effectiveAdmin)
     items.push({ to: '/admin', label: 'Admin', Icon: Shield })
   return items
@@ -96,6 +99,7 @@ function DesktopRail({ items, isActive, onSignOut }) {
   const { choirs, currentChoirId, switchChoir } = useChoir()
   const { theme, cycle } = useTheme()
   const navigate = useNavigate()
+  const { setOpen: openSearch } = useGlobalSearch()
   const [expanded, setExpanded] = useState(
     () => localStorage.getItem('navExpanded') === 'true'
   )
@@ -131,6 +135,14 @@ function DesktopRail({ items, isActive, onSignOut }) {
 
       {/* Nav links */}
       <nav className="flex-1 min-h-0 overflow-y-auto px-2 py-2 flex flex-col gap-1">
+        <button onClick={() => openSearch(true)} title={expanded ? undefined : 'Cerca (⌘K)'}
+          className={itemCls(false) + ' group'}>
+          <Search size={ICON.md} className="shrink-0" />
+          {expanded && (
+            <span className="flex-1 text-left truncate">Cerca</span>
+          )}
+          {expanded && <kbd className="text-[9px] text-ghost border border-rim rounded px-1 py-0.5 font-mono opacity-0 group-hover:opacity-100 transition-opacity">⌘K</kbd>}
+        </button>
         {items.map(({ to, label, Icon }) => (
           <Link key={to} to={to} title={expanded ? undefined : label} className={itemCls(isActive(to))}>
             <Icon size={ICON.md} className="shrink-0" />

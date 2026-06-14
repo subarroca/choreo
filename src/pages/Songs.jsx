@@ -13,6 +13,7 @@ import Button from '../components/ui/Button'
 import { inputCls, labelCls } from '../components/ui/Input'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
+import { SkeletonRow } from '../components/ui/Skeleton'
 import { ICON } from '../lib/ui'
 
 const DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true'
@@ -216,10 +217,11 @@ function SongForm({ initial, onSave, onCancel, onDelete }) {
   )
 }
 
-function SongMeta({ song, atts }) {
+function SongMeta({ song, atts, usage }) {
   const parts = []
   if (song.composer) parts.push(song.composer)
   if (atts.length > 0) parts.push(`${atts.length} recurs${atts.length !== 1 ? 'os' : ''}`)
+  if (usage?.length > 0) parts.push(`Usat a: ${usage.map(s => s.name).join(', ')}`)
   return parts.join(' · ') || null
 }
 
@@ -233,10 +235,30 @@ export default function Songs() {
   const { data: songs = [], setData: setSongs, loading } = useSupabaseQuery(async () => {
     let q = supabase.from('repertoire_songs').select('*').eq('type', 'song').order('title')
     if (currentChoirId) q = q.eq('choir_id', currentChoirId)
-    if (!showArchived) q = q.or('archived.is.null,archived.eq.false')
     const { data } = await q
-    return data ?? []
+    const all = data ?? []
+    return showArchived ? all : all.filter(s => !s.archived)
   }, [currentChoirId, showArchived])
+
+  const { data: usageMap = {} } = useSupabaseQuery(async () => {
+    if (!songs.length) return {}
+    const { data: showSongs } = await supabase.from('songs').select('repertoire_song_id, show_id')
+    if (!showSongs?.length) return {}
+    const showIds = [...new Set(showSongs.filter(s => s.show_id).map(s => s.show_id))]
+    if (!showIds.length) return {}
+    const { data: showData } = await supabase.from('shows').select('id, name').in('id', showIds)
+    const showMap = Object.fromEntries((showData ?? []).map(s => [s.id, s]))
+    const result = {}
+    for (const ss of showSongs) {
+      if (!ss.repertoire_song_id || !ss.show_id) continue
+      if (!result[ss.repertoire_song_id]) result[ss.repertoire_song_id] = []
+      const show = showMap[ss.show_id]
+      if (show && !result[ss.repertoire_song_id].some(s => s.id === show.id)) {
+        result[ss.repertoire_song_id].push(show)
+      }
+    }
+    return result
+  }, [songs.length])
 
   async function handleCreate(fields) {
     const payload = { ...fields, created_by: user?.id }
@@ -310,7 +332,7 @@ export default function Songs() {
         }
       >
         {loading ? (
-          <p className="text-faint text-sm py-8">Carregant...</p>
+          <div className="space-y-2 py-2">{Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)}</div>
         ) : visibleSongs.length === 0 ? (
           <EmptyState
             icon={BookOpen}
@@ -337,7 +359,7 @@ export default function Songs() {
                       }
                     </span>
                   }
-                  meta={<SongMeta song={song} atts={atts} />}
+                  meta={<SongMeta song={song} atts={atts} usage={usageMap[song.id]} />}
                   trailing={<Pencil size={ICON.xs} className="text-ghost" />}
                 />
               )

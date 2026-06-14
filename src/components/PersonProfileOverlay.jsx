@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, AtSign, Mail, Ruler, Calendar, UserPlus, Pencil, ChevronLeft, ChevronDown, MoreHorizontal, Phone } from 'lucide-react'
+import { X, AtSign, Mail, Ruler, Calendar, UserPlus, Pencil, ChevronLeft, ChevronDown, MoreHorizontal, Phone, TrendingUp, Clapperboard, MicVocal, Shuffle } from 'lucide-react'
+import { memberShowComplexity, COMPLEXITY_COLORS } from '../lib/positionComplexity'
 import { VOICE_COLORS, VOICE_LABELS, ROLE_LABELS } from '../lib/constants'
+import { supabase } from '../lib/supabase'
 
 // ─── Helpers ──────────────────────────────────────────────────
 function calcAge(birth_date) {
@@ -70,6 +72,72 @@ function VoiceSelect({ value, onChange }) {
   )
 }
 
+// ─── Member stats ─────────────────────────────────────────────
+function useMemberStats(memberId) {
+  const [stats, setStats] = useState(null)
+  useEffect(() => {
+    if (!memberId) return
+    async function load() {
+      const nowStr = new Date().toISOString().slice(0, 10)
+      const [rehRes, attRes, posRes, soloRes] = await Promise.all([
+        supabase.from('rehearsals').select('id, date').order('date'),
+        supabase.from('attendance').select('rehearsal_id').eq('member_id', memberId),
+        supabase.from('positions').select('moment_id').eq('member_id', memberId),
+        supabase.from('soloists').select('moment_id').eq('member_id', memberId),
+      ])
+      const pastReh = (rehRes.data ?? []).filter(r => r.date <= nowStr)
+      const absentIds = new Set((attRes.data ?? []).map(a => a.rehearsal_id))
+      const attended = pastReh.filter(r => !absentIds.has(r.id)).length
+      const pct = pastReh.length ? Math.round((attended / pastReh.length) * 100) : null
+      const soloCount = (soloRes.data ?? []).length
+
+      // Derive show list and complexity from positions
+      const memberPositions = posRes.data ?? []
+      const momentIds = [...new Set(memberPositions.map(p => p.moment_id))]
+      let showList = []
+      if (momentIds.length) {
+        const { data: momData } = await supabase.from('moments').select('id, song_id, order_index').in('id', momentIds)
+        const songIds = [...new Set((momData ?? []).map(m => m.song_id))]
+        if (songIds.length) {
+          const { data: songData } = await supabase.from('songs').select('id, show_id').in('id', songIds)
+          const showIds = [...new Set((songData ?? []).map(s => s.show_id))]
+          if (showIds.length) {
+            const { data: showData } = await supabase.from('shows').select('id, name, date').in('id', showIds)
+
+            // Also load positions with coordinates for complexity
+            const { data: coordData } = await supabase.from('positions')
+              .select('moment_id, grid_row, grid_col').eq('member_id', memberId).in('moment_id', momentIds)
+            const posByMoment = {}
+            for (const p of (coordData ?? [])) {
+              posByMoment[p.moment_id] = [{ memberId, row: p.grid_row, col: p.grid_col }]
+            }
+            const songMap = Object.fromEntries((songData ?? []).map(s => [s.id, s.show_id]))
+            const momsBySong = {}
+            for (const m of (momData ?? [])) {
+              if (!momsBySong[m.song_id]) momsBySong[m.song_id] = []
+              momsBySong[m.song_id].push(m)
+            }
+
+            showList = (showData ?? [])
+              .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
+              .map(show => {
+                const showSongIds = (songData ?? []).filter(s => s.show_id === show.id).map(s => s.id)
+                const showMomentsBySong = Object.fromEntries(
+                  showSongIds.map(sid => [sid, momsBySong[sid] ?? []])
+                )
+                const complexity = memberShowComplexity(memberId, posByMoment, showMomentsBySong)
+                return { ...show, complexity }
+              })
+          }
+        }
+      }
+      setStats({ pct, attended, total: pastReh.length, shows: showList, solos: soloCount })
+    }
+    load()
+  }, [memberId])
+  return stats
+}
+
 // ─── Profile view ─────────────────────────────────────────────
 function ProfileView({ member, onEdit }) {
   const c = VOICE_COLORS[member.voice] ?? VOICE_COLORS.extra
@@ -77,6 +145,7 @@ function ProfileView({ member, onEdit }) {
   const fullName = [member.first_name, member.last_name].filter(Boolean).join(' ') || member.name || '—'
   const age = calcAge(member.birth_date)
   const tenure = yearsInChoir(member.joined_at)
+  const stats = useMemberStats(member.id)
 
   const rows = [
     age != null      && { icon: Calendar, label: 'Edat',      value: `${age} anys` },
@@ -126,6 +195,63 @@ function ProfileView({ member, onEdit }) {
           </div>
         )) : (
           <p className="text-ghost text-xs text-center py-3">Sense dades addicionals</p>
+        )}
+
+        {/* Stats */}
+        {stats && (
+          <div className="border-t border-rim pt-3 mt-1 space-y-2">
+            <p className="text-xs text-ghost uppercase tracking-wider">Estadístiques</p>
+            {stats.pct !== null && (
+              <div className="flex items-center gap-2.5">
+                <TrendingUp size={13} className="text-ghost shrink-0" />
+                <span className="text-faint text-xs w-20 shrink-0">Assistència</span>
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className="flex-1 h-1.5 bg-raised rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{
+                      width: `${stats.pct}%`,
+                      background: stats.pct >= 80 ? '#22c55e' : stats.pct >= 50 ? '#f59e0b' : '#ef4444'
+                    }} />
+                  </div>
+                  <span className="text-body text-sm shrink-0">{stats.pct}%</span>
+                  <span className="text-ghost text-xs shrink-0">({stats.attended}/{stats.total})</span>
+                </div>
+              </div>
+            )}
+            {stats.solos > 0 && (
+              <div className="flex items-center gap-2.5">
+                <MicVocal size={13} className="text-ghost shrink-0" />
+                <span className="text-faint text-xs w-20 shrink-0">Solos</span>
+                <span className="text-body text-sm">{stats.solos}</span>
+              </div>
+            )}
+            {stats.shows.length > 0 && (
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center gap-2.5">
+                  <Clapperboard size={13} className="text-ghost shrink-0" />
+                  <span className="text-faint text-xs w-20 shrink-0">Espectacles</span>
+                  <span className="text-body text-sm">{stats.shows.length}</span>
+                </div>
+                <div className="ml-[29px] space-y-1.5">
+                  {stats.shows.map(s => {
+                    const cx = s.complexity
+                    const cc = cx ? COMPLEXITY_COLORS[cx.level] : null
+                    return (
+                      <div key={s.id} className="flex items-center gap-2">
+                        <span className="text-body text-xs truncate flex-1">{s.name}</span>
+                        {s.date && <span className="text-ghost text-xs shrink-0">{new Date(s.date).getFullYear()}</span>}
+                        {cx && cx.changes > 0 && cc && (
+                          <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${cc.badge}`}
+                            title={`${cx.changes} canvis, distància ${cx.distance}`}>
+                            {cx.changes}↕
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

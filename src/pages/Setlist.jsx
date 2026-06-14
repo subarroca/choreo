@@ -21,6 +21,7 @@ import Modal from '../components/ui/Modal'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
+import { toast } from '../components/ui/Toast'
 import { ICON } from '../lib/ui'
 
 // ─── Main component ───────────────────────────────────────────
@@ -77,7 +78,7 @@ export default function Setlist() {
       }
       const partList = partsRes.data ?? []
       setParts(partList)
-      const partExp = {}; for (const p of partList) partExp[p.id] = false
+      const partExp = {}; for (const p of partList) partExp[p.id] = true
       setExpandedParts(partExp)
       const songList = songsRes.data ?? []
       setSongs(songList)
@@ -148,12 +149,12 @@ export default function Setlist() {
   async function handleCreatePart({ title }) {
     const { data, error } = await supabase.from('parts')
       .insert({ show_id: showId, title, order_index: parts.length }).select().single()
-    if (!error) { setParts(prev => [...prev, data]); setCreatingPart(false) }
+    if (!error) { setParts(prev => [...prev, data]); setCreatingPart(false); toast('Part creada') }
   }
 
   async function handleUpdatePart(partId, { title }) {
     const { data, error } = await supabase.from('parts').update({ title }).eq('id', partId).select().single()
-    if (!error) { setParts(prev => prev.map(p => p.id === partId ? data : p)); setEditingPart(null) }
+    if (!error) { setParts(prev => prev.map(p => p.id === partId ? data : p)); setEditingPart(null); toast('Part desada') }
   }
 
   async function handleDeletePart(partId) {
@@ -161,19 +162,19 @@ export default function Setlist() {
     await supabase.from('parts').delete().eq('id', partId)
     setSongs(prev => prev.map(s => s.part_id === partId ? { ...s, part_id: null } : s))
     setParts(prev => prev.filter(p => p.id !== partId))
-    setEditingPart(null)
+    setEditingPart(null); toast('Part eliminada', 'warn')
   }
 
   // ─── Songs CRUD ──────────────────────────────────────────
   async function handleCreateSong(fields) {
     const { data, error } = await supabase.from('songs')
       .insert({ ...fields, show_id: showId, order_index: songs.length }).select().single()
-    if (!error) { setSongs(prev => [...prev, data]); setMoments(prev => ({ ...prev, [data.id]: [] })); setCreating(false) }
+    if (!error) { setSongs(prev => [...prev, data]); setMoments(prev => ({ ...prev, [data.id]: [] })); setCreating(false); toast('Cançó afegida') }
   }
 
   async function handleUpdateSong(songId, fields) {
     const { data, error } = await supabase.from('songs').update(fields).eq('id', songId).select().single()
-    if (!error) { setSongs(prev => prev.map(s => s.id === songId ? data : s)); setEditingSong(null) }
+    if (!error) { setSongs(prev => prev.map(s => s.id === songId ? data : s)); setEditingSong(null); toast('Cançó desada') }
   }
 
   async function handleDeleteSong(songId) {
@@ -181,7 +182,7 @@ export default function Setlist() {
     await supabase.from('songs').delete().eq('id', songId)
     setSongs(prev => prev.filter(s => s.id !== songId))
     setMoments(prev => { const n = { ...prev }; delete n[songId]; return n })
-    setEditingSong(null)
+    setEditingSong(null); toast('Cançó eliminada', 'warn')
   }
 
   // ─── Song drag-and-drop (cross-part + reorder) ───────────
@@ -238,6 +239,7 @@ export default function Setlist() {
       setMoments(prev => ({ ...prev, [songId]: [...(prev[songId] ?? []), data] }))
       setExpandedSongs(prev => ({ ...prev, [songId]: true }))
       setAllExpanded(true)
+      toast('Moment creat')
       if (navigateAfter) navigate(`/show/${showId}/song/${songId}/moment/${data.id}`)
     }
   }
@@ -250,6 +252,7 @@ export default function Setlist() {
       for (const [sid, list] of Object.entries(prev)) next[sid] = list.filter(m => m.id !== momentId)
       return next
     })
+    toast('Moment eliminat', 'warn')
   }
 
   // ─── Copy/paste moments ──────────────────────────────────

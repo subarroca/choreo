@@ -15,6 +15,8 @@ import { useChoir } from '../hooks/useChoir.jsx'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
 import { ICON } from '../lib/ui'
+import { SkeletonRow } from '../components/ui/Skeleton'
+import { toast } from '../components/ui/Toast'
 
 const VOICE_ORDER = ['soprano1','soprano2','alto1','alto2','tenor1','tenor2','baritone','bass']
 
@@ -34,8 +36,17 @@ function MemberMeta({ member }) {
   return parts.join(' · ')
 }
 
-function MemberRow({ member, onClick, dim = false }) {
-  const c = VOICE_COLORS[member.voice] ?? VOICE_COLORS.extra
+function AttendanceBadge({ pct }) {
+  if (pct == null) return null
+  const color = pct >= 80 ? 'bg-green-500/20 text-green-400' : pct >= 50 ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'
+  return (
+    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-md ${color}`}>
+      {Math.round(pct)}%
+    </span>
+  )
+}
+
+function MemberRow({ member, onClick, dim = false, attendancePct }) {
   const label = member.last_name
     ? <><span className="font-semibold">{member.last_name}</span>{member.first_name ? `, ${member.first_name}` : ''}</>
     : <span className="font-medium">{member.name}</span>
@@ -47,6 +58,7 @@ function MemberRow({ member, onClick, dim = false }) {
       leading={<Avatar member={member} size="sm" />}
       title={<span className={dim ? 'line-through' : ''}>{label}</span>}
       meta={dim ? <span className="text-amber-600 dark:text-amber-400">De baixa</span> : undefined}
+      trailing={!dim && <AttendanceBadge pct={attendancePct} />}
     />
   )
 }
@@ -61,6 +73,26 @@ export default function Members() {
   const [sortBy, setSortBy]             = useState('last_name')
   const [overlayMember, setOverlayMember] = useState(null) // member obj | 'new'
 
+  const { data: attendanceMap = {} } = useSupabaseQuery(async () => {
+    const { data: allReh } = await supabase.from('rehearsals').select('id, date').order('date')
+    if (!allReh?.length) return {}
+    const nowStr = new Date().toISOString().slice(0, 10)
+    const pastReh = allReh.filter(r => r.date <= nowStr)
+    const total = pastReh.length
+    if (!total) return {}
+    const rehIds = pastReh.map(r => r.id)
+    const { data: attData } = await supabase.from('attendance').select('rehearsal_id, member_id').in('rehearsal_id', rehIds)
+    const absences = {}
+    for (const a of (attData ?? [])) {
+      absences[a.member_id] = (absences[a.member_id] ?? 0) + 1
+    }
+    const result = {}
+    for (const [memberId, absCount] of Object.entries(absences)) {
+      result[memberId] = ((total - absCount) / total) * 100
+    }
+    return result
+  }, [])
+
   const { data: members = [], setData: setMembers, loading } = useSupabaseQuery(async () => {
     let q = supabase.from('members').select('*').order('last_name').order('first_name')
     if (currentChoirId) q = q.eq('choir_id', currentChoirId)
@@ -73,26 +105,30 @@ export default function Members() {
     const payload = { active: true, ...fields }
     if (currentChoirId) payload.choir_id = currentChoirId
     const { data, error } = await supabase.from('members').insert(payload).select().single()
-    if (!error) {
-      setMembers(prev => [...prev, data].sort((a, b) =>
-        ((a.last_name || a.name) + '').localeCompare((b.last_name || b.name) + '', 'ca')))
-      setOverlayMember(data)
-    }
+    if (error) { toast.error('Error en crear la persona'); return }
+    setMembers(prev => [...prev, data].sort((a, b) =>
+      ((a.last_name || a.name) + '').localeCompare((b.last_name || b.name) + '', 'ca')))
+    setOverlayMember(data)
+    toast('Persona creada')
   }
 
   async function handleUpdate(id, fields) {
     const { data, error } = await supabase.from('members').update(fields).eq('id', id).select().single()
-    if (!error) {
-      setMembers(prev => prev.map(m => m.id === id ? data : m)
-        .sort((a, b) => ((a.last_name || a.name) + '').localeCompare((b.last_name || b.name) + '', 'ca')))
-      setOverlayMember(data)
-    }
+    if (error) { toast.error('Error en desar'); return }
+    setMembers(prev => prev.map(m => m.id === id ? data : m)
+      .sort((a, b) => ((a.last_name || a.name) + '').localeCompare((b.last_name || b.name) + '', 'ca')))
+    setOverlayMember(data)
+    toast('Canvis desats')
   }
 
   async function handleSetActive(id, active) {
     const fields = active ? { active: true, left_at: null } : { active: false, left_at: new Date().toISOString() }
     const { data, error } = await supabase.from('members').update(fields).eq('id', id).select().single()
-    if (!error) { setMembers(prev => prev.map(m => m.id === id ? data : m)); setOverlayMember(data) }
+    if (!error) {
+      setMembers(prev => prev.map(m => m.id === id ? data : m))
+      setOverlayMember(data)
+      toast(active ? 'Persona reactivada' : 'Persona donada de baixa', active ? 'success' : 'warn')
+    }
   }
 
   async function handleDelete(id) {
@@ -100,6 +136,7 @@ export default function Members() {
     await supabase.from('members').delete().eq('id', id)
     setMembers(prev => prev.filter(m => m.id !== id))
     setOverlayMember(null)
+    toast('Persona eliminada', 'warn')
   }
 
   const activeMembers   = members.filter(m => m.active !== false)
@@ -188,13 +225,13 @@ export default function Members() {
         }
       >
         {loading ? (
-          <p className="text-faint text-sm py-8">Carregant...</p>
+          <div className="divide-y divide-rim">{Array.from({length: 8}, (_,i) => <SkeletonRow key={i} />)}</div>
         ) : listMembers.length === 0 ? (
           <EmptyState icon={Users} title="Cap persona aquí." />
         ) : (
           <div className="divide-y divide-rim">
             {listMembers.map(m => (
-              <MemberRow key={m.id} member={m} onClick={() => setOverlayMember(m)} />
+              <MemberRow key={m.id} member={m} onClick={() => setOverlayMember(m)} attendancePct={attendanceMap[m.id]} />
             ))}
           </div>
         )}
