@@ -40,7 +40,7 @@ export function ThemeProvider({ children }) {
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, cycle }}>
+    <ThemeContext.Provider value={{ theme, setTheme, cycle }}>
       {children}
     </ThemeContext.Provider>
   )

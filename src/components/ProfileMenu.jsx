@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { LogOut, Eye, Pencil, EyeOff, X, ChevronDown } from 'lucide-react'
+import { LogOut, Eye, Pencil, EyeOff, X, ChevronDown, Sun, Moon, Monitor } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { useTheme } from '../hooks/useTheme.jsx'
 
 const SECTIONS = [
   { key: 'shows',      label: 'Espectacles' },
@@ -44,12 +45,19 @@ function SectionRow({ label, value, onChange }) {
   )
 }
 
+const THEME_OPTIONS = [
+  { key: 'light',  label: 'Clar',    Icon: Sun },
+  { key: 'dark',   label: 'Fosc',    Icon: Moon },
+  { key: 'system', label: 'Sistema', Icon: Monitor },
+]
+
 export default function ProfileMenu({ onSignOut, expanded = true }) {
   const {
     user, profile, role,
     simulatedPermissions, setSimulatedPermissions,
     isSimulating, exitSimulation,
   } = useAuth()
+  const { theme, setTheme } = useTheme()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -131,6 +139,21 @@ export default function ProfileMenu({ onSignOut, expanded = true }) {
               }`}>
                 {isSimulating ? 'simulació activa' : displayRole}
               </span>
+            </div>
+          </div>
+
+          {/* Configuració: tema */}
+          <div className="px-4 py-3 border-b border-rim">
+            <span className="text-xs font-semibold text-muted uppercase tracking-wide block mb-2">Tema</span>
+            <div className="flex gap-1">
+              {THEME_OPTIONS.map(({ key, label, Icon }) => (
+                <button key={key} onClick={() => setTheme(key)}
+                  className={`flex items-center gap-1.5 flex-1 justify-center px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                    theme === key ? 'bg-cyan-700 text-white' : 'text-muted hover:text-body hover:bg-fill'
+                  }`}>
+                  <Icon size={12} />{label}
+                </button>
+              ))}
             </div>
           </div>
 

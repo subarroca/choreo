@@ -2,12 +2,11 @@ import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import {
   Music, Users, Clapperboard, BookOpen, Shield, CalendarDays, BarChart3, Search,
-  Sun, Moon, Monitor, PanelLeftClose, PanelLeftOpen, ChevronDown, LayoutDashboard,
+  PanelLeftClose, PanelLeftOpen, ChevronDown, LayoutDashboard,
 } from 'lucide-react'
 import { useGlobalSearch } from './GlobalSearch'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'
-import { useTheme } from '../hooks/useTheme.jsx'
 import ProfileMenu from './ProfileMenu.jsx'
 import { ICON } from '../lib/ui.js'
 
@@ -97,7 +96,6 @@ function ChoirPopover({ choirs, currentChoirId, onSwitch, expanded }) {
 
 function DesktopRail({ items, isActive, onSignOut }) {
   const { choirs, currentChoirId, switchChoir } = useChoir()
-  const { theme, cycle } = useTheme()
   const navigate = useNavigate()
   const { setOpen: openSearch } = useGlobalSearch()
   const [expanded, setExpanded] = useState(
@@ -115,9 +113,6 @@ function DesktopRail({ items, isActive, onSignOut }) {
     `flex items-center rounded-lg text-sm transition-colors h-10 ${
       expanded ? 'gap-3 px-3 w-full' : 'justify-center w-10 mx-auto'
     } ${active ? ACTIVE : IDLE}`
-
-  const ThemeIcon = theme === 'dark' ? Sun : theme === 'light' ? Moon : Monitor
-  const themeLabel = theme === 'dark' ? 'Mode clar' : theme === 'light' ? 'Sistema' : 'Mode fosc'
 
   return (
     <aside className={`hidden md:flex flex-col shrink-0 bg-pane border-r border-rim transition-[width] duration-200 ${expanded ? 'w-52' : 'w-16'}`}>
@@ -153,10 +148,6 @@ function DesktopRail({ items, isActive, onSignOut }) {
 
       {/* Footer */}
       <div className="shrink-0 border-t border-rim px-2 py-2 flex flex-col gap-1">
-        <button onClick={cycle} title={themeLabel} className={itemCls(false)}>
-          <ThemeIcon size={ICON.md} className="shrink-0" />
-          {expanded && <span>{themeLabel}</span>}
-        </button>
         <div className={expanded ? 'px-1' : 'flex justify-center'}>
           <ProfileMenu onSignOut={onSignOut} expanded={expanded} />
         </div>

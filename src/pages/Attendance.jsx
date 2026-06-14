@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { CalendarDays, Plus, Check, X, Clock, Bell, Plane, Briefcase, HeartPulse, MessageSquare, MapPin } from 'lucide-react'
+import { CalendarDays, Plus, Check, X, Clock, Bell, Plane, Briefcase, HeartPulse, MessageSquare, MapPin, Pencil } from 'lucide-react'
 import Button from '../components/ui/Button'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
@@ -12,9 +12,9 @@ import Modal from '../components/ui/Modal'
 import SummaryView from '../components/SummaryView'
 
 const STATUS_CONFIG = {
-  present:  { label: 'Present',  icon: Check,  cls: 'bg-green-700/30 text-green-300 border-green-700/50' },
-  absent:   { label: 'Absent',   icon: X,      cls: 'bg-red-700/30 text-red-300 border-red-700/50' },
-  excused:  { label: 'Excusat', icon: Clock,  cls: 'bg-amber-700/30 text-amber-300 border-amber-700/50' },
+  present:  { label: 'Present',  icon: Check,  cls: 'bg-green-100 text-green-700 border-green-300 dark:bg-green-700/30 dark:text-green-300 dark:border-green-700/50' },
+  absent:   { label: 'Absent',   icon: X,      cls: 'bg-red-100 text-red-700 border-red-300 dark:bg-red-700/30 dark:text-red-300 dark:border-red-700/50' },
+  excused:  { label: 'Excusat', icon: Clock,  cls: 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-700/30 dark:text-amber-300 dark:border-amber-700/50' },
 }
 const STATUS_CYCLE = ['present', 'absent', 'excused']
 
@@ -305,27 +305,58 @@ export default function Attendance() {
 
         {loading ? <p className="text-faint text-sm">Carregant...</p> : tab === 'assajos' ? (
           <div className="space-y-4">
-            {/* Date tabs — horizontal scroll */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              {rehearsals.map(r => (
-                <div key={r.id} className="relative group shrink-0">
-                  <button onClick={() => { setSelectedId(r.id); openDetail(r) }}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                      selectedId === r.id
-                          ? 'bg-cyan-100 border border-cyan-300 text-cyan-700 dark:bg-cyan-700/30 dark:border-cyan-600 dark:text-cyan-300'
-                        : 'border border-line text-muted hover:text-body hover:bg-fill'
-                    }`}>
-                    {isUpcoming(r.date) && <span className="mr-1 opacity-60">·</span>}
-                    {formatDate(r.date)}
-                  </button>
-                  {isAdmin && (
-                    <button onClick={() => deleteRehearsal(r.id)}
-                      className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-700 text-white hidden group-hover:flex items-center justify-center">
-                      <X size={8} />
+            {/* Rehearsal cards — vertical list */}
+            <div className="flex flex-col gap-2">
+              {rehearsals.map(r => {
+                const meta = parseRehearsalMeta(r.notes)
+                const active = selectedId === r.id
+                const upcoming = isUpcoming(r.date)
+                return (
+                  <div key={r.id} className="relative group">
+                    <button onClick={() => setSelectedId(r.id)}
+                      className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
+                        active
+                          ? 'bg-cyan-50 border-cyan-300 dark:bg-cyan-700/20 dark:border-cyan-600'
+                          : 'bg-pane border-rim hover:bg-fill'
+                      }`}>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-sm font-semibold ${active ? 'text-cyan-700 dark:text-cyan-300' : 'text-body'}`}>
+                          {formatDate(r.date)}
+                        </span>
+                        {meta.type && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-700 dark:bg-cyan-700/20 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700/40">
+                            {REHEARSAL_TYPES[meta.type]}
+                          </span>
+                        )}
+                        {upcoming && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-700/30 dark:text-amber-300 border border-amber-200 dark:border-amber-700/40">
+                            Proper
+                          </span>
+                        )}
+                      </div>
+                      {(meta.time || meta.location) && (
+                        <div className="flex items-center gap-3 mt-1 text-xs text-muted">
+                          {meta.time && <span className="flex items-center gap-1"><Clock size={11} />{meta.time}</span>}
+                          {meta.location && <span className="flex items-center gap-1"><MapPin size={11} />{meta.location}</span>}
+                        </div>
+                      )}
                     </button>
-                  )}
-                </div>
-              ))}
+                    {isAdmin && (
+                      <button onClick={() => openDetail(r)}
+                        title="Editar detalls"
+                        className="absolute right-10 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center text-ghost hover:text-body hover:bg-fill transition-colors opacity-0 group-hover:opacity-100">
+                        <Pencil size={13} />
+                      </button>
+                    )}
+                    {isAdmin && (
+                      <button onClick={() => deleteRehearsal(r.id)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center text-ghost hover:text-red-500 hover:bg-fill transition-colors opacity-0 group-hover:opacity-100">
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
             </div>
 
             {!selected ? (
@@ -366,19 +397,19 @@ export default function Attendance() {
 
                 {/* Absence notification for upcoming */}
                 {upcoming && (
-                  <div className="bg-amber-900/20 border border-amber-700/30 rounded-xl p-4 space-y-3">
+                  <div className="bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-700/30 rounded-xl p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-amber-300 flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-2">
                         <Bell size={14} /> Avisos d'absència
                       </h3>
                       <button onClick={() => setShowNotifyForm(v => !v)}
-                        className="flex items-center gap-1.5 text-xs bg-amber-700/30 hover:bg-amber-700/50 text-amber-300 border border-amber-700/40 px-3 py-1.5 rounded-lg transition-colors">
+                        className="flex items-center gap-1.5 text-xs bg-amber-100 hover:bg-amber-200 dark:bg-amber-700/30 dark:hover:bg-amber-700/50 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700/40 px-3 py-1.5 rounded-lg transition-colors">
                         <Plus size={12} /> No vinc
                       </button>
                     </div>
 
                     {showNotifyForm && (
-                      <div className="flex flex-wrap items-end gap-2 p-3 bg-pane/50 rounded-lg border border-amber-700/20">
+                      <div className="flex flex-wrap items-end gap-2 p-3 bg-white dark:bg-pane/50 rounded-lg border border-amber-200 dark:border-amber-700/20">
                         <div className="flex flex-col gap-1">
                           <label className="text-xs text-ghost">Qui no ve</label>
                           <select value={notifyMemberId} onChange={e => setNotifyMemberId(e.target.value)} className={inputCls + ' py-1'}>
@@ -421,7 +452,7 @@ export default function Attendance() {
                                 {m.last_name ? `${m.last_name}, ${m.first_name ?? ''}` : m.name}
                               </span>
                               {reason && (
-                                <span className="flex items-center gap-1 text-xs bg-amber-700/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-700/30">
+                                <span className="flex items-center gap-1 text-xs bg-amber-100 dark:bg-amber-700/20 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-700/30">
                                   <ReasonIcon size={10} /> {REASONS[reason]?.label}
                                 </span>
                               )}
