@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { CalendarDays, Plus, Check, X, Clock, Bell, Plane, Briefcase, HeartPulse, MessageSquare } from 'lucide-react'
+import { CalendarDays, Plus, Check, X, Clock, Bell, Plane, Briefcase, HeartPulse, MessageSquare, MapPin } from 'lucide-react'
+import Button from '../components/ui/Button'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
@@ -31,17 +32,20 @@ const REHEARSAL_TYPES = {
 }
 
 function parseRehearsalMeta(notes) {
-  if (!notes) return { type: '', freeNotes: '' }
+  if (!notes) return { type: '', time: '', location: '', freeNotes: '' }
   try {
     const p = JSON.parse(notes)
-    if (p && typeof p === 'object' && 'type' in p) return { type: p.type ?? '', freeNotes: p.notes ?? '' }
+    if (p && typeof p === 'object' && ('type' in p || 'time' in p || 'location' in p)) {
+      return { type: p.type ?? '', time: p.time ?? '', location: p.location ?? '', freeNotes: p.notes ?? '' }
+    }
   } catch {}
-  return { type: '', freeNotes: notes }
+  return { type: '', time: '', location: '', freeNotes: notes }
 }
 
-function serializeRehearsalMeta(type, freeNotes) {
-  if (!type) return freeNotes || null
-  return JSON.stringify({ type, notes: freeNotes || '' })
+function serializeRehearsalMeta(type, time, location, freeNotes) {
+  const hasExtra = type || time || location
+  if (!hasExtra) return freeNotes || null
+  return JSON.stringify({ type: type || '', time: time || '', location: location || '', notes: freeNotes || '' })
 }
 
 function deriveInitials(m) {
@@ -73,6 +77,8 @@ export default function Attendance() {
   // New rehearsal form
   const [addingDate, setAddingDate] = useState(false)
   const [newDate, setNewDate] = useState('')
+  const [newTime, setNewTime] = useState('')
+  const [newLocation, setNewLocation] = useState('')
   const [newType, setNewType] = useState('')
   const [newNotes, setNewNotes] = useState('')
 
@@ -122,16 +128,21 @@ export default function Attendance() {
     if (tab === 'resum') loadSummary()
   }, [tab, loadSummary])
 
+  function resetForm() {
+    setNewDate(''); setNewTime(''); setNewLocation(''); setNewType(''); setNewNotes('')
+    setAddingDate(false)
+  }
+
   async function addRehearsalDate() {
     if (!newDate) return
-    const notes = serializeRehearsalMeta(newType, newNotes)
+    const notes = serializeRehearsalMeta(newType, newTime, newLocation, newNotes)
     const { data } = await supabase.from('rehearsals').insert({ date: newDate, notes }).select().single()
     if (data) {
       const updated = [...rehearsals, data].sort((a, b) => a.date < b.date ? -1 : 1)
       setRehearsals(updated)
       setSelectedId(data.id)
     }
-    setNewDate(''); setNewType(''); setNewNotes(''); setAddingDate(false)
+    resetForm()
   }
 
   async function deleteRehearsal(id) {
@@ -203,35 +214,82 @@ export default function Attendance() {
     </div>
   )
 
+  const headerActions = (
+    <div className="flex items-center gap-2">
+      {saving && <span className="text-xs text-ghost">Guardant…</span>}
+      {isAdmin && tab === 'assajos' && (
+        <Button size="sm" onClick={() => setAddingDate(v => !v)}>
+          <Plus size={14} /> Nou assaig
+        </Button>
+      )}
+    </div>
+  )
+
   return (
-    <Layout>
+    <Layout fullWidth>
       <PageContainer
         header={
           <PageHeader
-            title="Assistència als assajos"
+            title="Assajos"
             icon={CalendarDays}
-            actions={saving ? <span className="text-xs text-ghost">Guardant…</span> : null}
+            actions={headerActions}
             tabs={tabs}
           />
         }
       >
       <div className="space-y-4 pt-2">
 
+        {/* New rehearsal form — shown when addingDate */}
+        {isAdmin && addingDate && (
+          <div className="rounded-xl border border-line bg-pane p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-body">Nou assaig</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted">Data *</label>
+                <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className={inputCls} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted">Hora</label>
+                <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} className={inputCls} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted">Lloc</label>
+                <input type="text" placeholder="Sala, adreça…" value={newLocation} onChange={e => setNewLocation(e.target.value)} className={inputCls} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted">Tipus</label>
+                <select value={newType} onChange={e => setNewType(e.target.value)} className={inputCls}>
+                  <option value="">— Tipus —</option>
+                  {Object.entries(REHEARSAL_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1 col-span-2 sm:col-span-2">
+                <label className="text-xs text-muted">Notes</label>
+                <input type="text" placeholder="Notes opcionals" value={newNotes} onChange={e => setNewNotes(e.target.value)} className={inputCls} />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={addRehearsalDate} disabled={!newDate}>Afegir assaig</Button>
+              <Button size="sm" variant="ghost" onClick={resetForm}>Cancel·lar</Button>
+            </div>
+          </div>
+        )}
+
         {loading ? <p className="text-faint text-sm">Carregant...</p> : tab === 'assajos' ? (
           <div className="space-y-4">
             {/* Date tabs — horizontal scroll */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
               {rehearsals.map(r => (
-                <div key={r.id} className="relative group">
+                <div key={r.id} className="relative group shrink-0">
                   <button onClick={() => setSelectedId(r.id)}
-                    className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
                       selectedId === r.id
                         ? isUpcoming(r.date)
-                          ? 'bg-amber-700/30 border-amber-600 text-amber-300'
-                          : 'bg-cyan-700/30 border-cyan-600 text-cyan-300'
-                        : 'border-line text-muted hover:text-body hover:bg-fill'
+                          ? 'bg-amber-100 border border-amber-300 text-amber-700 dark:bg-amber-700/30 dark:border-amber-600 dark:text-amber-300'
+                          : 'bg-cyan-100 border border-cyan-300 text-cyan-700 dark:bg-cyan-700/30 dark:border-cyan-600 dark:text-cyan-300'
+                        : 'border border-line text-muted hover:text-body hover:bg-fill'
                     }`}>
-                    {isUpcoming(r.date) && <span className="mr-1 text-amber-400">·</span>}
+                    {isUpcoming(r.date) && <span className="mr-1 opacity-60">·</span>}
                     {formatDate(r.date)}
                   </button>
                   {isAdmin && (
@@ -241,25 +299,6 @@ export default function Attendance() {
                     </button>
                   )}
                 </div>
-              ))}
-              {isAdmin && (addingDate ? (
-                <div className="flex flex-col gap-2 p-3 bg-pane border border-line rounded-xl shrink-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className={inputCls + ' py-1'} />
-                    <select value={newType} onChange={e => setNewType(e.target.value)} className={inputCls + ' py-1'}>
-                      <option value="">— Tipus —</option>
-                      {Object.entries(REHEARSAL_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                    </select>
-                    <button onClick={addRehearsalDate} className="bg-cyan-600 hover:bg-cyan-500 text-white text-sm px-3 py-1.5 rounded-lg transition-colors">Afegir</button>
-                    <button onClick={() => { setAddingDate(false); setNewDate(''); setNewType(''); setNewNotes('') }} className="text-faint hover:text-body text-sm">Cancel·lar</button>
-                  </div>
-                  <input type="text" placeholder="Notes (opcional)" value={newNotes} onChange={e => setNewNotes(e.target.value)} className={inputCls + ' py-1'} />
-                </div>
-              ) : (
-                <button onClick={() => setAddingDate(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border border-dashed border-line text-faint hover:text-body hover:border-wire transition-colors">
-                  <Plus size={13} /> Nou assaig
-                </button>
               ))}
             </div>
 
@@ -274,12 +313,18 @@ export default function Attendance() {
                 {(() => {
                   const meta = parseRehearsalMeta(selected.notes)
                   return (
-                <div className="flex items-center gap-3 px-4 py-3 bg-pane border border-rim rounded-xl">
-                  <div className="flex-1 min-w-0 flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-body">{formatDate(selected.date)}</span>
-                    {meta.type && <span className="text-xs bg-cyan-100 text-cyan-700 dark:bg-cyan-700/20 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700/40 px-2 py-0.5 rounded-full">{REHEARSAL_TYPES[meta.type]}</span>}
-                    {meta.freeNotes && <span className="text-xs text-ghost">{meta.freeNotes}</span>}
-                    {upcoming && <span className="text-xs bg-amber-700/30 text-amber-300 border border-amber-700/40 px-2 py-0.5 rounded-full">Proper</span>}
+                <div className="flex items-start gap-3 px-4 py-3 bg-pane border border-rim rounded-xl">
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold text-body">{formatDate(selected.date)}</span>
+                      {meta.type && <span className="text-xs bg-cyan-100 text-cyan-700 dark:bg-cyan-700/20 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700/40 px-2 py-0.5 rounded-full">{REHEARSAL_TYPES[meta.type]}</span>}
+                      {upcoming && <span className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-700/30 dark:text-amber-300 border border-amber-200 dark:border-amber-700/40 px-2 py-0.5 rounded-full">Proper</span>}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
+                      {meta.time && <span className="flex items-center gap-1"><Clock size={11} />{meta.time}</span>}
+                      {meta.location && <span className="flex items-center gap-1"><MapPin size={11} />{meta.location}</span>}
+                      {meta.freeNotes && <span className="text-ghost">{meta.freeNotes}</span>}
+                    </div>
                   </div>
                   {!upcoming && (
                     <div className="flex items-center gap-3">

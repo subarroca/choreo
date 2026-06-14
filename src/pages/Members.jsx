@@ -122,7 +122,7 @@ export default function Members() {
   const overlayData = isNew ? null : overlayMember
 
   return (
-    <Layout narrow>
+    <Layout fullWidth>
       <PageContainer
         header={
           <PageHeader

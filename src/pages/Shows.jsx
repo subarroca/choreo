@@ -181,7 +181,7 @@ export default function Shows() {
   }
 
   return (
-    <Layout>
+    <Layout fullWidth>
       <PageContainer
         header={
           <PageHeader

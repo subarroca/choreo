@@ -19,7 +19,7 @@ function useNavItems() {
   if (effectiveAdmin || permissions?.repertoire?.view)
     items.push({ to: '/songs', label: 'Cançons', Icon: BookOpen })
   items.push({ to: '/shows', label: 'Espectacles', Icon: Clapperboard })
-  items.push({ to: '/assistencia', label: 'Assistència', Icon: CalendarDays })
+  items.push({ to: '/assistencia', label: 'Assajos', Icon: CalendarDays })
   if (effectiveAdmin || permissions?.members?.view)
     items.push({ to: '/members', label: 'Persones', Icon: Users })
   if (effectiveAdmin)
@@ -43,6 +43,7 @@ export default function SideNav({ onSignOut }) {
   )
 }
 
+// Choir popover — shows a full select when expanded, or a small icon+popup when collapsed
 function ChoirPopover({ choirs, currentChoirId, onSwitch, expanded }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
@@ -56,14 +57,14 @@ function ChoirPopover({ choirs, currentChoirId, onSwitch, expanded }) {
 
   if (expanded) {
     return (
-      <div className="relative px-3 pb-2">
+      <div className="relative px-2 pb-2">
         <select
           value={currentChoirId ?? ''}
           onChange={e => onSwitch(e.target.value)}
           className="appearance-none w-full bg-fill border border-line rounded-lg pl-3 pr-7 py-1.5 text-xs text-soft focus:outline-none focus:border-cyan-500 cursor-pointer">
           {choirs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <ChevronDown size={ICON.xs} className="absolute right-5 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
+        <ChevronDown size={ICON.xs} className="absolute right-4 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
       </div>
     )
   }
@@ -73,7 +74,7 @@ function ChoirPopover({ choirs, currentChoirId, onSwitch, expanded }) {
       <button
         onClick={() => setOpen(v => !v)}
         title={current?.name ?? 'Canviar cor'}
-        className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold uppercase ${IDLE}`}>
+        className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold uppercase ${IDLE}`}>
         {current?.name?.slice(0, 1) ?? '?'}
       </button>
       {open && (
@@ -91,79 +92,64 @@ function ChoirPopover({ choirs, currentChoirId, onSwitch, expanded }) {
   )
 }
 
-function ThemeButton({ expanded }) {
-  const { theme, cycle } = useTheme()
-  const Icon = theme === 'dark' ? Sun : theme === 'light' ? Moon : Monitor
-  const label = theme === 'dark' ? 'Mode clar' : theme === 'light' ? 'Sistema' : 'Mode fosc'
-  return (
-    <button
-      onClick={cycle}
-      title={label}
-      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${IDLE}`}>
-      <Icon size={ICON.md} />
-      {expanded && <span>{label}</span>}
-    </button>
-  )
-}
-
 function DesktopRail({ items, isActive, onSignOut }) {
   const { choirs, currentChoirId, switchChoir } = useChoir()
+  const { theme, cycle } = useTheme()
   const navigate = useNavigate()
   const [expanded, setExpanded] = useState(
     () => localStorage.getItem('navExpanded') === 'true'
   )
+
   function toggleExpanded() {
     setExpanded(v => { localStorage.setItem('navExpanded', String(!v)); return !v })
   }
 
-  function handleChoirSwitch(id) {
-    switchChoir(id)
-    navigate('/')
-  }
+  function handleChoirSwitch(id) { switchChoir(id); navigate('/') }
+
+  // Shared class builders so icons are always at the same x in both states
+  const itemCls = (active) =>
+    `flex items-center rounded-lg text-sm transition-colors h-10 ${
+      expanded ? 'gap-3 px-3 w-full' : 'justify-center w-10 mx-auto'
+    } ${active ? ACTIVE : IDLE}`
+
+  const ThemeIcon = theme === 'dark' ? Sun : theme === 'light' ? Moon : Monitor
+  const themeLabel = theme === 'dark' ? 'Mode clar' : theme === 'light' ? 'Sistema' : 'Mode fosc'
 
   return (
     <aside className={`hidden md:flex flex-col shrink-0 bg-pane border-r border-rim transition-[width] duration-200 ${expanded ? 'w-52' : 'w-16'}`}>
+
       {/* Brand */}
-      <Link to="/" className="flex items-center gap-2 h-14 px-4 text-body hover:text-soft shrink-0 overflow-hidden">
+      <Link to="/" className="flex items-center h-14 px-4 text-body hover:text-soft shrink-0 overflow-hidden">
         <Music size={ICON.lg} className="shrink-0" />
-        {expanded && <span className="font-bold tracking-tight truncate">Choreo</span>}
+        {expanded && <span className="ml-3 font-bold tracking-tight truncate">Choreo</span>}
       </Link>
 
       {/* Choir selector */}
       {choirs.length > 1 && (
-        <ChoirPopover
-          choirs={choirs}
-          currentChoirId={currentChoirId}
-          onSwitch={handleChoirSwitch}
-          expanded={expanded}
-        />
+        <ChoirPopover choirs={choirs} currentChoirId={currentChoirId} onSwitch={handleChoirSwitch} expanded={expanded} />
       )}
 
       {/* Nav links */}
       <nav className="flex-1 min-h-0 overflow-y-auto px-2 py-2 flex flex-col gap-1">
         {items.map(({ to, label, Icon }) => (
-          <Link
-            key={to}
-            to={to}
-            title={expanded ? undefined : label}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${isActive(to) ? ACTIVE : IDLE}`}
-          >
+          <Link key={to} to={to} title={expanded ? undefined : label} className={itemCls(isActive(to))}>
             <Icon size={ICON.md} className="shrink-0" />
             {expanded && <span className="truncate">{label}</span>}
           </Link>
         ))}
       </nav>
 
-      {/* Footer: theme · profile · collapse toggle */}
-      <div className="shrink-0 border-t border-rim p-2 flex flex-col gap-1">
-        <ThemeButton expanded={expanded} />
-        <div className="px-1"><ProfileMenu onSignOut={onSignOut} expanded={expanded} /></div>
-        <button
-          onClick={toggleExpanded}
-          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${IDLE}`}
-          title={expanded ? 'Col·lapsar' : 'Expandir'}
-        >
-          {expanded ? <PanelLeftClose size={ICON.md} /> : <PanelLeftOpen size={ICON.md} />}
+      {/* Footer */}
+      <div className="shrink-0 border-t border-rim px-2 py-2 flex flex-col gap-1">
+        <button onClick={cycle} title={themeLabel} className={itemCls(false)}>
+          <ThemeIcon size={ICON.md} className="shrink-0" />
+          {expanded && <span>{themeLabel}</span>}
+        </button>
+        <div className={expanded ? 'px-1' : 'flex justify-center'}>
+          <ProfileMenu onSignOut={onSignOut} expanded={expanded} />
+        </div>
+        <button onClick={toggleExpanded} title={expanded ? 'Col·lapsar' : 'Expandir'} className={itemCls(false)}>
+          {expanded ? <PanelLeftClose size={ICON.md} className="shrink-0" /> : <PanelLeftOpen size={ICON.md} className="shrink-0" />}
           {expanded && <span>Col·lapsar</span>}
         </button>
       </div>

@@ -87,7 +87,7 @@ export default function Admin() {
   }
 
   return (
-    <Layout narrow>
+    <Layout fullWidth>
       <PageContainer
         header={
           <PageHeader title="Gestió d'usuaris" icon={Shield} />

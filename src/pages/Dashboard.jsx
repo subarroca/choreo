@@ -157,7 +157,7 @@ function QuickActions({ role, permissions }) {
     { to: '/shows', label: 'Espectacles', Icon: Clapperboard, always: true },
     { to: '/members', label: 'Persones', Icon: Users, show: canViewMembers },
     { to: '/songs', label: 'Repertori', Icon: BookOpen, show: canViewRepertoire },
-    { to: '/assistencia', label: 'Assistència', Icon: CalendarDays, always: true },
+    { to: '/assistencia', label: 'Assajos', Icon: CalendarDays, always: true },
     { to: '/admin', label: 'Admin', Icon: Shield, show: isAdmin },
   ].filter(a => a.always || a.show)
 
@@ -295,7 +295,7 @@ function MemberDashboard({ permissions, nextShow }) {
         <Link to="/assistencia"
           className="flex flex-col items-center gap-2 rounded-xl border border-rim bg-pane p-4 text-muted hover:text-body hover:border-wire transition-colors group">
           <CalendarDays size={20} className="group-hover:text-cyan-400 transition-colors" />
-          <span className="text-xs font-medium">Assistència</span>
+          <span className="text-xs font-medium">Assajos</span>
         </Link>
         {canViewMembers && (
           <Link to="/members"
@@ -367,7 +367,7 @@ export default function Dashboard() {
   }, [upcomingRehearsals.length > 0 ? upcomingRehearsals.map(r => r.id).join(',') : ''])
 
   return (
-    <Layout>
+    <Layout fullWidth>
       <PageContainer
         header={
           <PageHeader

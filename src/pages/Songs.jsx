@@ -261,7 +261,7 @@ export default function Songs() {
   const isNew = sheetSong === 'new'
 
   return (
-    <Layout narrow>
+    <Layout fullWidth>
       <PageContainer
         header={
           <PageHeader
