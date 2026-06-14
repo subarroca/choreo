@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import {
   Music, Users, Clapperboard, BookOpen, Shield, CalendarDays,
-  Sun, Moon, PanelLeftClose, PanelLeftOpen, ChevronDown,
+  Sun, Moon, PanelLeftClose, PanelLeftOpen, ChevronDown, LayoutDashboard,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'
@@ -16,9 +16,10 @@ function useNavItems() {
   const isAdmin = role === 'admin' || role === 'director'
   const effectiveAdmin = isAdmin && !isSimulating
   const items = []
+  items.push({ to: '/', label: 'Inici', Icon: LayoutDashboard })
   if (effectiveAdmin || permissions?.repertoire?.view)
     items.push({ to: '/songs', label: 'Cançons', Icon: BookOpen })
-  items.push({ to: '/', label: 'Espectacles', Icon: Clapperboard })
+  items.push({ to: '/shows', label: 'Espectacles', Icon: Clapperboard })
   items.push({ to: '/assistencia', label: 'Assistència', Icon: CalendarDays })
   if (effectiveAdmin || permissions?.members?.view)
     items.push({ to: '/members', label: 'Persones', Icon: Users })

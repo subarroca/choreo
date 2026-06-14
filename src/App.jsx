@@ -5,6 +5,7 @@ import { ThemeProvider } from './hooks/useTheme.jsx'
 import { ConfirmHost } from './components/ui/ConfirmDialog'
 import OfflineBanner from './components/OfflineBanner'
 import Login from './pages/Login'
+import Dashboard from './pages/Dashboard'
 import Shows from './pages/Shows'
 import Setlist from './pages/Setlist'
 import Members from './pages/Members'
@@ -33,7 +34,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/" element={<RequireAuth><Shows /></RequireAuth>} />
+      <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
+      <Route path="/shows" element={<RequireAuth><Shows /></RequireAuth>} />
       <Route path="/show/:id" element={<RequireAuth><Setlist /></RequireAuth>} />
       <Route path="/members" element={<RequireAuth><Members /></RequireAuth>} />
       <Route path="/show/:id/song/:sid/moment/:mid" element={<RequireAuth><Editor /></RequireAuth>} />
