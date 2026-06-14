@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Clapperboard, Users, BookOpen, Shield,
-  CalendarDays, ArrowRight, MapPin, Clock,
+  CalendarDays, ArrowRight, MapPin, Clock, Check, X,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
@@ -13,6 +13,23 @@ import PageContainer from '../components/ui/PageContainer'
 import PageHeader from '../components/ui/PageHeader'
 import Button from '../components/ui/Button'
 import { ICON } from '../lib/ui'
+
+const REHEARSAL_TYPES = {
+  veu:         'Veu',
+  coreo:       'Coreo',
+  ambdues:     'Veu + Coreo',
+  masterclass: 'Masterclass',
+  posicions:   'Passi de posicions',
+}
+
+function parseRehearsalMeta(notes) {
+  if (!notes) return { type: '', freeNotes: '' }
+  try {
+    const p = JSON.parse(notes)
+    if (p && typeof p === 'object' && 'type' in p) return { type: p.type ?? '', freeNotes: p.notes ?? '' }
+  } catch {}
+  return { type: '', freeNotes: notes }
+}
 
 // ─── Greeting ────────────────────────────────────────────────────────────────
 
@@ -187,6 +204,63 @@ function MiniShowCard({ show }) {
   )
 }
 
+// ─── Upcoming rehearsals ──────────────────────────────────────
+
+function formatDateShort(iso) {
+  return new Date(iso + 'T12:00:00').toLocaleDateString('ca-ES', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+function daysUntilRehearsal(iso) {
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const d = new Date(iso + 'T12:00:00'); d.setHours(0, 0, 0, 0)
+  return Math.round((d - today) / 86400000)
+}
+
+function UpcomingRehearsals({ rehearsals, attendanceMap }) {
+  if (!rehearsals.length) return null
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-muted uppercase tracking-wide">Propers assajos</h3>
+        <Link to="/assistencia" className="text-xs text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 flex items-center gap-1 transition-colors">
+          Veure tots <ArrowRight size={ICON.xs} />
+        </Link>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {rehearsals.map(r => {
+          const meta = parseRehearsalMeta(r.notes)
+          const days = daysUntilRehearsal(r.date)
+          const att = attendanceMap[r.id] ?? {}
+          const excusedCount = Object.values(att).filter(a => a.status === 'excused').length
+          const absentCount = Object.values(att).filter(a => a.status === 'absent').length
+          return (
+            <Link key={r.id} to="/assistencia"
+              className="rounded-xl border border-rim bg-pane p-3 flex flex-col gap-2 hover:border-wire transition-colors group">
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-sm font-semibold text-body">{formatDateShort(r.date)}</span>
+                <span className={`text-xs shrink-0 ${days === 0 ? 'text-amber-400 font-semibold' : days === 1 ? 'text-amber-400' : 'text-ghost'}`}>
+                  {days === 0 ? 'Avui' : days === 1 ? 'Demà' : `${days}d`}
+                </span>
+              </div>
+              {meta.type && (
+                <span className="self-start text-xs bg-cyan-100 text-cyan-700 dark:bg-cyan-700/20 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700/40 px-2 py-0.5 rounded-full">
+                  {REHEARSAL_TYPES[meta.type]}
+                </span>
+              )}
+              {(excusedCount > 0 || absentCount > 0) && (
+                <div className="flex items-center gap-2 text-xs text-ghost mt-auto">
+                  {excusedCount > 0 && <span className="flex items-center gap-1 text-amber-400"><Clock size={10} />{excusedCount}</span>}
+                  {absentCount > 0 && <span className="flex items-center gap-1 text-red-400"><X size={10} />{absentCount}</span>}
+                </div>
+              )}
+            </Link>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ─── Member dashboard ─────────────────────────────────────────────────────────
 
 function MemberDashboard({ permissions, nextShow }) {
@@ -273,6 +347,25 @@ export default function Dashboard() {
 
   const recentShows = useMemo(() => shows.slice(0, 4), [shows])
 
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const { data: upcomingRehearsals = [] } = useSupabaseQuery(async () => {
+    const { data } = await supabase.from('rehearsals').select('*')
+      .gte('date', todayStr).order('date').limit(4)
+    return data ?? []
+  }, [todayStr])
+
+  const { data: rehearsalAttendance = {} } = useSupabaseQuery(async () => {
+    if (!upcomingRehearsals.length) return {}
+    const ids = upcomingRehearsals.map(r => r.id)
+    const { data } = await supabase.from('attendance').select('rehearsal_id, member_id, status').in('rehearsal_id', ids)
+    const map = {}
+    for (const row of (data ?? [])) {
+      if (!map[row.rehearsal_id]) map[row.rehearsal_id] = {}
+      map[row.rehearsal_id][row.member_id] = { status: row.status }
+    }
+    return map
+  }, [upcomingRehearsals.length > 0 ? upcomingRehearsals.map(r => r.id).join(',') : ''])
+
   return (
     <Layout>
       <PageContainer
@@ -299,6 +392,11 @@ export default function Dashboard() {
 
           {/* Next show */}
           {!showsLoading && nextShow && <NextShowCard show={nextShow} />}
+
+          {/* Upcoming rehearsals */}
+          {upcomingRehearsals.length > 0 && (
+            <UpcomingRehearsals rehearsals={upcomingRehearsals} attendanceMap={rehearsalAttendance} />
+          )}
 
           {/* Admin/Director view */}
           {isEditor && (
