@@ -17,7 +17,7 @@ const EFFECT_ICONS = {
 export default function Rider() {
   const { id: showId } = useParams()
   const {
-    show, songs, members, cues, presets, loading,
+    show, songs, members, cues, presets, loading, momentsBySong,
   } = useLightCues(showId)
 
   if (loading) {
@@ -30,8 +30,9 @@ export default function Rider() {
     ? (typeof show.mic_assignments === 'string' ? JSON.parse(show.mic_assignments) : show.mic_assignments)
     : {}
   const memberName = (id) => members.find(m => m.id === id)?.name ?? ''
-  const momentsBySong = {}
-  const allMoments = []
+  const allMoments = songs.flatMap(s =>
+    (momentsBySong[s.id] ?? []).map(m => ({ ...m, song_title: s.title }))
+  )
   const hasMicData = mics.length > 0 && Object.keys(micAssignments).length > 0
 
   // Agrupa cues per cançó en ordre de número (les estructurals fan de separadors)
@@ -57,8 +58,9 @@ export default function Rider() {
           .no-print { display: none !important; }
           .rider-sheet { box-shadow: none !important; margin: 0 !important; max-width: none !important; }
           .page-break { break-before: page; }
-          tr, .plot-card { break-inside: avoid; }
+          tr { break-inside: avoid; }
           @page { margin: 14mm; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
       `}</style>
 
