@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CalendarDays, Plus, Check, X, Clock, Bell, Plane, Briefcase, HeartPulse, MessageSquare, MapPin, Pencil } from '../lib/icons'
+import { CalendarDays, Plus, Check, X, Clock, Bell, Plane, Briefcase, HeartPulse, MessageSquare, MapPin, Pencil, BookOpen, ChevronDown, Music, ExternalLink, FileText } from '../lib/icons'
 import Button from '../components/ui/Button'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
@@ -11,8 +11,12 @@ import PageContainer from '../components/ui/PageContainer'
 import PageHeader from '../components/ui/PageHeader'
 import SummaryView from '../components/SummaryView'
 import RehearsalDetailModal from '../components/attendance/RehearsalDetailModal'
+import RehearsalScheduleConfig from '../components/attendance/RehearsalScheduleConfig'
 import { memberInitials, formatDate, isUpcoming } from '../lib/formatters'
 import { useAttendanceData } from '../hooks/useAttendanceData'
+import { useMyMember } from '../hooks/useMyMember.js'
+import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
+import { supabase } from '../lib/supabase'
 
 const STATUS_CONFIG = {
   present:  { label: 'Present',  icon: Check,  cls: 'bg-green-100 text-green-700 border-green-300 dark:bg-green-700/30 dark:text-green-300 dark:border-green-700/50' },
@@ -43,19 +47,64 @@ function parseRehearsalMeta(notes) {
   return { type: '', time: '', location: '', freeNotes: notes }
 }
 
+const ATTACHMENT_COLORS = { reference: 'text-blue-400', score: 'text-purple-400', audio: 'text-green-400' }
+
+function RehearsalSongs({ rehearsal, allSongs }) {
+  let songIds = []
+  try { songIds = JSON.parse(rehearsal?.song_ids || '[]') } catch {}
+  if (!songIds.length || !allSongs?.length) return null
+  const songs = songIds.map(id => allSongs.find(s => s.id === id)).filter(Boolean)
+  if (!songs.length) return null
+  return (
+    <div className="rounded-xl border border-rim bg-pane p-4 space-y-2">
+      <h4 className="text-sm font-semibold text-body flex items-center gap-2"><Music size={14} /> Temes a estudiar</h4>
+      <div className="flex flex-col gap-2">
+        {songs.map(song => {
+          let atts = []
+          try { atts = JSON.parse(song.attachments || '[]') } catch {}
+          return (
+            <div key={song.id} className="flex flex-col gap-0.5">
+              <p className="text-sm font-medium text-body">{song.title}</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+                {atts.map((a, i) => {
+                  const colorCls = ATTACHMENT_COLORS[a.type] ?? 'text-muted'
+                  const Icon = a.type === 'score' ? FileText : a.type === 'audio' ? Music : ExternalLink
+                  return (
+                    <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
+                      className={`flex items-center gap-1 text-xs ${colorCls} hover:underline`}>
+                      <Icon size={11} /> {a.label}
+                    </a>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function Attendance() {
   const { role } = useAuth()
   const isAdmin = role === 'admin' || role === 'director'
+  const myMember = useMyMember()
 
   const {
-    members, rehearsals, selectedId, setSelectedId,
+    members, rehearsals, setRehearsals, schedule, setSchedule, selectedId, setSelectedId,
     attendance, loading, saving,
     summaryData, loadSummary,
     addRehearsal, saveRehearsalMeta, deleteRehearsal,
     toggleStatus, setReason, submitNotice,
   } = useAttendanceData()
 
+  const { data: allSongs = [] } = useSupabaseQuery(async () => {
+    const { data } = await supabase.from('repertoire_songs').select('id, title, attachments')
+    return data ?? []
+  }, [])
+
   const [tab, setTab] = useState('assajos')
+  const [showAllRehearsals, setShowAllRehearsals] = useState(false)
 
   // New rehearsal form
   const [addingDate, setAddingDate] = useState(false)
@@ -168,47 +217,79 @@ export default function Attendance() {
 
         {loading ? <p className="text-faint text-sm">Carregant...</p> : tab === 'assajos' ? (
           <div className="space-y-4">
-            <div className="flex flex-col gap-2">
-              {rehearsals.map(r => {
-                const meta = parseRehearsalMeta(r.notes)
-                const active = selectedId === r.id
-                const isNext = isUpcoming(r.date)
-                return (
-                  <div key={r.id} className="relative group">
-                    <button onClick={() => setSelectedId(r.id)}
-                      className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
-                        active ? 'bg-cyan-50 border-cyan-300 dark:bg-cyan-700/20 dark:border-cyan-600' : 'bg-pane border-rim hover:bg-fill'
-                      }`}>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-sm font-semibold ${active ? 'text-cyan-700 dark:text-cyan-300' : 'text-body'}`}>
-                          {formatDate(r.date)}
-                        </span>
-                        {meta.type && <Badge color="cyan">{REHEARSAL_TYPES[meta.type]}</Badge>}
-                        {isNext && <Badge color="amber">Proper</Badge>}
+            {isAdmin && (
+              <RehearsalScheduleConfig
+                schedule={schedule}
+                onScheduleChange={setSchedule}
+                existingDates={rehearsals.map(r => r.date)}
+                onRehearsalsGenerated={newReh => setRehearsals(prev =>
+                  [...prev, ...newReh].sort((a, b) => a.date < b.date ? -1 : 1)
+                )}
+              />
+            )}
+
+            {(() => {
+              const todayStr = new Date().toISOString().slice(0, 10)
+              const past = rehearsals.filter(r => r.date < todayStr)
+              const upcoming = rehearsals.filter(r => r.date >= todayStr)
+              const lastPast = past.slice(-1)
+              const next3 = upcoming.slice(0, 3)
+              const hidden = [...past.slice(0, -1), ...upcoming.slice(3)]
+              const visible = showAllRehearsals ? rehearsals : [...lastPast, ...next3]
+              return (
+                <div className="flex flex-col gap-2">
+                  {visible.map(r => {
+                    const meta = parseRehearsalMeta(r.notes)
+                    const time  = r.time  ?? meta.time
+                    const loc   = r.location ?? meta.location
+                    const type  = r.type  ?? meta.type
+                    const active = selectedId === r.id
+                    const isNext = isUpcoming(r.date)
+                    const isPast = r.date < todayStr
+                    return (
+                      <div key={r.id} className={`relative group ${isPast && !isNext ? 'opacity-60' : ''}`}>
+                        <button onClick={() => setSelectedId(r.id)}
+                          className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
+                            active ? 'bg-cyan-50 border-cyan-300 dark:bg-cyan-700/20 dark:border-cyan-600' : 'bg-pane border-rim hover:bg-fill'
+                          }`}>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-sm font-semibold ${active ? 'text-cyan-700 dark:text-cyan-300' : 'text-body'}`}>
+                              {formatDate(r.date)}
+                            </span>
+                            {type && <Badge color="cyan">{REHEARSAL_TYPES[type]}</Badge>}
+                            {isNext && <Badge color="amber">Proper</Badge>}
+                          </div>
+                          {(time || loc) && (
+                            <div className="flex items-center gap-3 mt-1 text-xs text-muted">
+                              {time && <span className="flex items-center gap-1"><Clock size={11} />{time}</span>}
+                              {loc  && <span className="flex items-center gap-1"><MapPin size={11} />{loc}</span>}
+                            </div>
+                          )}
+                        </button>
+                        {isAdmin && (
+                          <button onClick={() => setDetailRehearsal(r)} title="Editar detalls"
+                            className="absolute right-10 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center text-ghost hover:text-body hover:bg-fill transition-colors opacity-0 group-hover:opacity-100">
+                            <Pencil size={13} />
+                          </button>
+                        )}
+                        {isAdmin && (
+                          <button onClick={() => deleteRehearsal(r.id)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center text-ghost hover:text-red-500 hover:bg-fill transition-colors opacity-0 group-hover:opacity-100">
+                            <X size={13} />
+                          </button>
+                        )}
                       </div>
-                      {(meta.time || meta.location) && (
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted">
-                          {meta.time && <span className="flex items-center gap-1"><Clock size={11} />{meta.time}</span>}
-                          {meta.location && <span className="flex items-center gap-1"><MapPin size={11} />{meta.location}</span>}
-                        </div>
-                      )}
+                    )
+                  })}
+                  {!showAllRehearsals && hidden.length > 0 && (
+                    <button onClick={() => setShowAllRehearsals(true)}
+                      className="flex items-center justify-center gap-1.5 text-xs text-muted hover:text-body py-2 transition-colors">
+                      <ChevronDown size={13} /> Veure tots ({rehearsals.length} assajos)
                     </button>
-                    {isAdmin && (
-                      <button onClick={() => setDetailRehearsal(r)} title="Editar detalls"
-                        className="absolute right-10 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center text-ghost hover:text-body hover:bg-fill transition-colors opacity-0 group-hover:opacity-100">
-                        <Pencil size={13} />
-                      </button>
-                    )}
-                    {isAdmin && (
-                      <button onClick={() => deleteRehearsal(r.id)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center text-ghost hover:text-red-500 hover:bg-fill transition-colors opacity-0 group-hover:opacity-100">
-                        <X size={13} />
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+                  )}
+                </div>
+              )
+            })()}
 
             {!selected ? (
               <div className="text-center py-16 text-ghost">
@@ -244,6 +325,9 @@ export default function Attendance() {
                     </div>
                   )
                 })()}
+
+                {/* Songs to study */}
+                <RehearsalSongs rehearsal={selected} allSongs={allSongs} />
 
                 {/* Absence notifications (upcoming rehearsal) */}
                 {upcoming && (

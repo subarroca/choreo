@@ -4,7 +4,7 @@
 import { SEED_MEMBERS, SEED_SHOWS, SEED_PARTS, SEED_SONGS, SEED_REPERTOIRE, SEED_MOMENTS, SEED_SECTIONS } from './devSeedData.js'
 import { SEED_POSITIONS } from './devSeedPositions.js'
 import { SEED_LIGHT_CUES, SEED_LIGHT_PRESETS } from './devSeedLights.js'
-import { SEED_REHEARSALS, SEED_ATTENDANCE } from './devSeedAttendance.js'
+import { SEED_REHEARSALS, SEED_ATTENDANCE, SEED_REHEARSAL_SCHEDULE } from './devSeedAttendance.js'
 
 export const DEV_USER = {
   id: 'dev-user-001',
@@ -38,7 +38,7 @@ function ensureSeedData() {
   const migratedMembers = existingMembers.map(m => {
     const seed = SEED_MEMBERS.find(s => s.id === m.id)
     if (!seed) return m
-    return { active: true, ...m, name: seed.name, first_name: seed.first_name, last_name: seed.last_name, initials: seed.initials, voice: seed.voice }
+    return { active: true, ...m, name: seed.name, first_name: seed.first_name, last_name: seed.last_name, initials: seed.initials, voice: seed.voice, birth_date: seed.birth_date ?? m.birth_date ?? null, instagram: seed.instagram ?? m.instagram ?? '' }
   })
   const membersChanged = JSON.stringify(migratedMembers) !== JSON.stringify(existingMembers)
   if (toAddMembers.length || membersChanged) save('members', [...migratedMembers, ...toAddMembers])
@@ -208,8 +208,20 @@ function ensureSeedData() {
   // ── Rehearsals ───────────────────────────────────────────────
   const existingRehearsals = load('rehearsals')
   const existingRehIds = new Set(existingRehearsals.map(r => r.id))
+  const migratedRehearsals = existingRehearsals.map(r => {
+    const seed = SEED_REHEARSALS.find(s => s.id === r.id)
+    if (!seed) return r
+    return { ...r, time: seed.time ?? r.time ?? null, location: seed.location ?? r.location ?? null, type: seed.type ?? r.type ?? null, show_id: seed.show_id ?? r.show_id ?? null, song_ids: seed.song_ids ?? r.song_ids ?? null }
+  })
+  const rehChanged = JSON.stringify(migratedRehearsals) !== JSON.stringify(existingRehearsals)
   const toAddReh = SEED_REHEARSALS.filter(r => !existingRehIds.has(r.id))
-  if (toAddReh.length) save('rehearsals', [...existingRehearsals, ...toAddReh])
+  if (toAddReh.length || rehChanged) save('rehearsals', [...migratedRehearsals, ...toAddReh])
+
+  // ── Rehearsal Schedule ───────────────────────────────────────
+  const existingSchedule = load('rehearsal_schedule')
+  const existingScheduleIds = new Set(existingSchedule.map(s => s.id))
+  const toAddSchedule = SEED_REHEARSAL_SCHEDULE.filter(s => !existingScheduleIds.has(s.id))
+  if (toAddSchedule.length) save('rehearsal_schedule', [...existingSchedule, ...toAddSchedule])
 
   // ── Attendance ───────────────────────────────────────────────
   const existingAtt = load('attendance')
@@ -254,15 +266,20 @@ class QB {
 
   eq(col, val) { this._filters.push(['eq', col, val]); return this }
   in(col, vals) { this._filters.push(['in', col, vals]); return this }
+  gte(col, val) { this._filters.push(['gte', col, val]); return this }
+  lte(col, val) { this._filters.push(['lte', col, val]); return this }
   order(col, opts = {}) { this._orderCol = col; this._orderAsc = opts.ascending !== false; return this }
+  limit(n) { this._limit = n; return this }
 
   single() { this._single = true; return Promise.resolve(this._exec()) }
   then(res, rej) { return Promise.resolve(this._exec()).then(res, rej) }
 
   _match(row) {
     return this._filters.every(([type, col, val]) => {
-      if (type === 'eq') return String(row[col]) === String(val)
-      if (type === 'in') return (val ?? []).map(String).includes(String(row[col]))
+      if (type === 'eq')  return String(row[col]) === String(val)
+      if (type === 'in')  return (val ?? []).map(String).includes(String(row[col]))
+      if (type === 'gte') return (row[col] ?? '') >= val
+      if (type === 'lte') return (row[col] ?? '') <= val
       return true
     })
   }
@@ -280,6 +297,7 @@ class QB {
           return asc ? (av < bv ? -1 : av > bv ? 1 : 0) : (av > bv ? -1 : av < bv ? 1 : 0)
         })
       }
+      if (this._limit) res = res.slice(0, this._limit)
       return this._single
         ? { data: res[0] ?? null, error: res.length ? null : { message: 'Row not found' } }
         : { data: res, error: null }

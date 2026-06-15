@@ -15,6 +15,7 @@ function serializeRehearsalMeta(type, time, location, freeNotes) {
 export function useAttendanceData() {
   const [members, setMembers] = useState([])
   const [rehearsals, setRehearsals] = useState([])
+  const [schedule, setSchedule] = useState(null)
   const [selectedId, setSelectedId] = useState(null)
   const [attendance, setAttendance] = useState({})
   const [summaryData, setSummaryData] = useState(null)
@@ -23,14 +24,16 @@ export function useAttendanceData() {
 
   useEffect(() => {
     async function load() {
-      const [membersRes, rehearsalsRes] = await Promise.all([
+      const [membersRes, rehearsalsRes, scheduleRes] = await Promise.all([
         supabase.from('members').select('*').eq('active', true).order('last_name').order('first_name'),
         supabase.from('rehearsals').select('*').order('date'),
+        supabase.from('rehearsal_schedule').select('*'),
       ])
       setMembers(membersRes.data ?? [])
       const reh = rehearsalsRes.data ?? []
       setRehearsals(reh)
       if (reh.length) setSelectedId(reh[reh.length - 1].id)
+      setSchedule((scheduleRes.data ?? [])[0] ?? null)
       setLoading(false)
     }
     load()
@@ -122,7 +125,7 @@ export function useAttendanceData() {
   }
 
   return {
-    members, rehearsals, selectedId, setSelectedId,
+    members, rehearsals, setRehearsals, schedule, setSchedule, selectedId, setSelectedId,
     attendance, loading, saving,
     summaryData, loadSummary,
     addRehearsal, saveRehearsalMeta, deleteRehearsal,

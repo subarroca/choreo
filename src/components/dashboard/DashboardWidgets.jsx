@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Clapperboard, CalendarDays, ArrowRight, MapPin, Clock, X } from '../../lib/icons'
+import { Clapperboard, CalendarDays, ArrowRight, MapPin, Clock, X, Check } from '../../lib/icons'
 import { ICON } from '../../lib/ui'
 import { VOICE_COLORS, VOICE_SHORT } from '../../lib/constants'
+import { supabase } from '../../lib/supabase'
 import Button from '../ui/Button'
 import Badge from '../ui/Badge'
 
@@ -188,7 +190,83 @@ function daysUntilRehearsal(iso) {
   return Math.round((d - today) / 86400000)
 }
 
-export function UpcomingRehearsals({ rehearsals, attendanceMap }) {
+function RehearsalMiniCard({ rehearsal, attendanceMap, myMemberId }) {
+  const meta = parseRehearsalMeta(rehearsal.notes)
+  const time  = rehearsal.time     ?? meta.time
+  const loc   = rehearsal.location ?? meta.location
+  const type  = rehearsal.type     ?? meta.type
+  const days  = daysUntilRehearsal(rehearsal.date)
+  const att   = attendanceMap[rehearsal.id] ?? {}
+  const excusedCount = Object.values(att).filter(a => a.status === 'excused').length
+  const absentCount  = Object.values(att).filter(a => a.status === 'absent').length
+
+  const [myStatus, setMyStatus] = useState(null)
+  const [saving, setSaving]     = useState(false)
+
+  useEffect(() => {
+    if (!myMemberId) return
+    supabase.from('attendance').select('status')
+      .eq('rehearsal_id', rehearsal.id).eq('member_id', myMemberId)
+      .then(({ data }) => setMyStatus(data?.[0]?.status ?? null))
+  }, [rehearsal.id, myMemberId])
+
+  async function toggle(e) {
+    e.preventDefault()
+    if (!myMemberId || saving) return
+    setSaving(true)
+    const next = myStatus === 'present' ? 'excused' : 'present'
+    await supabase.from('attendance').upsert(
+      { rehearsal_id: rehearsal.id, member_id: myMemberId, status: next, reason: '' },
+      { onConflict: 'rehearsal_id,member_id' }
+    )
+    setMyStatus(next)
+    setSaving(false)
+  }
+
+  return (
+    <div className="rounded-xl border border-rim bg-pane p-3 flex flex-col gap-2 hover:border-wire transition-colors">
+      <Link to="/assistencia" className="flex items-start justify-between gap-2">
+        <span className="text-sm font-semibold text-body">{formatDateShort(rehearsal.date)}</span>
+        <span className={`text-xs shrink-0 ${days === 0 ? 'text-amber-400 font-semibold' : days === 1 ? 'text-amber-400' : 'text-ghost'}`}>
+          {days === 0 ? 'Avui' : days === 1 ? 'Demà' : `${days}d`}
+        </span>
+      </Link>
+      {(time || loc) && (
+        <div className="flex flex-col gap-0.5 text-xs text-muted">
+          {time && <span className="flex items-center gap-1"><Clock size={10} />{time}</span>}
+          {loc  && <span className="flex items-center gap-1"><MapPin size={10} />{loc}</span>}
+        </div>
+      )}
+      {type && <Badge color="cyan" className="self-start">{REHEARSAL_TYPES[type]}</Badge>}
+      <div className="flex items-center justify-between gap-2 mt-auto pt-1 border-t border-rim/60">
+        {myMemberId ? (
+          <button onClick={toggle} disabled={saving}
+            className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium transition-colors ${
+              myStatus === 'present'
+                ? 'bg-green-700/20 text-green-300 border-green-700/40 hover:bg-green-700/30'
+                : myStatus === 'excused' || myStatus === 'absent'
+                ? 'bg-red-700/20 text-red-300 border-red-700/40 hover:bg-red-700/30'
+                : 'bg-fill text-muted border-rim hover:border-wire hover:text-body'
+            }`}>
+            {myStatus === 'present'
+              ? <><Check size={10} /> Hi vaig</>
+              : myStatus === 'excused' || myStatus === 'absent'
+              ? <><X size={10} /> No hi vaig</>
+              : 'Confirma'}
+          </button>
+        ) : <span />}
+        {(excusedCount > 0 || absentCount > 0) && (
+          <div className="flex items-center gap-2 text-xs text-ghost">
+            {excusedCount > 0 && <span className="flex items-center gap-1 text-amber-400"><Clock size={10} />{excusedCount}</span>}
+            {absentCount  > 0 && <span className="flex items-center gap-1 text-red-400"><X size={10} />{absentCount}</span>}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export function UpcomingRehearsals({ rehearsals, attendanceMap, myMemberId }) {
   if (!rehearsals.length) return null
   return (
     <div>
@@ -198,36 +276,10 @@ export function UpcomingRehearsals({ rehearsals, attendanceMap }) {
           Veure tots <ArrowRight size={ICON.xs} />
         </Link>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {rehearsals.map(r => {
-          const meta = parseRehearsalMeta(r.notes)
-          const days = daysUntilRehearsal(r.date)
-          const att = attendanceMap[r.id] ?? {}
-          const excusedCount = Object.values(att).filter(a => a.status === 'excused').length
-          const absentCount = Object.values(att).filter(a => a.status === 'absent').length
-          return (
-            <Link key={r.id} to="/assistencia"
-              className="rounded-xl border border-rim bg-pane p-3 flex flex-col gap-2 hover:border-wire transition-colors group">
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-sm font-semibold text-body">{formatDateShort(r.date)}</span>
-                <span className={`text-xs shrink-0 ${days === 0 ? 'text-amber-400 font-semibold' : days === 1 ? 'text-amber-400' : 'text-ghost'}`}>
-                  {days === 0 ? 'Avui' : days === 1 ? 'Demà' : `${days}d`}
-                </span>
-              </div>
-              {meta.type && (
-                <Badge color="cyan" className="self-start">
-                  {REHEARSAL_TYPES[meta.type]}
-                </Badge>
-              )}
-              {(excusedCount > 0 || absentCount > 0) && (
-                <div className="flex items-center gap-2 text-xs text-ghost mt-auto">
-                  {excusedCount > 0 && <span className="flex items-center gap-1 text-amber-400"><Clock size={10} />{excusedCount}</span>}
-                  {absentCount > 0 && <span className="flex items-center gap-1 text-red-400"><X size={10} />{absentCount}</span>}
-                </div>
-              )}
-            </Link>
-          )
-        })}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {rehearsals.map(r => (
+          <RehearsalMiniCard key={r.id} rehearsal={r} attendanceMap={attendanceMap} myMemberId={myMemberId} />
+        ))}
       </div>
     </div>
   )

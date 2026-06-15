@@ -3,6 +3,7 @@ import { LayoutDashboard } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'
+import { useMyMember } from '../hooks/useMyMember.js'
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
 import Layout from '../components/Layout'
 import PageContainer from '../components/ui/PageContainer'
@@ -10,6 +11,7 @@ import PageHeader from '../components/ui/PageHeader'
 import { NextShowCard, UpcomingRehearsals } from '../components/dashboard/DashboardWidgets.jsx'
 import DirectorDashboard from '../components/dashboard/DirectorDashboard.jsx'
 import SingerDashboard from '../components/dashboard/SingerDashboard.jsx'
+import UpcomingBirthdays from '../components/dashboard/UpcomingBirthdays.jsx'
 import ChoreographerDashboard from '../components/dashboard/ChoreographerDashboard.jsx'
 import LightingDashboard from '../components/dashboard/LightingDashboard.jsx'
 import SoundDashboard from '../components/dashboard/SoundDashboard.jsx'
@@ -47,6 +49,7 @@ function firstName(fullName) {
 export default function Dashboard() {
   const { profile, persona } = useAuth()
   const { currentChoirId } = useChoir()
+  const myMember = useMyMember()
   const badge = personaBadge(persona)
 
   const isDirectorView = persona === 'admin' || persona === 'director'
@@ -68,9 +71,23 @@ export default function Dashboard() {
 
   const todayStr = new Date().toISOString().slice(0, 10)
   const { data: upcomingRehearsals = [] } = useSupabaseQuery(async () => {
-    const { data } = await supabase.from('rehearsals').select('*').gte('date', todayStr).order('date').limit(4)
+    const { data } = await supabase.from('rehearsals').select('*').gte('date', todayStr).order('date').limit(3)
     return data ?? []
   }, [todayStr])
+
+  const { data: allMembers = [] } = useSupabaseQuery(async () => {
+    let q = supabase.from('members').select('id, first_name, last_name, voice, birth_date').eq('active', true)
+    if (currentChoirId) q = q.eq('choir_id', currentChoirId)
+    const { data } = await q
+    return data ?? []
+  }, [currentChoirId])
+
+  const { data: repertoireSongs = [] } = useSupabaseQuery(async () => {
+    let q = supabase.from('repertoire_songs').select('id, title, attachments')
+    if (currentChoirId) q = q.eq('choir_id', currentChoirId)
+    const { data } = await q
+    return data ?? []
+  }, [currentChoirId])
 
   const { data: rehearsalAttendance = {} } = useSupabaseQuery(async () => {
     if (!upcomingRehearsals.length) return {}
@@ -162,7 +179,8 @@ export default function Dashboard() {
                 }
               />
             )}
-            <UpcomingRehearsals rehearsals={upcomingRehearsals} attendanceMap={rehearsalAttendance} />
+            <UpcomingRehearsals rehearsals={upcomingRehearsals} attendanceMap={rehearsalAttendance} myMemberId={myMember?.id} />
+            <UpcomingBirthdays members={allMembers} />
             <DirectorDashboard
               shows={shows} members={members} songsCount={songsCount}
               showsLoading={showsLoading} membersLoading={membersLoading} songsLoading={songsLoading}
@@ -192,7 +210,7 @@ export default function Dashboard() {
           />
         )
       default:
-        return <SingerDashboard nextShow={nextShow} nextRehearsal={nextRehearsal} />
+        return <SingerDashboard nextShow={nextShow} upcomingRehearsals={upcomingRehearsals} members={allMembers} allSongs={repertoireSongs} rehearsalAttendance={rehearsalAttendance} />
     }
   }
 
