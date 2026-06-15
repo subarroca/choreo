@@ -1,4 +1,4 @@
-import { Pencil } from 'lucide-react'
+import { Pencil } from '../../lib/icons'
 import { Link } from 'react-router-dom'
 import { VOICE_COLORS, VOICE_LABELS } from '../../lib/constants'
 

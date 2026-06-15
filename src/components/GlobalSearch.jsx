@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Users, Clapperboard, Music, X } from 'lucide-react'
+import { Search, Users, Clapperboard, Music, X } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
 import Avatar from './ui/Avatar'

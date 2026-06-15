@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { BookOpen, CalendarDays, LayoutDashboard, Clapperboard, ArrowRight, MapPin, CalendarClock } from 'lucide-react'
+import { BookOpen, CalendarDays, LayoutDashboard, Clapperboard, ArrowRight, MapPin, CalendarClock } from '../../lib/icons'
 import { useAuth } from '../../hooks/useAuth.jsx'
 import { ICON } from '../../lib/ui'
 import { daysUntil, parseRehearsalMeta } from './DashboardWidgets.jsx'

@@ -1,4 +1,4 @@
-import { Crosshair, MicVocal, UserRound, Waypoints, X, MoreHorizontal } from 'lucide-react'
+import { Crosshair, MicVocal, UserRound, Waypoints, X, MoreHorizontal } from '../../lib/icons'
 import RadialMenu from './RadialMenu'
 
 // Wires the generic RadialMenu to editor actions for a member token.

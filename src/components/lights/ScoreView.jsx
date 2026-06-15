@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Pencil } from 'lucide-react'
+import { Plus, Pencil } from '../../lib/icons'
 import { lyricsLines } from '../../lib/lights'
 import { repertoireType, isSongType } from '../../lib/repertoireTypes'
 import CueChip from './CueChip'

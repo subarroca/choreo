@@ -1,14 +1,14 @@
 import { useState } from 'react'
-import { BarChart3, Users, Clapperboard, CalendarDays } from 'lucide-react'
+import { BarChart3, Users, Clapperboard, CalendarDays } from '../lib/icons'
 import { supabase } from '../lib/supabase'
-import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
+import { VOICE_COLORS, VOICE_LABELS, VOICE_ORDER } from '../lib/constants'
+import { useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
 import PageContainer from '../components/ui/PageContainer'
 import PageHeader from '../components/ui/PageHeader'
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
 import { useChoir } from '../hooks/useChoir.jsx'
-
-const VOICE_ORDER = ['soprano1','soprano2','alto1','alto2','tenor1','tenor2','baritone','bass']
+import { ACCENT } from '../lib/ui'
 
 // ─── Attendance trend tab ──────────────────────────────────────
 function AttendanceTab({ choirId }) {
@@ -111,7 +111,7 @@ function AttendanceTab({ choirId }) {
                 <td className="px-4 py-2 text-muted">{new Date(d.date).toLocaleDateString('ca-ES')}</td>
                 <td className="px-4 py-2 text-right text-muted">{d.abs}</td>
                 <td className="px-4 py-2 text-right">
-                  <span className={`font-semibold ${d.pct >= 80 ? 'text-green-400' : d.pct >= 60 ? 'text-amber-400' : 'text-red-400'}`}>{d.pct}%</span>
+                  <span className={`font-semibold ${d.pct >= 80 ? 'text-green-600 dark:text-green-400' : d.pct >= 60 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{d.pct}%</span>
                 </td>
               </tr>
             ))}
@@ -124,6 +124,7 @@ function AttendanceTab({ choirId }) {
 
 // ─── Voice distribution tab ────────────────────────────────────
 function VoicesTab({ choirId }) {
+  const navigate = useNavigate()
   const { data: members = [] } = useSupabaseQuery(async () => {
     let q = supabase.from('members').select('id, voice').eq('active', true)
     if (choirId) q = q.eq('choir_id', choirId)
@@ -155,7 +156,9 @@ function VoicesTab({ choirId }) {
             const c = VOICE_COLORS[v]
             const pct = total ? Math.round((voiceCounts[v] / total) * 100) : 0
             return (
-              <div key={v} className="flex items-center gap-3 px-4 py-2.5">
+              <button key={v}
+                onClick={() => navigate(`/members?voice=${v}`)}
+                className="flex items-center gap-3 px-4 py-2.5 w-full text-left hover:bg-fill/60 transition-colors">
                 <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: c?.bg }} />
                 <span className="text-body text-sm flex-1">{VOICE_LABELS[v]}</span>
                 <div className="flex items-center gap-3">
@@ -165,7 +168,7 @@ function VoicesTab({ choirId }) {
                   <span className="text-muted text-sm w-6 text-right">{voiceCounts[v]}</span>
                   <span className="text-ghost text-xs w-8 text-right">{pct}%</span>
                 </div>
-              </div>
+              </button>
             )
           })}
         </div>
@@ -280,7 +283,7 @@ export default function Analytics() {
                 {TABS.map(({ id, label, Icon }) => (
                   <button key={id} onClick={() => setTab(id)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                      tab === id ? 'bg-cyan-700/40 text-cyan-300' : 'text-muted hover:text-body hover:bg-fill'
+                      tab === id ? ACCENT.activeNav : 'text-muted hover:text-body hover:bg-fill'
                     }`}>
                     <Icon size={14} />{label}
                   </button>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Music } from 'lucide-react'
+import { Music } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 
 export default function Login() {

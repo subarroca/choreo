@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Users, ChevronDown, ChevronUp, Plus, Search } from 'lucide-react'
+import { Users, ChevronDown, ChevronUp, Plus, Search } from '../lib/icons'
 import { supabase } from '../lib/supabase'
-import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
+import { VOICE_COLORS, VOICE_LABELS, VOICE_ORDER } from '../lib/constants'
+import { useSearchParams } from 'react-router-dom'
 import Layout from '../components/Layout'
 import PageContainer from '../components/ui/PageContainer'
 import PageHeader from '../components/ui/PageHeader'
@@ -18,8 +19,6 @@ import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
 import { ICON } from '../lib/ui'
 import { SkeletonRow } from '../components/ui/Skeleton'
 import { toast } from '../components/ui/Toast'
-
-const VOICE_ORDER = ['soprano1','soprano2','alto1','alto2','tenor1','tenor2','baritone','bass']
 
 function calcAge(birth_date) {
   if (!birth_date) return null
@@ -39,7 +38,11 @@ function MemberMeta({ member }) {
 
 function AttendanceBadge({ pct }) {
   if (pct == null) return null
-  const color = pct >= 80 ? 'bg-green-500/20 text-green-400' : pct >= 50 ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'
+  const color = pct >= 80
+    ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400'
+    : pct >= 60
+    ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
+    : 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400'
   return (
     <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-md ${color}`}>
       {Math.round(pct)}%
@@ -68,10 +71,11 @@ export default function Members() {
   const { can } = useAuth()
   const { currentChoirId } = useChoir()
   const canEdit = can('members', 'edit')
+  const [searchParams] = useSearchParams()
   const [showInactive, setShowInactive] = useState(false)
-  const [filterVoice, setFilterVoice]   = useState('')
+  const [filterVoice, setFilterVoice]   = useState(() => searchParams.get('voice') || '')
   const [search, setSearch]             = useState('')
-  const [sortBy, setSortBy]             = useState('last_name')
+  const [sortBy, setSortBy]             = useState('first_name')
   const [overlayMember, setOverlayMember] = useState(null) // member obj | 'new'
 
   const { data: attendanceMap = {} } = useSupabaseQuery(async () => {
@@ -203,13 +207,14 @@ export default function Members() {
                   </Chip>
                   {VOICE_ORDER.filter(v => voiceCounts[v] > 0).map(v => {
                     const c = VOICE_COLORS[v]
+                    const isActive = filterVoice === v
                     return (
-                      <button key={v} onClick={() => setFilterVoice(filterVoice === v ? '' : v)}
+                      <button key={v} onClick={() => setFilterVoice(isActive ? '' : v)}
                         className="px-3 py-1 rounded-full text-xs border transition-all font-medium"
-                        style={filterVoice === v
-                          ? { color: c.bg, borderColor: c.bg }
-                          : { color: c.bg + 'aa', borderColor: c.bg + '44' }}>
-                        {VOICE_LABELS[v]} <span className="opacity-70 ml-0.5">{voiceCounts[v]}</span>
+                        style={isActive
+                          ? { backgroundColor: c.bg, color: c.fg, borderColor: c.bg }
+                          : { borderColor: c.bg + '66', color: c.bg }}>
+                        {VOICE_LABELS[v]} <span className="opacity-60 ml-0.5">{voiceCounts[v]}</span>
                       </button>
                     )
                   })}

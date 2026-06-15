@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react'
+import { Loader2 } from '../../lib/icons'
 
 const VARIANTS = {
   primary:   'bg-cyan-600 hover:bg-cyan-500 text-white',

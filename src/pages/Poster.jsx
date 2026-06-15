@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { ImageIcon, Upload, X, Download } from 'lucide-react'
+import { ImageIcon, Upload, X, Download } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 import ShowToolbar from '../components/ShowToolbar'
@@ -70,7 +70,7 @@ export default function Poster() {
                 )}
                 {/* Overlay with show info */}
                 {!show?.poster_url && (
-                  <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+                  <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-pane/95 to-transparent">
                     <p className="text-body font-bold text-lg">{show?.name}</p>
                     {dateStr && <p className="text-soft text-sm">{dateStr}</p>}
                     {show?.venue && <p className="text-muted text-xs">{show.venue}</p>}

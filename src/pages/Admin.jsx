@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Shield, Check, X, ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react'
+import { Shield, Check, X, ChevronDown, ChevronUp, Eye, EyeOff } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import Layout from '../components/Layout'
@@ -10,10 +10,11 @@ import ListRow from '../components/ui/ListRow'
 import { useNavigate } from 'react-router-dom'
 import { ICON } from '../lib/ui'
 import { SECTIONS, SECTION_KEYS, ROLE_TEMPLATES, TEMPLATE_KEYS, defaultPermissions } from '../lib/roles.js'
+import { VOICE_LABELS, VOICE_ORDER, VOICE_COLORS } from '../lib/constants.js'
 
 const ROLE_BADGE = {
-  admin:    'bg-red-900/40 text-red-400 border-red-800',
-  director: 'bg-cyan-900/40 text-cyan-400 border-cyan-800',
+  admin:    'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/40 dark:text-red-400 dark:border-red-800',
+  director: 'bg-cyan-100 text-cyan-700 border-cyan-300 dark:bg-cyan-900/40 dark:text-cyan-400 dark:border-cyan-800',
   member:   'bg-fill text-faint border-line',
 }
 
@@ -22,7 +23,7 @@ function PermToggle({ active, onChange, label }) {
     <button type="button" onClick={() => onChange(!active)}
       className={`flex items-center gap-1.5 text-xs px-2.5 py-2 rounded-lg border transition-colors ${
         active
-          ? 'bg-cyan-900/30 border-cyan-700 text-cyan-400'
+          ? 'bg-cyan-100 border-cyan-300 text-cyan-700 dark:bg-cyan-900/30 dark:border-cyan-700 dark:text-cyan-400'
           : 'bg-fill border-line text-ghost hover:text-muted'
       }`}>
       {active ? <Check size={ICON.xs + 1} /> : <X size={ICON.xs + 1} />}
@@ -31,7 +32,7 @@ function PermToggle({ active, onChange, label }) {
   )
 }
 
-const SIM_PRESETS = ['choreographer', 'lighting', 'sound', 'member']
+const SIM_PRESETS = ['choreographer', 'lighting', 'sound', 'cap_de_corda', 'member']
 
 function SimulationPanel() {
   const { isSimulating, simulatedPermissions, setSimulatedPermissions, exitSimulation } = useAuth()
@@ -40,15 +41,15 @@ function SimulationPanel() {
     if (tpl) setSimulatedPermissions(structuredClone(tpl))
   }
   return (
-    <div className={`rounded-xl border p-4 mb-6 ${isSimulating ? 'border-amber-700/60 bg-amber-900/20' : 'border-rim bg-fill/30'}`}>
+    <div className={`rounded-xl border p-4 mb-6 ${isSimulating ? 'border-amber-300 bg-amber-50 dark:border-amber-700/60 dark:bg-amber-900/20' : 'border-rim bg-fill/30'}`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Eye size={ICON.sm} className={isSimulating ? 'text-amber-400' : 'text-muted'} />
+          <Eye size={ICON.sm} className={isSimulating ? 'text-amber-600 dark:text-amber-400' : 'text-muted'} />
           <span className="text-sm font-semibold text-body">Simular vista com a…</span>
         </div>
         {isSimulating && (
           <button onClick={exitSimulation}
-            className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 transition-colors">
+            className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors">
             <EyeOff size={11} /> Sortir de simulació
           </button>
         )}
@@ -58,7 +59,9 @@ function SimulationPanel() {
         {SIM_PRESETS.map(k => (
           <button key={k} onClick={() => setTemplate(k)}
             className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
-              isSimulating ? 'border-amber-700/60 text-amber-300 hover:bg-amber-900/30' : 'border-line text-muted hover:text-cyan-400 hover:border-cyan-700'
+              isSimulating
+                ? 'border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700/60 dark:text-amber-300 dark:hover:bg-amber-900/30'
+                : 'border-line text-muted hover:text-cyan-400 hover:border-cyan-700'
             }`}>
             {ROLE_TEMPLATES[k].label}
           </button>
@@ -73,6 +76,8 @@ export default function Admin() {
   const navigate = useNavigate()
   const [users, setUsers]     = useState([])
   const [perms, setPerms]     = useState({})
+  const [voiceSections, setVoiceSections] = useState({}) // userId → string[]
+  const [voices, setVoices] = useState({})               // userId → voice key
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(null)
 
@@ -83,12 +88,15 @@ export default function Admin() {
   useEffect(() => {
     async function load() {
       const { data: profiles } = await supabase
-        .from('profiles').select('id, full_name, email, role').order('full_name')
+        .from('profiles').select('id, full_name, email, role, voice_sections, voice').order('full_name')
       const { data: permRows } = await supabase.from('user_permissions').select('*')
       const permMap = {}
+      const voiceMap = {}
+      const voicesMap = {}
       for (const p of profiles ?? []) {
-        // seed with the member baseline so every section has a toggle
         permMap[p.id] = structuredClone(defaultPermissions('member'))
+        voiceMap[p.id] = p.voice_sections ?? []
+        voicesMap[p.id] = p.voice ?? ''
       }
       for (const r of permRows ?? []) {
         if (permMap[r.user_id]?.[r.section]) {
@@ -97,6 +105,8 @@ export default function Admin() {
       }
       setUsers(profiles ?? [])
       setPerms(permMap)
+      setVoiceSections(voiceMap)
+      setVoices(voicesMap)
       setLoading(false)
     }
     load()
@@ -128,6 +138,19 @@ export default function Admin() {
       })),
       { onConflict: 'user_id,section' }
     )
+  }
+
+  async function toggleVoiceSection(userId, voice) {
+    const current = voiceSections[userId] ?? []
+    const next = current.includes(voice) ? current.filter(v => v !== voice) : [...current, voice]
+    setVoiceSections(prev => ({ ...prev, [userId]: next }))
+    await supabase.from('profiles').update({ voice_sections: next }).eq('id', userId)
+  }
+
+  async function setVoiceForUser(userId, voice) {
+    const next = voices[userId] === voice ? null : voice
+    setVoices(prev => ({ ...prev, [userId]: next ?? '' }))
+    await supabase.from('profiles').update({ voice: next }).eq('id', userId)
   }
 
   return (
@@ -168,7 +191,25 @@ export default function Admin() {
                   />
 
                   {isOpen && (
-                    <div className="px-3 py-3 bg-fill/30 border-t border-rim">
+                    <div className="px-3 py-3 bg-fill/30 border-t border-rim space-y-3">
+                      {/* Voice part — personal assignment, applies to all users */}
+                      <div className="flex items-center gap-2 flex-wrap pb-2 border-b border-rim">
+                        <span className="text-xs text-faint w-24 shrink-0">Veu</span>
+                        {VOICE_ORDER.map(v => {
+                          const c = VOICE_COLORS[v]
+                          const active = voices[u.id] === v
+                          return (
+                            <button key={v} type="button"
+                              onClick={() => setVoiceForUser(u.id, v)}
+                              style={active ? { backgroundColor: c.bg, color: c.fg, borderColor: c.bg } : {}}
+                              className={`text-xs px-2.5 py-1 rounded-lg border transition-colors ${
+                                active ? '' : 'bg-fill border-line text-ghost hover:text-muted'
+                              }`}>
+                              {VOICE_LABELS[v]}
+                            </button>
+                          )
+                        })}
+                      </div>
                       {isAdmin ? (
                         <p className="text-xs text-faint italic">Accés total (rol {u.role}). Els permisos no s'apliquen.</p>
                       ) : (
@@ -198,6 +239,27 @@ export default function Admin() {
                               </div>
                             </div>
                           ))}
+                          {uPerms.attendance?.edit && (
+                            <div className="pt-2 mt-1 border-t border-rim">
+                              <span className="text-xs text-muted block mb-2">Cordes assignades</span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {VOICE_ORDER.map(v => {
+                                  const active = (voiceSections[u.id] ?? []).includes(v)
+                                  return (
+                                    <button key={v} type="button"
+                                      onClick={() => toggleVoiceSection(u.id, v)}
+                                      className={`text-xs px-2.5 py-1 rounded-lg border transition-colors ${
+                                        active
+                                          ? 'bg-cyan-100 border-cyan-300 text-cyan-700 dark:bg-cyan-900/30 dark:border-cyan-700 dark:text-cyan-400'
+                                          : 'bg-fill border-line text-ghost hover:text-muted'
+                                      }`}>
+                                      {VOICE_LABELS[v]}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MessageSquarePlus, Send } from 'lucide-react'
+import { MessageSquarePlus, Send } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { toast } from './ui/Toast'
@@ -77,7 +77,7 @@ export default function FeedbackButton() {
               onClick={() => setCategory(c.value)}
               className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
                 category === c.value
-                  ? 'bg-cyan-900/30 border-cyan-700 text-cyan-400'
+                  ? 'bg-cyan-100 border-cyan-300 text-cyan-700 dark:bg-cyan-900/30 dark:border-cyan-700 dark:text-cyan-400'
                   : 'bg-fill border-line text-ghost hover:text-muted'
               }`}
             >

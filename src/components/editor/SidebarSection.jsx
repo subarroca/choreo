@@ -1,4 +1,4 @@
-import { ChevronUp, ChevronDown } from 'lucide-react'
+import { ChevronUp, ChevronDown } from '../../lib/icons'
 
 export default function SidebarSection({ title, open, onToggle, children, badge }) {
   return (

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Users, Grid2x2, ArrowRight } from 'lucide-react'
+import { Users, Grid2x2, ArrowRight } from '../../lib/icons'
 import { ICON } from '../../lib/ui'
 import { NextShowCard, UpcomingRehearsals } from './DashboardWidgets.jsx'
 import Button from '../ui/Button'

@@ -6,7 +6,7 @@ import {
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
   Plus, Target, LayoutTemplate, X, Trash2,
   Menu, Crosshair, MoreHorizontal, Undo2, Redo2,
-} from 'lucide-react'
+} from '../../lib/icons'
 import ArrangePanel from './ArrangePanel'
 
 function OverflowTile({ Icon, label, active, onClick }) {

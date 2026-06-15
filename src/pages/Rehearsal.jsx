@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, X, List, Crosshair, RotateCcw, BookOpen, ZoomIn, ZoomOut, Play, Pause } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, List, Crosshair, RotateCcw, BookOpen, ZoomIn, ZoomOut, Play, Pause } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 import {
   CELL, LABEL_W, DIRECTOR_H, TOKEN_R, DEFAULT_ROW_LABELS, DEFAULT_COLS,
@@ -10,6 +10,7 @@ import { computeGuide } from '../lib/rehearsalGuide'
 import RehearsalFocusPicker from '../components/rehearsal/RehearsalFocusPicker'
 import RehearsalGuideSheet from '../components/rehearsal/RehearsalGuideSheet'
 import RehearsalNavMenu from '../components/rehearsal/RehearsalNavMenu'
+import ShowToolbar from '../components/ShowToolbar'
 
 const LONG_PRESS_MS = 550
 const ZOOM_MIN = 0.5, ZOOM_MAX = 3.0
@@ -296,6 +297,7 @@ export default function Rehearsal() {
 
   return (
     <div className="bg-page flex flex-col overflow-hidden select-none" style={{ height: '100dvh' }}>
+      <ShowToolbar showId={showId} showName={show?.name} />
 
       {/* Canvas area */}
       <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden p-1 relative"

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Trash2, Plus, Save, ChevronDown, RotateCcw, Moon, Wind, Sparkles, Move, Pause, Theater, ScanFace } from 'lucide-react'
+import { X, Trash2, Plus, Save, ChevronDown, RotateCcw, Moon, Wind, Sparkles, Move, Pause, Theater, ScanFace } from '../../lib/icons'
 import {
   LIGHT_EFFECTS, LIGHT_COLORS, LIGHT_ZONES, AUDIENCE_OPTIONS,
   FOLLOWSPOT_POSITIONS, cueEffects, cueFollowspots, cueLevels, sideMax,

@@ -43,6 +43,7 @@ export const ROLE_TEMPLATES = {
   choreographer: { label: 'Coreògraf',       perms: build({ edit: ['staging', 'shows'], view: ['members', 'repertoire', 'attendance', 'mics', 'rider'] }) },
   lighting:      { label: 'Il·luminador',    perms: build({ edit: ['lights'], view: ['shows', 'repertoire', 'rider', 'attendance'] }) },
   sound:         { label: 'Tècnic de so',    perms: build({ edit: ['mics'], view: ['shows', 'rider', 'staging', 'attendance'] }) },
+  cap_de_corda:  { label: 'Cap de corda',    perms: build({ edit: ['attendance'], view: ['members', 'shows', 'staging', 'repertoire'] }) },
   member:        { label: 'Cantaire',        perms: build({ view: ['shows', 'repertoire', 'attendance', 'staging'] }) },
 }
 
@@ -63,5 +64,6 @@ export function derivePersona(role, perms) {
   if (perms.staging?.edit) return 'choreographer'
   if (perms.lights?.edit) return 'lighting'
   if (perms.mics?.edit) return 'sound'
+  if (perms.attendance?.edit) return 'cap_de_corda'
   return 'member'
 }

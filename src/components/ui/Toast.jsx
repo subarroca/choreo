@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle, AlertCircle, AlertTriangle, X } from 'lucide-react'
+import { CheckCircle, AlertCircle, AlertTriangle, X } from '../../lib/icons'
 
 const listeners = new Set()
 let _id = 0

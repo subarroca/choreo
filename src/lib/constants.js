@@ -1,3 +1,6 @@
+// Canonical order for displaying voice parts (high → low)
+export const VOICE_ORDER = ['soprano1','soprano2','alto1','alto2','tenor1','tenor2','baritone','bass']
+
 // Voice colours: 600 = primary voice, 400 = secondary
 // red / fuchsia / green / blue — dark bg → white fg, light bg → dark fg
 export const VOICE_COLORS = {

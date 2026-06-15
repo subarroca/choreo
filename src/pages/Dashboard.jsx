@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { LayoutDashboard } from 'lucide-react'
+import { LayoutDashboard } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'
@@ -32,6 +32,7 @@ function personaBadge(persona) {
     choreographer:  { label: 'Coreògraf',      cls: 'bg-violet-500/20 text-violet-400' },
     lighting:       { label: 'Il·luminador',   cls: 'bg-amber-500/20 text-amber-400' },
     sound:          { label: 'Tècnic de so',   cls: 'bg-emerald-500/20 text-emerald-400' },
+    cap_de_corda:   { label: 'Cap de corda',   cls: 'bg-orange-500/20 text-orange-400' },
     member:         { label: 'Membre',         cls: 'bg-fill text-faint' },
   }
   return map[persona] ?? map.member

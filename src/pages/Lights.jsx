@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { Plus, Menu, ListOrdered, AlignLeft, Play, Hash } from 'lucide-react'
+import { Plus, Menu, ListOrdered, AlignLeft, Play, Hash } from '../lib/icons'
 import Layout from '../components/Layout'
 import ShowToolbar from '../components/ShowToolbar'
 import { confirmDialog } from '../components/ui/ConfirmDialog'

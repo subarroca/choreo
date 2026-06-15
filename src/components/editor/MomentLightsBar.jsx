@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Lightbulb } from 'lucide-react'
+import { Lightbulb } from '../../lib/icons'
 import { supabase } from '../../lib/supabase'
 import { formatCueNumber, cueSummary, lightColor, sortCues } from '../../lib/lights'
 

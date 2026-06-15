@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Lightbulb, FileText, CalendarDays } from 'lucide-react'
+import { Lightbulb, FileText, CalendarDays } from '../../lib/icons'
 import { NextShowCard, UpcomingRehearsals } from './DashboardWidgets.jsx'
 import Button from '../ui/Button'
 import { useAuth } from '../../hooks/useAuth.jsx'

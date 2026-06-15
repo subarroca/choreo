@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from 'react'
-import { Map, Sparkles } from 'lucide-react'
+import { Map, Sparkles } from '../../lib/icons'
 import MiniStage from './MiniStage'
 
 const PixiStageView = lazy(() => import('./PixiStageView'))

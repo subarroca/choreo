@@ -1,7 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Link } from 'react-router-dom'
-import { GripVertical, Pencil, X, ChevronDown, ChevronRight, Plus, MessageSquare, Info, Clipboard } from 'lucide-react'
+import { GripVertical, Pencil, X, ChevronDown, ChevronRight, Plus, MessageSquare, Info, Clipboard } from '../../lib/icons'
 import { formatDuration } from './SongForm'
 import { repertoireType, isSongType } from '../../lib/repertoireTypes'
 import { VOICE_COLORS } from '../../lib/constants'

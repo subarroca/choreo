@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+import { X } from '../../lib/icons'
 import { VOICE_COLORS } from '../../lib/constants'
 import { firstName } from '../../lib/rehearsalGuide'
 

@@ -1,4 +1,4 @@
-import { ChevronUp, ChevronDown } from 'lucide-react'
+import { ChevronUp, ChevronDown } from '../../lib/icons'
 import { VOICE_LABELS } from '../../lib/constants'
 
 export default function MembersList({

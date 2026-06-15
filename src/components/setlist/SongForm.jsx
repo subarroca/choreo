@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Search, X, Music, MessageSquare, AlertTriangle, Info } from 'lucide-react'
+import { Search, X, Music, MessageSquare, AlertTriangle, Info } from '../../lib/icons'
 import Button from '../ui/Button'
 import { inputCls } from '../ui/Input'
 import Select from '../ui/Select'

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Clapperboard, Users, BookOpen, Shield, CalendarDays, ArrowRight } from 'lucide-react'
+import { Clapperboard, Users, BookOpen, Shield, CalendarDays, ArrowRight } from '../../lib/icons'
 import { useAuth } from '../../hooks/useAuth.jsx'
 import { ICON } from '../../lib/ui'
 import { StatCard, VoiceDistributionBar, AttendanceSparkline, MiniShowCard } from './DashboardWidgets.jsx'

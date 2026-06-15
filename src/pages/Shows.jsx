@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Clapperboard, Pencil, Trash2, ImageIcon, X, Plus } from 'lucide-react'
+import { Clapperboard, Pencil, Trash2, ImageIcon, X, Plus } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'

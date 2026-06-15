@@ -4,7 +4,7 @@ import { useClickOutside } from '../hooks/useClickOutside.js'
 import {
   Music, Music2, Users, Clapperboard, Home, Shield, CalendarDays, BarChart3, Search,
   PanelLeftClose, PanelLeftOpen, MessageSquarePlus,
-} from 'lucide-react'
+} from '../lib/icons'
 import { useGlobalSearch } from './GlobalSearch'
 import { useAuth } from '../hooks/useAuth.jsx'
 import useFeedback from '../hooks/useFeedback.js'
@@ -50,7 +50,6 @@ export default function SideNav({ onSignOut }) {
 }
 
 function DesktopRail({ items, isActive, onSignOut }) {
-  const { isSimulating } = useAuth()
   const { setOpen: openSearch } = useGlobalSearch()
   const [expanded, setExpanded] = useState(
     () => localStorage.getItem('navExpanded') === 'true'
@@ -65,27 +64,14 @@ function DesktopRail({ items, isActive, onSignOut }) {
       expanded ? 'gap-3 px-3 w-full' : 'justify-center w-10 mx-auto'
     } ${active ? ACTIVE : IDLE}`
 
-  const sidebarBg = isSimulating
-    ? 'bg-amber-950/60 border-amber-800/50'
-    : 'bg-pane border-rim'
-
   return (
-    <aside className={`hidden md:flex flex-col shrink-0 border-r transition-[width] duration-200 ${sidebarBg} ${expanded ? 'w-52' : 'w-16'}`}>
+    <aside className={`hidden md:flex flex-col shrink-0 border-r transition-[width] duration-200 bg-pane border-rim ${expanded ? 'w-52' : 'w-16'}`}>
 
       {/* Brand */}
-      <Link to="/" className="flex items-center h-14 px-4 text-body hover:text-soft shrink-0 overflow-hidden">
+      <Link to="/" className={`flex items-center h-14 text-body hover:text-soft shrink-0 overflow-hidden ${expanded ? 'px-4' : 'justify-center'}`}>
         <Music size={ICON.lg} className="shrink-0" />
         {expanded && <span className="ml-3 font-bold tracking-tight truncate">Choreo</span>}
       </Link>
-
-      {/* Simulation indicator strip */}
-      {isSimulating && (
-        <div className={`${expanded ? 'px-3 pb-2' : 'px-2 pb-2 flex justify-center'}`}>
-          <span className={`text-[10px] text-amber-400 bg-amber-900/40 border border-amber-700/40 rounded-md font-medium ${expanded ? 'px-2 py-0.5 block text-center' : 'px-1.5 py-0.5'}`}>
-            {expanded ? 'Simulació activa' : '⚠'}
-          </span>
-        </div>
-      )}
 
       {/* Nav links */}
       <nav className="flex-1 min-h-0 overflow-y-auto px-2 py-2 flex flex-col gap-1">
@@ -118,7 +104,7 @@ function DesktopRail({ items, isActive, onSignOut }) {
       </nav>
 
       {/* Footer */}
-      <div className={`shrink-0 border-t px-2 py-2 flex flex-col gap-1 ${isSimulating ? 'border-amber-800/50' : 'border-rim'}`}>
+      <div className="shrink-0 border-t border-rim px-2 py-2 flex flex-col gap-1">
         <div className={expanded ? 'px-1' : 'flex justify-center'}>
           <ProfileMenu onSignOut={onSignOut} expanded={expanded} />
         </div>
@@ -132,11 +118,8 @@ function DesktopRail({ items, isActive, onSignOut }) {
 }
 
 function MobileBar({ items, isActive }) {
-  const { isSimulating } = useAuth()
   return (
-    <nav className={`md:hidden fixed bottom-0 inset-x-0 z-30 border-t flex items-stretch justify-around pb-[env(safe-area-inset-bottom)] ${
-      isSimulating ? 'bg-amber-950/80 border-amber-800/50' : 'bg-pane border-rim'
-    }`}>
+    <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t flex items-stretch justify-around pb-[env(safe-area-inset-bottom)] bg-pane border-rim">
       {items.map(({ to, label, Icon, badge }) => (
         <Link
           key={to}

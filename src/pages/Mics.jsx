@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { X, Plus, ArrowRight, Menu } from 'lucide-react'
+import { X, Plus, ArrowRight, Menu } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 import { VOICE_COLORS } from '../lib/constants'
 import Layout from '../components/Layout'

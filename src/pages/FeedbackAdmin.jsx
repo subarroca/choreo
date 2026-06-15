@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { MessageSquarePlus, CheckCircle, Circle, ClipboardCopy, ClipboardCheck, Filter } from 'lucide-react'
+import { MessageSquarePlus, CheckCircle, Circle, ClipboardCopy, ClipboardCheck, Filter } from '../lib/icons'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import useFeedback from '../hooks/useFeedback.js'
@@ -10,9 +10,9 @@ import EmptyState from '../components/ui/EmptyState'
 import { ICON } from '../lib/ui'
 
 const CATEGORY = {
-  bug:     { label: 'Bug',    cls: 'bg-red-900/40 text-red-400 border-red-800' },
-  millora: { label: 'Millora', cls: 'bg-cyan-900/40 text-cyan-400 border-cyan-800' },
-  idea:    { label: 'Idea',   cls: 'bg-amber-900/40 text-amber-400 border-amber-800' },
+  bug:     { label: 'Bug',     cls: 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/40 dark:text-red-400 dark:border-red-800' },
+  millora: { label: 'Millora', cls: 'bg-cyan-100 text-cyan-700 border-cyan-300 dark:bg-cyan-900/40 dark:text-cyan-400 dark:border-cyan-800' },
+  idea:    { label: 'Idea',    cls: 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800' },
 }
 
 function formatDate(iso) {
@@ -82,7 +82,7 @@ export default function FeedbackAdmin() {
   const tabCls = (active) =>
     `px-3 py-1.5 text-sm rounded-lg border transition-colors ${
       active
-        ? 'bg-cyan-900/30 border-cyan-700 text-cyan-400'
+        ? 'bg-cyan-100 border-cyan-300 text-cyan-700 dark:bg-cyan-900/30 dark:border-cyan-700 dark:text-cyan-400'
         : 'bg-fill border-line text-muted hover:text-body'
     }`
 
@@ -105,8 +105,8 @@ export default function FeedbackAdmin() {
                   pending.length === 0
                     ? 'border-line text-ghost cursor-not-allowed'
                     : copied
-                      ? 'bg-green-900/30 border-green-700 text-green-400'
-                      : 'border-line text-muted hover:text-cyan-400 hover:border-cyan-700'
+                      ? 'bg-green-100 border-green-300 text-green-700 dark:bg-green-900/30 dark:border-green-700 dark:text-green-400'
+                      : 'border-line text-muted hover:text-cyan-700 hover:border-cyan-500 dark:hover:text-cyan-400 dark:hover:border-cyan-700'
                 }`}
               >
                 {copied ? <ClipboardCheck size={ICON.sm} /> : <ClipboardCopy size={ICON.sm} />}

@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+import { X } from '../../lib/icons'
 
 export default function RehearsalNavMenu({ steps, currentIdx, onNavigate, onClose }) {
   const uniqueSongIds = [...new Set(steps.map(s => s.song.id))]

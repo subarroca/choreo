@@ -7,7 +7,7 @@ import {
 import {
   arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { Pencil, X, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, MicVocal, Music, Plus } from 'lucide-react'
+import { Pencil, X, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, MicVocal, Music, Plus } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 import ShowToolbar from '../components/ShowToolbar'

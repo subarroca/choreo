@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { X, Play, Pause, SkipBack, ChevronLeft, ChevronRight } from 'lucide-react'
+import { X, Play, Pause, SkipBack, ChevronLeft, ChevronRight } from '../../lib/icons'
 import { lyricsLines, buildPlaybackSteps, sortCues, effectiveMomentId, formatCueNumber, cueSummary, lightColor } from '../../lib/lights'
 import StageSim from './StageSim'
 

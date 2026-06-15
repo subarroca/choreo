@@ -80,6 +80,7 @@ export function AuthProvider({ children }) {
     can,
     persona,
     isPrivileged,
+    voiceSections: profile?.voice_sections ?? [],
     simulatedPermissions,
     setSimulatedPermissions,
     isSimulating,

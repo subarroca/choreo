@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom'
-import { Printer, Moon, Wind, Sparkles, Move, Pause, Theater, ScanFace, Spotlight } from 'lucide-react'
+import { Printer, Moon, Wind, Sparkles, Move, Pause, Theater, ScanFace, Spotlight } from '../lib/icons'
 import Button from '../components/ui/Button'
 import { ICON } from '../lib/ui'
 import { useLightCues } from '../hooks/useLightCues'

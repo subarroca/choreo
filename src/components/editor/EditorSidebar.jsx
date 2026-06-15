@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { Plus } from '../../lib/icons'
 import { DndContext, closestCenter } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import SidebarSection from './SidebarSection'

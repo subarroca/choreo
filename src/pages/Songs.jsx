@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { BookOpen, Plus, Pencil, ExternalLink, Music, Globe, Lock, FileText, Upload, X, Search, Archive } from 'lucide-react'
+import { BookOpen, Plus, Pencil, ExternalLink, Music, Globe, Lock, FileText, Upload, X, Search, Archive } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'

@@ -1,4 +1,4 @@
-import { WifiOff } from 'lucide-react'
+import { WifiOff } from '../lib/icons'
 import { useOnline } from '../hooks/useOnline.js'
 
 export default function OfflineBanner() {

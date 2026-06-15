@@ -1,4 +1,4 @@
-import { Music, Megaphone, ArrowRightLeft, Coffee, Flag } from 'lucide-react'
+import { Music, Megaphone, ArrowRightLeft, Coffee, Flag } from './icons'
 
 export const REPERTOIRE_TYPES = [
   { value: 'song',       label: 'Cançó',      icon: Music,          color: 'text-cyan-400' },

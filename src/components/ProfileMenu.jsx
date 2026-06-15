@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useClickOutside } from '../hooks/useClickOutside.js'
-import { LogOut, Eye, EyeOff, X, ChevronDown, Sun, Moon, Monitor, ChevronRight } from 'lucide-react'
+import { LogOut, Eye, EyeOff, X, ChevronDown, Sun, Moon, Monitor, ChevronRight } from '../lib/icons'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useTheme } from '../hooks/useTheme.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'
+import { VOICE_COLORS } from '../lib/constants.js'
 
 function getInitials(profile, user) {
   if (profile?.full_name) {
@@ -30,6 +31,10 @@ export default function ProfileMenu({ onSignOut, expanded = true }) {
   const displayRole = role ?? 'member'
   const multiChoir = choirs.length > 1
   const currentChoir = choirs.find(c => c.id === currentChoirId)
+  const voiceColor = profile?.voice ? VOICE_COLORS[profile.voice] : null
+  const avatarStyle = voiceColor
+    ? { backgroundColor: voiceColor.bg, color: voiceColor.fg }
+    : { backgroundColor: '#0e7490', color: '#fff' } // cyan-700 fallback
 
   return (
     <div className="relative" ref={ref}>
@@ -39,10 +44,16 @@ export default function ProfileMenu({ onSignOut, expanded = true }) {
           isSimulating ? 'ring-1 ring-amber-500/60' : ''
         }`}
       >
-        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-          isSimulating ? 'bg-amber-600' : 'bg-cyan-700'
-        } text-white`}>
-          {initials}
+        <div className="relative shrink-0">
+          <div
+            style={avatarStyle}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+          >
+            {initials}
+          </div>
+          {isSimulating && (
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-pane" />
+          )}
         </div>
         {expanded && (
           <>
@@ -57,12 +68,12 @@ export default function ProfileMenu({ onSignOut, expanded = true }) {
 
           {/* Simulació activa — banner */}
           {isSimulating && (
-            <div className="flex items-center justify-between px-4 py-2 bg-amber-900/30 border-b border-amber-700/40">
-              <span className="text-xs text-amber-300 font-medium flex items-center gap-1.5">
+            <div className="flex items-center justify-between px-4 py-2 bg-amber-50 border-b border-amber-200 dark:bg-amber-900/30 dark:border-amber-700/40">
+              <span className="text-xs text-amber-700 dark:text-amber-300 font-medium flex items-center gap-1.5">
                 <Eye size={11} /> Simulació activa
               </span>
               <button onClick={exitSimulation}
-                className="flex items-center gap-0.5 text-xs text-amber-400 hover:text-amber-300 transition-colors">
+                className="flex items-center gap-0.5 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors">
                 <X size={11} /> Sortir
               </button>
             </div>
@@ -71,9 +82,10 @@ export default function ProfileMenu({ onSignOut, expanded = true }) {
           {/* Capçalera de perfil */}
           <div className="px-4 py-3 border-b border-rim">
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-                isSimulating ? 'bg-amber-600' : 'bg-cyan-700'
-              } text-white`}>
+              <div
+                style={avatarStyle}
+                className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+              >
                 {initials}
               </div>
               <div className="min-w-0">

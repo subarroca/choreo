@@ -1,4 +1,4 @@
-import { X, Crosshair, MicVocal, UserRound, Waypoints } from 'lucide-react'
+import { X, Crosshair, MicVocal, UserRound, Waypoints } from '../../lib/icons'
 import { isTouchUI } from '../../lib/touch'
 
 export default function EditorContextMenu({

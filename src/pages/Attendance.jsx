@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { CalendarDays, Plus, Check, X, Clock, Bell, Plane, Briefcase, HeartPulse, MessageSquare, MapPin, Pencil } from 'lucide-react'
+import { CalendarDays, Plus, Check, X, Clock, Bell, Plane, Briefcase, HeartPulse, MessageSquare, MapPin, Pencil } from '../lib/icons'
 import Button from '../components/ui/Button'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
@@ -380,9 +380,9 @@ export default function Attendance() {
                   </div>
                   {!upcoming && (
                     <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-1 text-sm text-green-400"><Check size={13} /> {stats.present}</span>
-                      <span className="flex items-center gap-1 text-sm text-red-400"><X size={13} /> {stats.absent}</span>
-                      <span className="flex items-center gap-1 text-sm text-amber-400"><Clock size={13} /> {stats.excused}</span>
+                      <span className="flex items-center gap-1 text-sm text-green-600 dark:text-green-400"><Check size={13} /> {stats.present}</span>
+                      <span className="flex items-center gap-1 text-sm text-red-600 dark:text-red-400"><X size={13} /> {stats.absent}</span>
+                      <span className="flex items-center gap-1 text-sm text-amber-600 dark:text-amber-400"><Clock size={13} /> {stats.excused}</span>
                       <span className="text-xs text-ghost">/ {members.length}</span>
                     </div>
                   )}

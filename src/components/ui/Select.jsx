@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown } from '../../lib/icons'
 import { inputCls, labelCls } from './Input'
 
 // Styled select matching Input appearance, with a custom dropdown arrow.

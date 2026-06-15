@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { Clapperboard, CalendarDays, ArrowRight, MapPin, Clock, X } from 'lucide-react'
+import { Clapperboard, CalendarDays, ArrowRight, MapPin, Clock, X } from '../../lib/icons'
 import { ICON } from '../../lib/ui'
 import { VOICE_COLORS, VOICE_SHORT } from '../../lib/constants'
 import Button from '../ui/Button'

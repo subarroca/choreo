@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Spotlight, Copy, Trash2 } from 'lucide-react'
+import { Spotlight, Copy, Trash2 } from '../../lib/icons'
 import { formatCueNumber, cueSummaryCompact, sideColorHexes, cueEffects, cueFollowspots } from '../../lib/lights'
 
 const DRAG_THRESHOLD = 8

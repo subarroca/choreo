@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, AtSign, Mail, Ruler, Calendar, UserPlus, Pencil, ChevronLeft, ChevronDown, MoreHorizontal, Phone, TrendingUp, Clapperboard, MicVocal, Shuffle } from 'lucide-react'
+import { X, AtSign, Mail, Ruler, Calendar, UserPlus, Pencil, ChevronLeft, ChevronDown, MoreHorizontal, Phone, TrendingUp, Clapperboard, MicVocal, Shuffle } from '../lib/icons'
 import { memberShowComplexity, COMPLEXITY_COLORS } from '../lib/positionComplexity'
 import { VOICE_COLORS, VOICE_LABELS, ROLE_LABELS } from '../lib/constants'
 import { supabase } from '../lib/supabase'

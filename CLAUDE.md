@@ -27,6 +27,28 @@ If a file is approaching 600 lines, stop and refactor before adding more code.
 
 Keep each file focused on a single responsibility. Prefer many small files over one large file.
 
+## Icon Registry — Hard Rule
+
+All icons must come from `src/lib/icons.js`. **Never import directly from `lucide-react`** in any component or page.
+
+```js
+// Correct
+import { Icons } from '../lib/icons'
+<Icons.close size={16} />
+
+// Also correct (migration alias)
+import { X } from '../lib/icons'
+
+// WRONG — do not do this
+import { X } from 'lucide-react'
+```
+
+### Additional constraints
+
+- **No duplicate values**: each `lucide-react` component may be assigned to at most one key in the `Icons` object. If the same shape is needed for two different concepts, choose a visually distinct icon for one of them.
+- **camelCase English keys only**: concept names must be `camelCase`, ASCII, and semantically meaningful in English. No Catalan words, no lucide icon names as keys (e.g. `mapPin`, `clock` are borderline — prefer `venue`, `time` when renaming).
+- **Validate with**: `node scripts/check-icons.js` — exits non-zero if any rule is violated.
+
 ## Architecture
 
 ### Directory Structure
@@ -73,7 +95,7 @@ Supabase (or localStorage in dev mode) → custom hooks → React components →
 
 | Table | Purpose | Key Fields |
 |-------|---------|------------|
-| `profiles` | User accounts | id, email, full_name, role (admin/director/member) |
+| `profiles` | User accounts | id, email, full_name, role (admin/director/member), voice, voice_sections |
 | `members` | Choir singers | id, name, voice, height, birth_date, active, initials |
 | `shows` | Concerts | id, name, date, venue, grid_rows, grid_cols, row_elevations, mics, mic_assignments |
 | `parts` | Show sections | id, show_id, title, order_index |

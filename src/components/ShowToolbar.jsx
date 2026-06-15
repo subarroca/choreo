@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useClickOutside } from '../hooks/useClickOutside.js'
-import { ListOrdered, ImageIcon, MicVocal, Lightbulb, FileText, ChevronDown, PlayCircle, ChevronLeft } from 'lucide-react'
+import { ListOrdered, ImageIcon, MicVocal, Lightbulb, FileText, ChevronDown, PlayCircle, ChevronLeft } from '../lib/icons'
 import { ACCENT } from '../lib/ui.js'
 import { useAuth } from '../hooks/useAuth.jsx'
 

@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, MicVocal, ArrowRight, X, Copy } from 'lucide-react'
+import { GripVertical, MicVocal, ArrowRight, X, Copy } from '../../lib/icons'
 import { Link } from 'react-router-dom'
 import MomentThumbnail from './MomentThumbnail'
 

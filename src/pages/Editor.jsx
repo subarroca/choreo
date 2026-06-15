@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { LayoutGrid, Hexagon, Move, Disc } from 'lucide-react'
+import { LayoutGrid, Hexagon, Move, Disc } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
 import Layout from '../components/Layout'
