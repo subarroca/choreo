@@ -43,7 +43,7 @@ export const ROLE_TEMPLATES = {
   choreographer: { label: 'Coreògraf',       perms: build({ edit: ['staging', 'shows'], view: ['members', 'repertoire', 'attendance', 'mics', 'rider'] }) },
   lighting:      { label: 'Il·luminador',    perms: build({ edit: ['lights'], view: ['shows', 'repertoire', 'rider', 'attendance'] }) },
   sound:         { label: 'Tècnic de so',    perms: build({ edit: ['mics'], view: ['shows', 'rider', 'staging', 'attendance'] }) },
-  member:        { label: 'Cantaire',        perms: build({ view: ['shows', 'repertoire', 'attendance'] }) },
+  member:        { label: 'Cantaire',        perms: build({ view: ['shows', 'repertoire', 'attendance', 'staging'] }) },
 }
 
 export const TEMPLATE_KEYS = Object.keys(ROLE_TEMPLATES)

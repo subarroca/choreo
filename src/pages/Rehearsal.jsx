@@ -109,15 +109,31 @@ export default function Rehearsal() {
   useEffect(() => {
     if (!canvasRef.current || !current || !show) return
     const placements = positionsByMoment[current.moment.id] ?? {}
+    const prevPlacements = currentIdx > 0
+      ? (positionsByMoment[steps[currentIdx - 1]?.moment.id] ?? {})
+      : {}
+    const changedIds = new Set(
+      members
+        .filter(m => m.role !== 'director')
+        .filter(m => {
+          const cur = placements[m.id]
+          const prev = prevPlacements[m.id]
+          if (!cur || !prev) return false
+          if (cur.free) return cur.x !== prev.x || cur.y !== prev.y
+          return cur.row !== prev.row || cur.col !== prev.col
+        })
+        .map(m => m.id)
+    )
     const mode = current.moment.grid_mode ?? 'alternate'
     const directorMember = members.find(m => m.role === 'director') ?? null
     drawAll(canvasRef.current, {
       placements, members, mode, highlightId,
-      directorAbsX: null, directorMember, drag: null,
+      directorAbsX: LABEL_W + GW / 2, directorMember, drag: null,
       selectedIds: new Set(), rotated, dims,
       trajectoryConfig: null, soloistMicMap: {},
+      transparent: true, changedIds,
     })
-  }, [positionsByMoment, members, current, show, dims, highlightId, rotated])
+  }, [positionsByMoment, members, current, show, dims, highlightId, rotated, currentIdx])
 
   const prev = useCallback(() => { if (currentIdx > 0) setCurrentIdx(i => i - 1) }, [currentIdx])
   const next = useCallback(() => { if (currentIdx < steps.length - 1) setCurrentIdx(i => i + 1) }, [currentIdx, steps.length])

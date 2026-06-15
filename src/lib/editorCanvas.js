@@ -158,7 +158,8 @@ function palette(dark) {
 
 // ─── Canvas draw ──────────────────────────────────────────────
 export function drawAll(canvas, { placements, members, mode, highlightId, directorAbsX, directorMember,
-  drag, selectedIds, rotated, dims, trajectoryConfig, soloistMicMap = {} }) {
+  drag, selectedIds, rotated, dims, trajectoryConfig, soloistMicMap = {},
+  transparent = false, changedIds = null }) {
   if (!canvas) return
   const { ROWS, COLS, rowLabels, GW, GH, CW, CH } = dims
   const dark = document.documentElement.classList.contains('dark')
@@ -169,7 +170,11 @@ export function drawAll(canvas, { placements, members, mode, highlightId, direct
   ctx.scale(dpr, dpr)
   const hasHighlight = !!highlightId
 
-  ctx.fillStyle = P.bg; ctx.fillRect(0, 0, CW, CH)
+  if (transparent) {
+    ctx.clearRect(0, 0, CW, CH)
+  } else {
+    ctx.fillStyle = P.bg; ctx.fillRect(0, 0, CW, CH)
+  }
 
   if (mode === 'semicircle') {
     ctx.fillStyle = P.grid; ctx.fillRect(LABEL_W, 0, GW, GH)
@@ -291,6 +296,12 @@ export function drawAll(canvas, { placements, members, mode, highlightId, direct
     const pos = placements[m.id]
     if (!pos || skipIds.has(m.id)) continue
     const { x, y } = getMemberPixelPos(pos, mode, dims)
+    if (changedIds?.has(m.id)) {
+      ctx.save()
+      roundedHexPath(ctx, x, y, TOKEN_R + 5)
+      ctx.strokeStyle = '#fbbf24cc'; ctx.lineWidth = 2.5; ctx.stroke()
+      ctx.restore()
+    }
     drawToken(ctx, x, y, m, highlightId === m.id, selectedIds?.has(m.id) ?? false, hasHighlight, rotated, soloistMicMap[m.id])
   }
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Shield, Check, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { Shield, Check, X, ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import Layout from '../components/Layout'
@@ -28,6 +28,43 @@ function PermToggle({ active, onChange, label }) {
       {active ? <Check size={ICON.xs + 1} /> : <X size={ICON.xs + 1} />}
       {label}
     </button>
+  )
+}
+
+const SIM_PRESETS = ['choreographer', 'lighting', 'sound', 'member']
+
+function SimulationPanel() {
+  const { isSimulating, simulatedPermissions, setSimulatedPermissions, exitSimulation } = useAuth()
+  function setTemplate(key) {
+    const tpl = ROLE_TEMPLATES[key]?.perms
+    if (tpl) setSimulatedPermissions(structuredClone(tpl))
+  }
+  return (
+    <div className={`rounded-xl border p-4 mb-6 ${isSimulating ? 'border-amber-700/60 bg-amber-900/20' : 'border-rim bg-fill/30'}`}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Eye size={ICON.sm} className={isSimulating ? 'text-amber-400' : 'text-muted'} />
+          <span className="text-sm font-semibold text-body">Simular vista com a…</span>
+        </div>
+        {isSimulating && (
+          <button onClick={exitSimulation}
+            className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 transition-colors">
+            <EyeOff size={11} /> Sortir de simulació
+          </button>
+        )}
+      </div>
+      <p className="text-xs text-faint mb-3">Previsualitza l'aplicació des del punt de vista d'un altre rol sense canviar permisos reals.</p>
+      <div className="flex flex-wrap gap-2">
+        {SIM_PRESETS.map(k => (
+          <button key={k} onClick={() => setTemplate(k)}
+            className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
+              isSimulating ? 'border-amber-700/60 text-amber-300 hover:bg-amber-900/30' : 'border-line text-muted hover:text-cyan-400 hover:border-cyan-700'
+            }`}>
+            {ROLE_TEMPLATES[k].label}
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -100,6 +137,7 @@ export default function Admin() {
           <PageHeader title="Gestió d'usuaris" icon={Shield} subtitle="Gestiona els rols i permisos dels membres de l'aplicació" />
         }
       >
+        <SimulationPanel />
         {loading ? (
           <p className="text-faint text-sm py-8">Carregant...</p>
         ) : users.length === 0 ? (

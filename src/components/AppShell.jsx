@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import SideNav from './SideNav.jsx'
+import FeedbackButton from './FeedbackButton.jsx'
 
 /**
  * App shell — fixed-height, no document-body scroll.
@@ -26,6 +27,7 @@ export default function AppShell({ children, chrome = true }) {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {children}
       </div>
+      {chrome && user && <FeedbackButton />}
     </div>
   )
 }

@@ -1,47 +1,15 @@
 import { useState } from 'react'
 import { useClickOutside } from '../hooks/useClickOutside.js'
-import { LogOut, Eye, Pencil, EyeOff, X, ChevronDown, Sun, Moon, Monitor } from 'lucide-react'
+import { LogOut, Eye, EyeOff, X, ChevronDown, Sun, Moon, Monitor, ChevronRight } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useTheme } from '../hooks/useTheme.jsx'
-import { SECTIONS, SECTION_KEYS, ROLE_TEMPLATES } from '../lib/roles.js'
-
-// Templates offered as one-click simulation presets.
-const SIM_PRESETS = ['choreographer', 'lighting', 'sound', 'member']
+import { useChoir } from '../hooks/useChoir.jsx'
 
 function getInitials(profile, user) {
   if (profile?.full_name) {
     return profile.full_name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
   return (user?.email?.[0] ?? '?').toUpperCase()
-}
-
-function SectionRow({ label, value, onChange }) {
-  const opts = [
-    { key: 'none',   label: 'Cap',    Icon: EyeOff  },
-    { key: 'reader', label: 'Lector', Icon: Eye     },
-    { key: 'editor', label: 'Editor', Icon: Pencil  },
-  ]
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-muted w-24 shrink-0">{label}</span>
-      <div className="flex gap-1">
-        {opts.map(({ key, label: lbl, Icon }) => (
-          <button
-            key={key}
-            onClick={() => onChange(key)}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
-              value === key
-                ? 'bg-cyan-700 text-cyan-100'
-                : 'text-faint hover:text-soft hover:bg-raised'
-            }`}
-          >
-            <Icon size={10} />
-            {lbl}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
 }
 
 const THEME_OPTIONS = [
@@ -51,46 +19,17 @@ const THEME_OPTIONS = [
 ]
 
 export default function ProfileMenu({ onSignOut, expanded = true }) {
-  const {
-    user, profile, role,
-    simulatedPermissions, setSimulatedPermissions,
-    isSimulating, exitSimulation,
-  } = useAuth()
+  const { user, profile, role, isSimulating, exitSimulation } = useAuth()
   const { theme, setTheme } = useTheme()
+  const { choirs, currentChoirId, switchChoir } = useChoir()
   const [open, setOpen] = useState(false)
   const ref = useClickOutside(() => setOpen(false))
 
-  const isAdmin = role === 'admin' || role === 'director'
-  const displayRole = isAdmin ? 'admin' : role
   const initials = getInitials(profile, user)
   const displayName = profile?.full_name ?? user?.email ?? ''
-
-  function getSectionMode(key) {
-    if (!simulatedPermissions) return null
-    const s = simulatedPermissions[key]
-    if (s?.edit) return 'editor'
-    if (s?.view) return 'reader'
-    return 'none'
-  }
-
-  function fullMap(val) {
-    return Object.fromEntries(SECTION_KEYS.map(k => [k, { ...val }]))
-  }
-
-  function handleSectionChange(key, mode) {
-    const base = simulatedPermissions ?? fullMap({ view: true, edit: true })
-    setSimulatedPermissions({ ...base, [key]: { view: mode !== 'none', edit: mode === 'editor' } })
-  }
-
-  function setPreset(preset) {
-    const val = preset === 'reader' ? { view: true, edit: false } : { view: true, edit: true }
-    setSimulatedPermissions(fullMap(val))
-  }
-
-  function setTemplate(key) {
-    const tpl = ROLE_TEMPLATES[key]?.perms
-    if (tpl) setSimulatedPermissions(structuredClone(tpl))
-  }
+  const displayRole = role ?? 'member'
+  const multiChoir = choirs.length > 1
+  const currentChoir = choirs.find(c => c.id === currentChoirId)
 
   return (
     <div className="relative" ref={ref}>
@@ -102,7 +41,7 @@ export default function ProfileMenu({ onSignOut, expanded = true }) {
       >
         <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
           isSimulating ? 'bg-amber-600' : 'bg-cyan-700'
-        } text-body`}>
+        } text-white`}>
           {initials}
         </div>
         {expanded && (
@@ -114,14 +53,27 @@ export default function ProfileMenu({ onSignOut, expanded = true }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 bottom-full mb-2 w-72 bg-pane border border-line rounded-xl shadow-2xl z-50 overflow-hidden">
+        <div className="absolute left-0 bottom-full mb-2 w-64 bg-pane border border-line rounded-xl shadow-2xl z-50 overflow-hidden">
+
+          {/* Simulació activa — banner */}
+          {isSimulating && (
+            <div className="flex items-center justify-between px-4 py-2 bg-amber-900/30 border-b border-amber-700/40">
+              <span className="text-xs text-amber-300 font-medium flex items-center gap-1.5">
+                <Eye size={11} /> Simulació activa
+              </span>
+              <button onClick={exitSimulation}
+                className="flex items-center gap-0.5 text-xs text-amber-400 hover:text-amber-300 transition-colors">
+                <X size={11} /> Sortir
+              </button>
+            </div>
+          )}
 
           {/* Capçalera de perfil */}
           <div className="px-4 py-3 border-b border-rim">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
                 isSimulating ? 'bg-amber-600' : 'bg-cyan-700'
-              } text-body`}>
+              } text-white`}>
                 {initials}
               </div>
               <div className="min-w-0">
@@ -130,77 +82,49 @@ export default function ProfileMenu({ onSignOut, expanded = true }) {
               </div>
             </div>
             <div className="mt-2">
-              <span className={`px-2 py-0.5 rounded text-xs uppercase tracking-wide ${
-                isSimulating ? 'bg-amber-800/50 text-amber-300' : 'bg-raised text-soft'
-              }`}>
-                {isSimulating ? 'simulació activa' : displayRole}
+              <span className="px-2 py-0.5 rounded text-xs uppercase tracking-wide bg-raised text-soft">
+                {displayRole}
               </span>
             </div>
           </div>
 
-          {/* Configuració: tema */}
-          <div className="px-4 py-3 border-b border-rim">
-            <span className="text-xs font-semibold text-muted uppercase tracking-wide block mb-2">Tema</span>
-            <div className="flex gap-1">
-              {THEME_OPTIONS.map(({ key, label, Icon }) => (
-                <button key={key} onClick={() => setTheme(key)}
-                  className={`flex items-center gap-1.5 flex-1 justify-center px-2 py-1.5 rounded-lg text-xs transition-colors ${
-                    theme === key ? 'bg-cyan-700 text-white' : 'text-muted hover:text-body hover:bg-fill'
-                  }`}>
-                  <Icon size={12} />{label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Controls de simulació (només admin/director) */}
-          {isAdmin && (
+          {/* Selector de cor */}
+          {multiChoir && (
             <div className="px-4 py-3 border-b border-rim">
-              <div className="flex items-center justify-between mb-2.5">
-                <span className="text-xs font-semibold text-muted uppercase tracking-wide">Simular rol</span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => setPreset('reader')}
-                    className="text-xs px-2 py-0.5 rounded bg-fill text-soft hover:bg-raised transition-colors"
-                  >
-                    Tot lector
+              <span className="text-xs font-semibold text-muted uppercase tracking-wide block mb-2">Cor actiu</span>
+              <div className="flex flex-col gap-1">
+                {choirs.map(c => (
+                  <button key={c.id}
+                    onClick={() => { switchChoir(c.id); setOpen(false) }}
+                    className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                      c.id === currentChoirId
+                        ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-700/30 dark:text-cyan-300'
+                        : 'text-muted hover:bg-fill hover:text-body'
+                    }`}>
+                    <span className="truncate">{c.name}</span>
+                    {c.id === currentChoirId && <ChevronRight size={12} className="shrink-0" />}
                   </button>
-                  <button
-                    onClick={() => setPreset('editor')}
-                    className="text-xs px-2 py-0.5 rounded bg-fill text-soft hover:bg-raised transition-colors"
-                  >
-                    Tot editor
-                  </button>
-                  {isSimulating && (
-                    <button
-                      onClick={exitSimulation}
-                      className="flex items-center gap-0.5 text-xs text-amber-400 hover:text-amber-300 transition-colors"
-                    >
-                      <X size={11} /> Reset
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-1.5 mb-2.5">
-                {SIM_PRESETS.map(k => (
-                  <button key={k} onClick={() => setTemplate(k)}
-                    className="text-xs px-2 py-0.5 rounded bg-fill text-soft hover:bg-raised transition-colors">
-                    {ROLE_TEMPLATES[k].label}
-                  </button>
-                ))}
-              </div>
-              <div className="flex flex-col gap-2">
-                {SECTIONS.map(s => (
-                  <SectionRow
-                    key={s.key}
-                    label={s.label}
-                    value={getSectionMode(s.key)}
-                    onChange={mode => handleSectionChange(s.key, mode)}
-                  />
                 ))}
               </div>
             </div>
           )}
+
+          {/* Tema — icon-only toggle group */}
+          <div className="px-4 py-3 border-b border-rim">
+            <span className="text-xs font-semibold text-muted uppercase tracking-wide block mb-2">Tema</span>
+            <div className="flex gap-1 bg-fill rounded-lg p-1">
+              {THEME_OPTIONS.map(({ key, label, Icon }) => (
+                <button key={key} onClick={() => setTheme(key)} title={label}
+                  className={`flex items-center justify-center flex-1 py-1.5 rounded-md transition-colors ${
+                    theme === key
+                      ? 'bg-pane text-body shadow-sm'
+                      : 'text-faint hover:text-muted'
+                  }`}>
+                  <Icon size={15} />
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Sortir */}
           <button
