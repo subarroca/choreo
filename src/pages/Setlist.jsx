@@ -146,9 +146,9 @@ export default function Setlist() {
                         </span>
                         <span className="font-semibold text-sm text-body flex-1">{part.title}</span>
                         <span className="text-xs text-ghost">{sectionSongs.length} cançó{sectionSongs.length !== 1 ? 'ns' : ''}</span>
-                        <button onClick={e => { e.stopPropagation(); setEditingPart(part) }}
+                        <button title="Editar part" onClick={e => { e.stopPropagation(); setEditingPart(part) }}
                           className="text-faint hover:text-body p-2.5 rounded-lg hover:bg-fill transition-colors"><Pencil size={15} /></button>
-                        <button onClick={e => { e.stopPropagation(); handleDeletePart(part.id) }}
+                        <button title="Eliminar part" onClick={e => { e.stopPropagation(); handleDeletePart(part.id) }}
                           className="text-ghost hover:text-red-500 p-2.5 rounded-lg hover:bg-fill transition-colors"><X size={15} /></button>
                       </div>
                     ) : (

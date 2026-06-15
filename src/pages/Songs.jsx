@@ -12,6 +12,7 @@ import ListRow from '../components/ui/ListRow'
 import Button from '../components/ui/Button'
 import { inputCls, labelCls } from '../components/ui/Input'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
+import { toast } from '../components/ui/Toast'
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
 import { SkeletonRow } from '../components/ui/Skeleton'
 import { ICON } from '../lib/ui'
@@ -74,7 +75,7 @@ function AttachmentEditor({ attachments, onChange }) {
                 className="text-xs text-faint hover:text-blue-400 truncate max-w-[140px] transition-colors">
                 {a.url.replace(/^https?:\/\//, '').slice(0, 30)}…
               </a>
-              <button type="button" onClick={() => removeAttachment(i)}
+              <button type="button" title="Eliminar recurs" onClick={() => removeAttachment(i)}
                 className="text-ghost hover:text-red-500 transition-colors shrink-0 p-2 -my-1.5 -mr-1.5">
                 <X size={ICON.sm} />
               </button>
@@ -273,6 +274,7 @@ export default function Songs() {
     await supabase.from('repertoire_songs').delete().eq('id', id)
     setSongs(prev => prev.filter(s => s.id !== id))
     setSheetSong(null)
+    toast('Cançó eliminada', 'warn')
   }
 
   function parseAttachments(song) {

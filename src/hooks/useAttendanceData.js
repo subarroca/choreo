@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
+import { toast } from '../components/ui/Toast'
 import { formatDate } from '../lib/formatters'
 
 const STATUS_CYCLE = ['present', 'absent', 'excused']
@@ -64,6 +65,7 @@ export function useAttendanceData() {
       const updated = [...rehearsals, data].sort((a, b) => a.date < b.date ? -1 : 1)
       setRehearsals(updated)
       setSelectedId(data.id)
+      toast('Assaig afegit')
     }
     return !!data
   }
@@ -71,7 +73,7 @@ export function useAttendanceData() {
   async function saveRehearsalMeta(id, type, time, location, notes) {
     const notesStr = serializeRehearsalMeta(type, time, location, notes)
     const { data } = await supabase.from('rehearsals').update({ notes: notesStr }).eq('id', id).select().single()
-    if (data) setRehearsals(prev => prev.map(r => r.id === data.id ? data : r))
+    if (data) { setRehearsals(prev => prev.map(r => r.id === data.id ? data : r)); toast('Assaig desat') }
     return data
   }
 
@@ -83,6 +85,7 @@ export function useAttendanceData() {
     const newList = rehearsals.filter(x => x.id !== id)
     setRehearsals(newList)
     setSelectedId(newList.length ? newList[newList.length - 1].id : null)
+    toast('Assaig eliminat', 'warn')
   }
 
   async function toggleStatus(memberId) {

@@ -96,7 +96,7 @@ export default function Poster() {
                       className="flex items-center gap-1.5 text-sm text-muted hover:text-body px-3 py-2 rounded-lg border border-line hover:bg-fill transition-colors">
                       <Download size={14} /> Descarregar
                     </a>
-                    <button onClick={handleRemove}
+                    <button title="Eliminar pòster" onClick={handleRemove}
                       className="text-ghost hover:text-red-400 p-2 rounded-lg hover:bg-fill transition-colors">
                       <X size={14} />
                     </button>

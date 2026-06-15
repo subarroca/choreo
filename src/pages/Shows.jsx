@@ -72,12 +72,12 @@ function ShowForm({ initial, onSave, onCancel, onDelete }) {
         <div className="space-y-1 flex-1">
           <label className={labelCls}>Poster</label>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => fileRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line text-xs text-muted hover:text-body hover:border-wire transition-colors">
+            <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line text-xs text-muted hover:text-body hover:border-wire transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               <ImageIcon size={ICON.sm} /> {uploading ? 'Pujant…' : 'Triar imatge'}
             </button>
             {posterPreview && (
-              <button type="button" onClick={() => { setPosterUrl(''); setPosterPreview('') }}
+              <button type="button" title="Treure imatge" onClick={() => { setPosterUrl(''); setPosterPreview('') }}
                 className="text-ghost hover:text-red-400 transition-colors p-2">
                 <X size={ICON.sm} />
               </button>
@@ -142,11 +142,11 @@ function ShowCard({ show, stats, canEdit, onEdit, onDelete, onClick }) {
         )}
         {canEdit && (
           <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onClick={e => { e.stopPropagation(); onEdit() }}
+            <button title="Editar espectacle" onClick={e => { e.stopPropagation(); onEdit() }}
               className="p-1.5 rounded-lg bg-page/80 text-muted hover:text-body transition-colors backdrop-blur-sm">
               <Pencil size={ICON.xs} />
             </button>
-            <button onClick={e => { e.stopPropagation(); onDelete() }}
+            <button title="Eliminar espectacle" onClick={e => { e.stopPropagation(); onDelete() }}
               className="p-1.5 rounded-lg bg-page/80 text-faint hover:text-red-400 transition-colors backdrop-blur-sm">
               <Trash2 size={ICON.xs} />
             </button>
