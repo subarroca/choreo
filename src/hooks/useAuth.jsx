@@ -1,24 +1,8 @@
 import { useState, useEffect, createContext, useContext } from 'react'
 import { supabase } from '../lib/supabase'
+import { defaultPermissions, derivePersona } from '../lib/roles.js'
 
 const AuthContext = createContext(null)
-
-// Default permissions per role
-function defaultPermissions(role) {
-  if (role === 'admin' || role === 'director') {
-    return {
-      shows:      { view: true, edit: true },
-      members:    { view: true, edit: true },
-      repertoire: { view: true, edit: true },
-    }
-  }
-  // member: view-only by default (overridden by user_permissions rows)
-  return {
-    shows:      { view: true, edit: false },
-    members:    { view: false, edit: false },
-    repertoire: { view: true, edit: false },
-  }
-}
 
 export function AuthProvider({ children }) {
   const [session, setSession]               = useState(undefined)
@@ -68,8 +52,24 @@ export function AuthProvider({ children }) {
   }
 
   const role = profile?.role ?? session?.user?.user_metadata?.role ?? 'member'
+  const isSimulating = simulatedPermissions !== null
 
   const effectivePermissions = simulatedPermissions ?? permissions ?? defaultPermissions(role)
+
+  // admin/director bypass everything — unless they're actively simulating a
+  // lower role, in which case the simulated permission map governs.
+  const isPrivileged = (role === 'admin' || role === 'director') && !isSimulating
+
+  // Single gating helper used across the whole app. `mode` is 'view' | 'edit'.
+  function can(section, mode = 'view') {
+    if (isPrivileged) return true
+    return !!effectivePermissions?.[section]?.[mode]
+  }
+
+  // Which landing/dashboard + nav shape this user gets.
+  const persona = isSimulating
+    ? derivePersona('member', effectivePermissions)
+    : derivePersona(role, effectivePermissions)
 
   const value = {
     session,
@@ -77,9 +77,12 @@ export function AuthProvider({ children }) {
     profile,
     role,
     permissions: effectivePermissions,
+    can,
+    persona,
+    isPrivileged,
     simulatedPermissions,
     setSimulatedPermissions,
-    isSimulating: simulatedPermissions !== null,
+    isSimulating,
     exitSimulation: () => setSimulatedPermissions(null),
     loading: session === undefined,
     signOut: () => supabase.auth.signOut(),

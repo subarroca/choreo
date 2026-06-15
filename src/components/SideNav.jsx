@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useClickOutside } from '../hooks/useClickOutside.js'
 import {
   Music, Users, Clapperboard, BookOpen, Shield, CalendarDays, BarChart3, Search,
   PanelLeftClose, PanelLeftOpen, ChevronDown, LayoutDashboard,
@@ -11,20 +12,20 @@ import ProfileMenu from './ProfileMenu.jsx'
 import { ICON } from '../lib/ui.js'
 
 function useNavItems() {
-  const { role, permissions, isSimulating } = useAuth()
-  const isAdmin = role === 'admin' || role === 'director'
-  const effectiveAdmin = isAdmin && !isSimulating
+  const { can, isPrivileged } = useAuth()
   const items = []
   items.push({ to: '/', label: 'Inici', Icon: LayoutDashboard })
-  if (effectiveAdmin || permissions?.repertoire?.view)
+  if (can('repertoire', 'view'))
     items.push({ to: '/songs', label: 'Cançons', Icon: BookOpen })
-  items.push({ to: '/shows', label: 'Espectacles', Icon: Clapperboard })
-  items.push({ to: '/assistencia', label: 'Assajos', Icon: CalendarDays })
-  if (effectiveAdmin || permissions?.members?.view)
+  if (can('shows', 'view'))
+    items.push({ to: '/shows', label: 'Espectacles', Icon: Clapperboard })
+  if (can('attendance', 'view'))
+    items.push({ to: '/assistencia', label: 'Assajos', Icon: CalendarDays })
+  if (can('members', 'view'))
     items.push({ to: '/members', label: 'Persones', Icon: Users })
-  if (effectiveAdmin || isAdmin)
+  if (isPrivileged)
     items.push({ to: '/analytics', label: 'Analítica', Icon: BarChart3 })
-  if (effectiveAdmin)
+  if (can('users', 'view'))
     items.push({ to: '/admin', label: 'Admin', Icon: Shield })
   return items
 }
@@ -48,14 +49,8 @@ export default function SideNav({ onSignOut }) {
 // Choir popover — shows a full select when expanded, or a small icon+popup when collapsed
 function ChoirPopover({ choirs, currentChoirId, onSwitch, expanded }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef(null)
+  const ref = useClickOutside(() => setOpen(false))
   const current = choirs.find(c => c.id === currentChoirId)
-
-  useEffect(() => {
-    function onOut(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
-    document.addEventListener('mousedown', onOut)
-    return () => document.removeEventListener('mousedown', onOut)
-  }, [])
 
   if (expanded) {
     return (

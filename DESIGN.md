@@ -44,15 +44,27 @@ gray-500 en mode fosc per llegibilitat AA. Verificar nous usos en tots dos temes
 
 | Color | Significat | Exemples |
 |-------|-----------|----------|
-| **Cian** | Selecció · acció primària · element actiu de navegació | Botó primari, ítem de nav actiu (`bg-cyan-700/40 text-cyan-300`), fila seleccionada |
+| **Cian** | Selecció · acció primària · element actiu de navegació | Botó primari, ítem de nav actiu, fila seleccionada |
 | **Ambre/groc** | Estat especial | Soloista, simulació de permisos, avís |
 | **Vermell** | Destructiu · error | Botó `danger`, missatges d'error |
+| **Violeta** | Context d'**editor / espacial** (reservat) | Mode trajectòries, eixos d'`ArrangePanel`, enllaços de notes a l'editor de posicions |
+| **Maragda** | Indicacions de **parla / speaker** | Selecció i etiquetes de speaker a la `Setlist` |
 | **Colors de veu** | Identitat de membre **només** | Avatar, badges de veu (`VOICE_COLORS` a `src/lib/constants.js`) |
 
-Els colors de veu **mai** s'usen com a accent d'UI. El morat (antic per a
-"parts") queda eliminat → cian.
+Els colors de veu **mai** s'usen com a accent d'UI. **Violeta** i **maragda**
+són accents de domini reservats (editor espacial / speaker) — no usar-los per a
+xrome d'UI genèric. Tota la resta de selecció/acció és **cian**, en un sol to
+(focus d'inputs i hovers de botó: `cyan-500`, mai `cyan-300`).
 
-Helpers a `src/lib/ui.js`: `ACCENT.active`, `ACCENT.special`, `ACCENT.danger`.
+Helpers a `src/lib/ui.js`:
+- `ACCENT.active` — element actiu (dark-first, `bg-cyan-700/40 text-cyan-300`).
+- `ACCENT.activeNav` — nav/tabs amb variant light-mode correcta. **Usar a tot
+  menú/pestanya/segmented control** (SideNav, ShowToolbar) perquè light i dark
+  llegeixin igual com a "seleccionat".
+- `ACCENT.special`, `ACCENT.danger`.
+
+Menús/popovers: tancar amb clic-fora via `useClickOutside` (`src/hooks/useClickOutside.js`),
+no reimplementar el patró `ref + useEffect + mousedown` per component.
 
 ## Escala d'icones (`ICON` a `src/lib/ui.js`)
 

@@ -97,7 +97,7 @@ export default function LightsPlayer({
         <label className="flex items-center gap-1.5 text-xs text-faint">
           Velocitat
           <select value={secondsPerStep} onChange={e => setSecondsPerStep(Number(e.target.value))}
-            className="bg-fill border border-line rounded-lg px-2 py-1.5 text-xs text-body focus:outline-none focus:border-cyan-300">
+            className="bg-fill border border-line rounded-lg px-2 py-1.5 text-xs text-body focus:outline-none focus:border-cyan-500">
             {[1.5, 2, 3, 4, 5, 6].map(s => <option key={s} value={s}>{s}s</option>)}
           </select>
         </label>
@@ -107,7 +107,7 @@ export default function LightsPlayer({
         </button>
         <button onClick={() => setPlaying(v => !v)}
           className={`flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg transition-colors ${
-            playing ? 'bg-amber-600/40 text-amber-200 border border-amber-600' : 'bg-cyan-600 hover:bg-cyan-300 text-white'}`}>
+            playing ? 'bg-amber-600/40 text-amber-200 border border-amber-600' : 'bg-cyan-600 hover:bg-cyan-500 text-white'}`}>
           {playing ? <><Pause size={14} /> Pausa</> : <><Play size={14} /> Play</>}
         </button>
         <button onClick={onClose} className="p-2.5 rounded-lg text-muted hover:text-body hover:bg-fill transition-colors">

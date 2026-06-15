@@ -77,7 +77,7 @@ export default function Login() {
                 required
                 autoComplete="username"
                 placeholder="demo"
-                className="w-full bg-fill border border-line rounded-lg px-3 py-2 text-body placeholder-gray-500 focus:outline-none focus:border-cyan-300"
+                className="w-full bg-fill border border-line rounded-lg px-3 py-2 text-body placeholder-gray-500 focus:outline-none focus:border-cyan-500"
               />
             </div>
             <div className="space-y-1">
@@ -89,7 +89,7 @@ export default function Login() {
                 required
                 autoComplete="current-password"
                 placeholder="demo"
-                className="w-full bg-fill border border-line rounded-lg px-3 py-2 text-body placeholder-gray-500 focus:outline-none focus:border-cyan-300"
+                className="w-full bg-fill border border-line rounded-lg px-3 py-2 text-body placeholder-gray-500 focus:outline-none focus:border-cyan-500"
               />
             </div>
             <p className="text-xs text-faint">
@@ -98,7 +98,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading || googleLoading}
-              className="w-full bg-cyan-600 hover:bg-cyan-300 disabled:opacity-50 text-white font-medium py-2 rounded-lg transition-colors"
+              className="w-full bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-medium py-2 rounded-lg transition-colors"
             >
               {loading ? 'Entrant...' : 'Entrar'}
             </button>

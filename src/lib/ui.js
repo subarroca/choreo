@@ -21,7 +21,10 @@ export const FORM_GAP = 'space-y-3'       // vertical form field stacks
 //   red    → destructive / error
 //   voice  → member identity only (VOICE_COLORS in lib/constants.js) — never UI accent
 export const ACCENT = {
-  active: 'bg-cyan-700/40 text-cyan-300',           // selected / active item
+  active: 'bg-cyan-700/40 text-cyan-300',           // selected / active item (dark-first)
+  // activeNav — active nav/tab with a correct light-mode variant. Use this for
+  // any menu/tab/segmented control so light and dark both read as "selected".
+  activeNav: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-700/40 dark:text-cyan-300',
   activeSoft: 'bg-cyan-600/15 text-cyan-600 dark:text-cyan-300',
   special: 'bg-amber-500/15 text-amber-600 dark:text-amber-300',
   danger: 'text-red-600 dark:text-red-400',

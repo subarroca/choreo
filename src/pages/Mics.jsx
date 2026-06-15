@@ -123,7 +123,7 @@ export default function Mics() {
     return prevMember && currMember && prevMember !== currMember
   }
 
-  const inputCls = 'bg-fill border border-line rounded-lg px-2 py-1 text-xs text-body focus:outline-none focus:border-cyan-300'
+  const inputCls = 'bg-fill border border-line rounded-lg px-2 py-1 text-xs text-body focus:outline-none focus:border-cyan-500'
 
   return (
     <Layout fullWidth>

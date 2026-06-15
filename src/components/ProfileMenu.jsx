@@ -1,13 +1,12 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
+import { useClickOutside } from '../hooks/useClickOutside.js'
 import { LogOut, Eye, Pencil, EyeOff, X, ChevronDown, Sun, Moon, Monitor } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useTheme } from '../hooks/useTheme.jsx'
+import { SECTIONS, SECTION_KEYS, ROLE_TEMPLATES } from '../lib/roles.js'
 
-const SECTIONS = [
-  { key: 'shows',      label: 'Espectacles' },
-  { key: 'members',    label: 'Membres' },
-  { key: 'repertoire', label: 'Repertori' },
-]
+// Templates offered as one-click simulation presets.
+const SIM_PRESETS = ['choreographer', 'lighting', 'sound', 'member']
 
 function getInitials(profile, user) {
   if (profile?.full_name) {
@@ -59,20 +58,12 @@ export default function ProfileMenu({ onSignOut, expanded = true }) {
   } = useAuth()
   const { theme, setTheme } = useTheme()
   const [open, setOpen] = useState(false)
-  const ref = useRef(null)
+  const ref = useClickOutside(() => setOpen(false))
 
   const isAdmin = role === 'admin' || role === 'director'
   const displayRole = isAdmin ? 'admin' : role
   const initials = getInitials(profile, user)
   const displayName = profile?.full_name ?? user?.email ?? ''
-
-  useEffect(() => {
-    function onOutside(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onOutside)
-    return () => document.removeEventListener('mousedown', onOutside)
-  }, [])
 
   function getSectionMode(key) {
     if (!simulatedPermissions) return null
@@ -82,18 +73,23 @@ export default function ProfileMenu({ onSignOut, expanded = true }) {
     return 'none'
   }
 
+  function fullMap(val) {
+    return Object.fromEntries(SECTION_KEYS.map(k => [k, { ...val }]))
+  }
+
   function handleSectionChange(key, mode) {
-    const base = simulatedPermissions ?? {
-      shows:      { view: true, edit: true },
-      members:    { view: true, edit: true },
-      repertoire: { view: true, edit: true },
-    }
+    const base = simulatedPermissions ?? fullMap({ view: true, edit: true })
     setSimulatedPermissions({ ...base, [key]: { view: mode !== 'none', edit: mode === 'editor' } })
   }
 
   function setPreset(preset) {
     const val = preset === 'reader' ? { view: true, edit: false } : { view: true, edit: true }
-    setSimulatedPermissions({ shows: val, members: val, repertoire: val })
+    setSimulatedPermissions(fullMap(val))
+  }
+
+  function setTemplate(key) {
+    const tpl = ROLE_TEMPLATES[key]?.perms
+    if (tpl) setSimulatedPermissions(structuredClone(tpl))
   }
 
   return (
@@ -184,6 +180,14 @@ export default function ProfileMenu({ onSignOut, expanded = true }) {
                     </button>
                   )}
                 </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mb-2.5">
+                {SIM_PRESETS.map(k => (
+                  <button key={k} onClick={() => setTemplate(k)}
+                    className="text-xs px-2 py-0.5 rounded bg-fill text-soft hover:bg-raised transition-colors">
+                    {ROLE_TEMPLATES[k].label}
+                  </button>
+                ))}
               </div>
               <div className="flex flex-col gap-2">
                 {SECTIONS.map(s => (

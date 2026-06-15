@@ -137,7 +137,7 @@ export default function SongForm({ initial, parts, repertoire = [], members = []
     }
   }
 
-  const inputCls = 'w-full bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300'
+  const inputCls = 'w-full bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-500'
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">

@@ -172,9 +172,9 @@ function ShowCard({ show, stats, canEdit, onEdit, onDelete, onClick }) {
 }
 
 export default function Shows() {
-  const { user, permissions, role } = useAuth()
+  const { user, can } = useAuth()
   const { currentChoirId } = useChoir()
-  const canEdit = role === 'admin' || role === 'director' || permissions?.shows?.edit
+  const canEdit = can('shows', 'edit')
   const navigate = useNavigate()
   const [formShow, setFormShow] = useState(null) // null | 'new' | show_object
 

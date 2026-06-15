@@ -1,34 +1,35 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useClickOutside } from '../hooks/useClickOutside.js'
 import { ListOrdered, ImageIcon, MicVocal, Lightbulb, FileText, ChevronDown, PlayCircle, ChevronLeft } from 'lucide-react'
+import { ACCENT } from '../lib/ui.js'
+import { useAuth } from '../hooks/useAuth.jsx'
 
+const TAB_IDLE = 'text-muted hover:text-body hover:bg-fill'
+
+// `section` gates visibility per role via can(section,'view').
 const MAIN_TABS = [
-  { key: 'setlist', path: '',        label: 'Escaleta', icon: ListOrdered },
-  { key: 'assaig',  path: '/assaig', label: 'Assaig',   icon: PlayCircle  },
-  { key: 'llums',   path: '/llums',  label: 'Llums',    icon: Lightbulb  },
-  { key: 'poster',  path: '/poster', label: 'Pòster',   icon: ImageIcon   },
+  { key: 'setlist', path: '',        label: 'Escaleta', icon: ListOrdered, section: 'shows'  },
+  { key: 'assaig',  path: '/assaig', label: 'Assaig',   icon: PlayCircle,  section: 'shows'  },
+  { key: 'llums',   path: '/llums',  label: 'Llums',    icon: Lightbulb,   section: 'lights' },
+  { key: 'poster',  path: '/poster', label: 'Pòster',   icon: ImageIcon,   section: 'shows'  },
 ]
 
 const RIDER_TABS = [
-  { key: 'mics',  path: '/mics',  label: 'Micros',   icon: MicVocal  },
-  { key: 'rider', path: '/rider', label: 'Document', icon: FileText  },
+  { key: 'mics',  path: '/mics',  label: 'Micros',   icon: MicVocal, section: 'mics'  },
+  { key: 'rider', path: '/rider', label: 'Document', icon: FileText, section: 'rider' },
 ]
 
 export default function ShowToolbar({ showId, showName }) {
   const { pathname } = useLocation()
+  const { can } = useAuth()
   const base = `/show/${showId}`
   const [riderOpen, setRiderOpen] = useState(false)
-  const riderRef = useRef(null)
+  const riderRef = useClickOutside(() => setRiderOpen(false))
 
-  useEffect(() => {
-    function onOutside(e) {
-      if (riderRef.current && !riderRef.current.contains(e.target)) setRiderOpen(false)
-    }
-    document.addEventListener('mousedown', onOutside)
-    return () => document.removeEventListener('mousedown', onOutside)
-  }, [])
-
-  const isRiderActive = RIDER_TABS.some(t => pathname.startsWith(base + t.path))
+  const mainTabs = MAIN_TABS.filter(t => can(t.section, 'view'))
+  const riderTabs = RIDER_TABS.filter(t => can(t.section, 'view'))
+  const isRiderActive = riderTabs.some(t => pathname.startsWith(base + t.path))
 
   return (
     <div className="flex items-center gap-2 px-4 py-2.5 bg-pane border-b border-rim shrink-0">
@@ -43,7 +44,7 @@ export default function ShowToolbar({ showId, showName }) {
 
       {/* Scrollable tabs — Rider is outside so its dropdown isn't clipped */}
       <div className="flex items-center gap-0.5 overflow-x-auto flex-1 min-w-0">
-        {MAIN_TABS.map(tab => {
+        {mainTabs.map(tab => {
           const to = base + tab.path
           const active = tab.path === ''
             ? pathname === base || pathname === base + '/'
@@ -52,7 +53,7 @@ export default function ShowToolbar({ showId, showName }) {
           return (
             <Link key={tab.key} to={to}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors ${
-                active ? 'bg-cyan-700/40 text-cyan-300' : 'text-muted hover:text-white hover:bg-fill'
+                active ? ACCENT.activeNav : TAB_IDLE
               }`}>
               <Icon size={13} />
               {tab.label}
@@ -63,11 +64,12 @@ export default function ShowToolbar({ showId, showName }) {
       </div>
 
       {/* Rider dropdown — outside overflow-x-auto so the popover isn't clipped */}
+      {riderTabs.length > 0 && (
       <div className="relative shrink-0" ref={riderRef}>
         <button
           onClick={() => setRiderOpen(v => !v)}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors ${
-            isRiderActive ? 'bg-cyan-700/40 text-cyan-300' : 'text-muted hover:text-white hover:bg-fill'
+            isRiderActive ? ACCENT.activeNav : TAB_IDLE
           }`}
         >
           <FileText size={13} />
@@ -77,7 +79,7 @@ export default function ShowToolbar({ showId, showName }) {
 
         {riderOpen && (
           <div className="absolute right-0 top-full mt-1 bg-pane border border-line rounded-xl shadow-xl z-50 overflow-hidden min-w-[140px]">
-            {RIDER_TABS.map(tab => {
+            {riderTabs.map(tab => {
               const to = base + tab.path
               const active = pathname.startsWith(to)
               const Icon = tab.icon
@@ -85,7 +87,7 @@ export default function ShowToolbar({ showId, showName }) {
                 <Link key={tab.key} to={to}
                   onClick={() => setRiderOpen(false)}
                   className={`flex items-center gap-2 px-3 py-2.5 text-xs whitespace-nowrap transition-colors ${
-                    active ? 'bg-cyan-700/40 text-cyan-300' : 'text-muted hover:text-white hover:bg-fill'
+                    active ? ACCENT.activeNav : TAB_IDLE
                   }`}>
                   <Icon size={13} />
                   {tab.label}
@@ -95,6 +97,7 @@ export default function ShowToolbar({ showId, showName }) {
           </div>
         )}
       </div>
+      )}
     </div>
   )
 }

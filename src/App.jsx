@@ -33,6 +33,20 @@ function RequireAuth({ children }) {
   return children
 }
 
+// Gate a route by a permission section. Falls back to RequireAuth's session
+// check, then redirects users without `view` on the section back home.
+function RequireSection({ section, children }) {
+  const { session, loading, can } = useAuth()
+  if (loading) return (
+    <div className="min-h-screen bg-page flex items-center justify-center">
+      <span className="text-faint text-sm">Carregant...</span>
+    </div>
+  )
+  if (!session) return <Navigate to="/login" replace />
+  if (!can(section, 'view')) return <Navigate to="/" replace />
+  return children
+}
+
 function GlobalSearchHost() {
   const { open, setOpen } = useGlobalSearch()
   if (!open) return null
@@ -44,18 +58,18 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
-      <Route path="/shows" element={<RequireAuth><Shows /></RequireAuth>} />
-      <Route path="/show/:id" element={<RequireAuth><Setlist /></RequireAuth>} />
-      <Route path="/members" element={<RequireAuth><Members /></RequireAuth>} />
-      <Route path="/show/:id/song/:sid/moment/:mid" element={<RequireAuth><Editor /></RequireAuth>} />
-      <Route path="/show/:id/mics" element={<RequireAuth><Mics /></RequireAuth>} />
-      <Route path="/show/:id/llums" element={<RequireAuth><Lights /></RequireAuth>} />
-      <Route path="/show/:id/rider" element={<RequireAuth><Rider /></RequireAuth>} />
-      <Route path="/show/:id/poster" element={<RequireAuth><Poster /></RequireAuth>} />
-      <Route path="/show/:id/assaig" element={<RequireAuth><Rehearsal /></RequireAuth>} />
-      <Route path="/assistencia" element={<RequireAuth><Attendance /></RequireAuth>} />
-      <Route path="/songs" element={<RequireAuth><Songs /></RequireAuth>} />
-      <Route path="/admin" element={<RequireAuth><Admin /></RequireAuth>} />
+      <Route path="/shows" element={<RequireSection section="shows"><Shows /></RequireSection>} />
+      <Route path="/show/:id" element={<RequireSection section="shows"><Setlist /></RequireSection>} />
+      <Route path="/members" element={<RequireSection section="members"><Members /></RequireSection>} />
+      <Route path="/show/:id/song/:sid/moment/:mid" element={<RequireSection section="staging"><Editor /></RequireSection>} />
+      <Route path="/show/:id/mics" element={<RequireSection section="mics"><Mics /></RequireSection>} />
+      <Route path="/show/:id/llums" element={<RequireSection section="lights"><Lights /></RequireSection>} />
+      <Route path="/show/:id/rider" element={<RequireSection section="rider"><Rider /></RequireSection>} />
+      <Route path="/show/:id/poster" element={<RequireSection section="shows"><Poster /></RequireSection>} />
+      <Route path="/show/:id/assaig" element={<RequireSection section="shows"><Rehearsal /></RequireSection>} />
+      <Route path="/assistencia" element={<RequireSection section="attendance"><Attendance /></RequireSection>} />
+      <Route path="/songs" element={<RequireSection section="repertoire"><Songs /></RequireSection>} />
+      <Route path="/admin" element={<RequireSection section="users"><Admin /></RequireSection>} />
       <Route path="/analytics" element={<RequireAuth><Analytics /></RequireAuth>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

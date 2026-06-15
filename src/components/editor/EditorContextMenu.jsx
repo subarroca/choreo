@@ -32,7 +32,7 @@ export default function EditorContextMenu({
           <span>Micro:</span>
           <select value={soloistEntry?.mic_number ?? ''}
             onChange={e => onUpdateSoloistMic(m.id, e.target.value)}
-            className="bg-fill border border-line rounded px-1 text-xs text-body flex-1 focus:outline-none focus:border-amber-500">
+            className="bg-fill border border-line rounded px-1 text-xs text-body flex-1 focus:outline-none focus:border-cyan-500">
             <option value="">—</option>
             {(showMics.length > 0 ? showMics : [1,2,3,4,5,6,7,8,9,10]).map(n => <option key={n} value={String(n)}>{n}</option>)}
           </select>

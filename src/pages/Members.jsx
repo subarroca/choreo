@@ -64,9 +64,9 @@ function MemberRow({ member, onClick, dim = false, attendancePct }) {
 }
 
 export default function Members() {
-  const { permissions, role } = useAuth()
+  const { can } = useAuth()
   const { currentChoirId } = useChoir()
-  const canEdit = role === 'admin' || role === 'director' || permissions?.members?.edit
+  const canEdit = can('members', 'edit')
   const [showInactive, setShowInactive] = useState(false)
   const [filterVoice, setFilterVoice]   = useState('')
   const [search, setSearch]             = useState('')

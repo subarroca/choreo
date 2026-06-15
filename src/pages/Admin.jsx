@@ -9,12 +9,7 @@ import EmptyState from '../components/ui/EmptyState'
 import ListRow from '../components/ui/ListRow'
 import { useNavigate } from 'react-router-dom'
 import { ICON } from '../lib/ui'
-
-const SECTIONS = [
-  { key: 'shows',      label: 'Espectacles' },
-  { key: 'members',    label: 'Membres' },
-  { key: 'repertoire', label: 'Repertori' },
-]
+import { SECTIONS, SECTION_KEYS, ROLE_TEMPLATES, TEMPLATE_KEYS, defaultPermissions } from '../lib/roles.js'
 
 const ROLE_BADGE = {
   admin:    'bg-red-900/40 text-red-400 border-red-800',
@@ -55,11 +50,8 @@ export default function Admin() {
       const { data: permRows } = await supabase.from('user_permissions').select('*')
       const permMap = {}
       for (const p of profiles ?? []) {
-        permMap[p.id] = {
-          shows:      { view: true,  edit: false },
-          members:    { view: false, edit: false },
-          repertoire: { view: true,  edit: false },
-        }
+        // seed with the member baseline so every section has a toggle
+        permMap[p.id] = structuredClone(defaultPermissions('member'))
       }
       for (const r of permRows ?? []) {
         if (permMap[r.user_id]?.[r.section]) {
@@ -82,6 +74,21 @@ export default function Admin() {
     const updated = { ...current, [field]: value }
     await supabase.from('user_permissions').upsert(
       { user_id: userId, section, can_view: updated.view, can_edit: updated.edit },
+      { onConflict: 'user_id,section' }
+    )
+  }
+
+  // Apply a role template: fills every section, but stays editable afterwards.
+  async function applyTemplate(userId, templateKey) {
+    const tpl = ROLE_TEMPLATES[templateKey]?.perms
+    if (!tpl) return
+    const next = structuredClone(tpl)
+    setPerms(prev => ({ ...prev, [userId]: next }))
+    await supabase.from('user_permissions').upsert(
+      SECTION_KEYS.map(section => ({
+        user_id: userId, section,
+        can_view: next[section].view, can_edit: next[section].edit,
+      })),
       { onConflict: 'user_id,section' }
     )
   }
@@ -128,6 +135,16 @@ export default function Admin() {
                         <p className="text-xs text-faint italic">Accés total (rol {u.role}). Els permisos no s'apliquen.</p>
                       ) : (
                         <div className="space-y-3">
+                          <div className="flex items-center gap-2 flex-wrap pb-2 mb-1 border-b border-rim">
+                            <span className="text-xs text-faint w-24 shrink-0">Plantilla</span>
+                            {TEMPLATE_KEYS.filter(k => k !== 'admin' && k !== 'director').map(k => (
+                              <button key={k} type="button"
+                                onClick={() => applyTemplate(u.id, k)}
+                                className="text-xs px-2.5 py-1 rounded-lg border border-line text-muted hover:text-cyan-400 hover:border-cyan-700 transition-colors">
+                                {ROLE_TEMPLATES[k].label}
+                              </button>
+                            ))}
+                          </div>
                           {SECTIONS.map(s => (
                             <div key={s.key} className="flex items-center gap-3">
                               <span className="text-xs text-muted w-24 shrink-0">{s.label}</span>

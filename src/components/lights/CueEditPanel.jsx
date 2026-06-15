@@ -10,7 +10,7 @@ import StageSim from './StageSim'
 
 const EFFECT_ICONS = { Moon, Wind, Sparkles, Move, Pause, Theater, ScanFace }
 
-const inputCls = 'w-full bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300 placeholder-gray-600'
+const inputCls = 'w-full bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-500 placeholder-gray-600'
 const labelCls = 'text-xs text-faint uppercase tracking-wider font-medium mb-1.5 block'
 
 function ChipRow({ options, value, onSelect, multi = false, showIcons = false }) {
@@ -204,11 +204,11 @@ export default function CueEditPanel({
           <input value={cueNum} onChange={e => setCueNum(e.target.value)} onBlur={commitCueNumber}
             onKeyDown={e => e.key === 'Enter' && e.target.blur()}
             inputMode="decimal"
-            className="w-16 bg-fill border border-line rounded-lg px-2 py-1 text-sm font-bold text-body text-center focus:outline-none focus:border-cyan-300" />
+            className="w-16 bg-fill border border-line rounded-lg px-2 py-1 text-sm font-bold text-body text-center focus:outline-none focus:border-cyan-500" />
           <input value={triggerText} onChange={e => setTriggerText(e.target.value)}
             onBlur={() => triggerText !== (cue.trigger_text ?? '') && onChange({ trigger_text: triggerText })}
             placeholder="Títol / indicació…"
-            className="flex-1 bg-fill border border-line rounded-lg px-2 py-1 text-sm text-body focus:outline-none focus:border-cyan-300 placeholder-gray-600" />
+            className="flex-1 bg-fill border border-line rounded-lg px-2 py-1 text-sm text-body focus:outline-none focus:border-cyan-500 placeholder-gray-600" />
           {naturalTriggerText && triggerText !== naturalTriggerText && (
             <button onClick={() => { setTriggerText(naturalTriggerText); onChange({ trigger_text: naturalTriggerText }) }}
               title="Recuperar text de la lletra"
@@ -292,7 +292,7 @@ export default function CueEditPanel({
             <div className="flex items-center gap-1">
               <input type="number" min="0" step="0.5" value={cue.transition_seconds ?? ''}
                 onChange={e => onChange({ transition_seconds: e.target.value === '' ? null : parseFloat(e.target.value) })}
-                className="w-16 bg-fill border border-line rounded-lg px-2 py-1.5 text-xs text-body focus:outline-none focus:border-cyan-300" />
+                className="w-16 bg-fill border border-line rounded-lg px-2 py-1.5 text-xs text-body focus:outline-none focus:border-cyan-500" />
               <span className="text-xs text-faint">s</span>
             </div>
           )}
@@ -337,8 +337,8 @@ export default function CueEditPanel({
             <div className="flex gap-1.5 items-center">
               <input value={presetName} onChange={e => setPresetName(e.target.value)} autoFocus
                 onKeyDown={e => e.key === 'Enter' && savePreset()}
-                placeholder="Nom…" className="w-28 bg-fill border border-line rounded-md px-2 py-1 text-xs text-body focus:outline-none focus:border-cyan-300" />
-              <button onClick={savePreset} className="bg-cyan-600 hover:bg-cyan-300 text-white text-xs px-2 py-1 rounded-md transition-colors">
+                placeholder="Nom…" className="w-28 bg-fill border border-line rounded-md px-2 py-1 text-xs text-body focus:outline-none focus:border-cyan-500" />
+              <button onClick={savePreset} className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-2 py-1 rounded-md transition-colors">
                 <Save size={12} />
               </button>
               <button onClick={() => setSavingPreset(false)} className="text-faint hover:text-body"><X size={12} /></button>

@@ -227,7 +227,7 @@ export default function Attendance() {
     if (s) stats[s] = (stats[s] ?? 0) + 1
   }
 
-  const inputCls = 'bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300'
+  const inputCls = 'bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-500'
 
   const tabs = (
     <div className="flex gap-1">
@@ -493,7 +493,7 @@ export default function Attendance() {
                           {/* Reason selector (only for absent/excused) */}
                           {(status === 'absent' || status === 'excused') && isAdmin && (
                             <select value={reason} onChange={e => setReason(m.id, e.target.value)}
-                              className="text-xs bg-fill border border-line rounded-lg px-2 py-1 text-muted focus:outline-none focus:border-cyan-400">
+                              className="text-xs bg-fill border border-line rounded-lg px-2 py-1 text-muted focus:outline-none focus:border-cyan-500">
                               <option value="">Motiu…</option>
                               {Object.entries(REASONS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                             </select>
@@ -547,20 +547,20 @@ export default function Attendance() {
                 <label className="text-xs text-muted">Hora</label>
                 <input type="time" value={editTime} onChange={e => setEditTime(e.target.value)}
                   disabled={!isAdmin}
-                  className="bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300 disabled:opacity-60" />
+                  className="bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-500 disabled:opacity-60" />
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-muted">Lloc</label>
                 <input type="text" placeholder="Sala, adreça…" value={editLocation} onChange={e => setEditLocation(e.target.value)}
                   disabled={!isAdmin}
-                  className="bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300 disabled:opacity-60" />
+                  className="bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-500 disabled:opacity-60" />
               </div>
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-muted">Tipus</label>
               <select value={editType} onChange={e => setEditType(e.target.value)}
                 disabled={!isAdmin}
-                className="bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300 disabled:opacity-60">
+                className="bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-500 disabled:opacity-60">
                 <option value="">— Tipus —</option>
                 {Object.entries(REHEARSAL_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
@@ -570,7 +570,7 @@ export default function Attendance() {
               <textarea rows={3} value={editNotes} onChange={e => setEditNotes(e.target.value)}
                 disabled={!isAdmin}
                 placeholder="Notes opcionals"
-                className="bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-300 resize-y disabled:opacity-60" />
+                className="bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-500 resize-y disabled:opacity-60" />
             </div>
             {!isAdmin && <p className="text-xs text-ghost">Només els directors poden editar els detalls.</p>}
           </div>
