@@ -3,11 +3,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, MicVocal, ArrowRight, X, Copy } from '../../lib/icons'
 import { Link } from 'react-router-dom'
 import MomentThumbnail from './MomentThumbnail'
-
-function deriveInitials(m) {
-  if (m.last_name) return (m.last_name[0] + (m.first_name?.[0] ?? '')).toUpperCase()
-  return ((m.name || '').trim().split(' ').map(w => w[0]).join('').slice(0, 2)).toUpperCase() || '?'
-}
+import { memberInitials } from '../../lib/formatters'
 
 export default function SortableMomentRow({ moment, index, showId, songId, onDelete, onCopy, micAssignments, positions, changedMembers, soloists, allMembers, gridRows, gridCols }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: moment.id })
@@ -37,7 +33,7 @@ export default function SortableMomentRow({ moment, index, showId, songId, onDel
         <span className="flex items-center gap-1 shrink-0" title={soloistMembers.map(m => m.name || `${m.first_name} ${m.last_name}`).join(', ')}>
           <MicVocal size={10} className="text-amber-500" />
           <span className="text-xs text-amber-400 font-medium">
-            {soloistMembers.map(m => deriveInitials(m)).join(' ')}
+            {soloistMembers.map(m => memberInitials(m)).join(' ')}
           </span>
         </span>
       )}

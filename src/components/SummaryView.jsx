@@ -1,23 +1,11 @@
 import { VOICE_COLORS } from '../lib/constants'
+import { memberInitials, formatDate, isUpcoming } from '../lib/formatters'
 
 const REASONS = {
   viatge:   { label: 'Viatge' },
   feina:    { label: 'Feina' },
   malaltia: { label: 'Malaltia' },
   altre:    { label: 'Altre' },
-}
-
-function isUpcoming(isoDate) {
-  return isoDate >= new Date().toISOString().slice(0, 10)
-}
-
-function formatDate(iso) {
-  return new Date(iso + 'T12:00:00').toLocaleDateString('ca-ES', { weekday: 'short', day: 'numeric', month: 'short' })
-}
-
-function deriveInitials(m) {
-  if (m.last_name) return (m.last_name[0] + (m.first_name?.[0] ?? '')).toUpperCase()
-  return ((m.name || '').trim().split(' ').map(w => w[0]).join('').slice(0, 2)).toUpperCase() || '?'
 }
 
 export default function SummaryView({ members, rehearsals, summaryData }) {
@@ -53,7 +41,7 @@ export default function SummaryView({ members, rehearsals, summaryData }) {
                     <div className="flex items-center gap-2">
                       <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
                         style={{ backgroundColor: c.bg, color: c.fg }}>
-                        {deriveInitials(m)}
+                        {memberInitials(m)}
                       </span>
                       <span className="font-semibold text-body whitespace-nowrap">
                         {m.last_name ?? m.name}

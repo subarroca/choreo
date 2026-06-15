@@ -1,15 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { LayoutGrid, Hexagon, Move, Disc } from '../lib/icons'
-import { supabase } from '../lib/supabase'
 import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
 import Layout from '../components/Layout'
 import PersonProfileOverlay from '../components/PersonProfileOverlay'
-import { PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { arrayMove } from '@dnd-kit/sortable'
+import { supabase } from '../lib/supabase'
 import {
-  CELL, LABEL_W, DIRECTOR_H, TOKEN_R, DEFAULT_ROW_LABELS, DEFAULT_COLS,
-  VOICE_ORDER, VOICE_GROUPS, ARRANGEMENT_PATTERNS,
+  LABEL_W, TOKEN_R, VOICE_ORDER, VOICE_GROUPS, ARRANGEMENT_PATTERNS,
   computeRelCenterX, eventToCanvas, getMemberPixelPos, drawAll,
 } from '../lib/editorCanvas'
 import { drawHeightProfile } from '../lib/editorHeightProfile'
@@ -17,7 +14,6 @@ import { autoPlaceByArrangement as _autoPlace } from '../lib/editorArrange'
 import EditorSidebar from '../components/editor/EditorSidebar'
 import EditorCanvas from '../components/editor/EditorCanvas'
 import EditorToolbar from '../components/editor/EditorToolbar'
-import MomentLightsBar from '../components/editor/MomentLightsBar'
 import EditorContextMenu from '../components/editor/EditorContextMenu'
 import EditorRadialMenu from '../components/editor/EditorRadialMenu'
 import { isTouchUI } from '../lib/touch'
@@ -27,6 +23,9 @@ import ShortcutsModal from '../components/ShortcutsModal'
 import { useEditorDrag } from '../hooks/useEditorDrag'
 import { useEditorData } from '../hooks/useEditorData'
 import { useEditorHistory } from '../hooks/useEditorHistory'
+import { useGridConfig } from '../hooks/useGridConfig'
+import { useTrajectoryMode } from '../hooks/useTrajectoryMode'
+import { useAddMomentForm } from '../hooks/useAddMomentForm'
 
 // ─── Component ────────────────────────────────────────────────
 export default function Editor() {
@@ -49,6 +48,21 @@ export default function Editor() {
     applyWithHistory(next, placementsRef.current)
   }
 
+  // ─── Grid config hook ────────────────────────────────────
+  const {
+    rowLabels, rowElevations, ROWS, COLS, GW, GH, CW, CH, dims,
+    addRow, removeRow, updateRowLabel, updateRowElevation, updateCols,
+    rowSensors, rowItems, handleRowDragEnd,
+  } = useGridConfig({ show, setShow, showId })
+
+  // ─── Trajectory hook ─────────────────────────────────────
+  const {
+    trajectoryMode, setTrajectoryMode,
+    trajectoryMemberId, setTrajectoryMemberId,
+    allSongPositions, allSongPositionsRef,
+    enterTrajectoryMode,
+  } = useTrajectoryMode({ momentsRef })
+
   const [mode, setMode] = useState('alternate')
   const [rotated, setRotated] = useState(() => localStorage.getItem('rotated') === 'true')
   const [highlightId, setHighlightId] = useState(() => localStorage.getItem('highlightMemberId') || '')
@@ -63,9 +77,6 @@ export default function Editor() {
     setPanels(next); localStorage.setItem('editorPanels', JSON.stringify(next))
   }
   const [collapsedVoices, setCollapsedVoices] = useState(new Set())
-  const [trajectoryMode, setTrajectoryMode] = useState(false)
-  const [trajectoryMemberId, setTrajectoryMemberId] = useState('')
-  const [allSongPositions, setAllSongPositions] = useState({})
   const [editingMoment, setEditingMoment] = useState(false)
   const [showArrange, setShowArrange] = useState(false)
   const [showFocusPicker, setShowFocusPicker] = useState(false)
@@ -76,14 +87,6 @@ export default function Editor() {
   const [pendingMemberId, setPendingMemberId] = useState(null)
   const [contextMenu, setContextMenu] = useState(null)
   const [profileMember, setProfileMember] = useState(null)
-  const [addingMoment, setAddingMoment] = useState(false)
-  const [newMomentTitle, setNewMomentTitle] = useState('')
-  const [cloneFrom, setCloneFrom] = useState('')
-  const [otherSongs, setOtherSongs] = useState(null)
-  const [otherSongMoments, setOtherSongMoments] = useState({})
-  const [selectedOtherSongId, setSelectedOtherSongId] = useState('')
-  const [selectedOtherMomentId, setSelectedOtherMomentId] = useState('')
-  const [selectedTemplate, setSelectedTemplate] = useState('')
   const [showHeightProfile, setShowHeightProfile] = useState(true)
   const [hoverProfileId, setHoverProfileId] = useState(null)
   const [hoverProfileRow, setHoverProfileRow] = useState(null)
@@ -109,28 +112,17 @@ export default function Editor() {
   const selectedIdsRef = useRef(selectedIds)
   const rotatedRef = useRef(rotated)
   const dimsRef = useRef(null)
-  const gridSaveTimerRef = useRef(null)
   const shiftSelectedRef = useRef(null)
   const removeSelectedRef = useRef(null)
   const undoRef = useRef(null)
   const redoRef = useRef(null)
-  const allSongPositionsRef = useRef(allSongPositions)
 
   useEffect(() => { modeRef.current = mode }, [mode])
   useEffect(() => { highlightRef.current = highlightId }, [highlightId])
   useEffect(() => { dirManualXRef.current = directorManualX }, [directorManualX])
   useEffect(() => { selectedIdsRef.current = selectedIds }, [selectedIds])
   useEffect(() => { rotatedRef.current = rotated }, [rotated])
-  useEffect(() => { allSongPositionsRef.current = allSongPositions }, [allSongPositions])
 
-  // ─── Derived dims ────────────────────────────────────────
-  const rowLabels = show?.grid_rows ?? DEFAULT_ROW_LABELS
-  const rowElevations = show?.row_elevations ?? rowLabels.map((_, i, a) => (a.length - 1 - i) * 40)
-  const ROWS = rowLabels.length
-  const COLS = show?.grid_cols ?? DEFAULT_COLS
-  const GW = COLS * CELL, GH = ROWS * CELL
-  const CW = LABEL_W + GW, CH = GH + DIRECTOR_H
-  const dims = { ROWS, COLS, rowLabels, GW, GH, CW, CH, rowElevations }
   dimsRef.current = dims
 
   // On momentId change: reset local state
@@ -143,6 +135,19 @@ export default function Editor() {
   useEffect(() => {
     if (moment?.grid_mode) { setMode(moment.grid_mode); modeRef.current = moment.grid_mode }
   }, [moment?.id])
+
+  // ─── Add moment hook ─────────────────────────────────────
+  const {
+    addingMoment, setAddingMoment,
+    newMomentTitle, setNewMomentTitle,
+    cloneFrom, otherSongs, otherSongMoments,
+    selectedOtherSongId, setSelectedOtherSongId,
+    selectedOtherMomentId, setSelectedOtherMomentId,
+    selectedTemplate, setSelectedTemplate,
+    openAddMoment: _openAddMoment, handleCloneFromChange, createMoment,
+  } = useAddMomentForm({ moments, songId, showId, mode, createMoment: _createMoment, navigate })
+
+  function openAddMoment() { _openAddMoment(); setEditingMoment(false) }
 
   // ─── Director X ──────────────────────────────────────────
   const relCX = mode === 'free' ? null : computeRelCenterX(placements, members, mode, dims)
@@ -180,10 +185,8 @@ export default function Editor() {
         drag: null, selectedIds, rotated, dims, trajectoryConfig: tConfig, soloistMicMap })
     }
     redraw()
-    // Redraw when OS color scheme changes (system theme)
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     mq.addEventListener('change', redraw)
-    // Redraw when dark class toggles (manual theme switch)
     const obs = new MutationObserver(redraw)
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
     return () => { mq.removeEventListener('change', redraw); obs.disconnect() }
@@ -196,34 +199,6 @@ export default function Editor() {
     const result = drawHeightProfile(canvas, { placements, members, mode, dims, rowElevations, hoverMemberId: hoverProfileId, highlightId, hoverRow: hoverProfileRow })
     if (result) profileHitRef.current = result
   }, [placements, members, mode, dims, rowElevations, showHeightProfile, hoverProfileId, highlightId, hoverProfileRow])
-
-  // ─── Grid config ─────────────────────────────────────────
-  function scheduleGridSave(gridRows, gridCols, gridElevations) {
-    clearTimeout(gridSaveTimerRef.current)
-    gridSaveTimerRef.current = setTimeout(() => {
-      supabase.from('shows').update({ grid_rows: gridRows, grid_cols: gridCols, row_elevations: gridElevations }).eq('id', showId)
-    }, 600)
-  }
-  function setRowLabels(labels, elevs) {
-    const e = elevs ?? rowElevations
-    setShow(prev => ({ ...prev, grid_rows: labels, row_elevations: e }))
-    scheduleGridSave(labels, COLS, e)
-  }
-  const addRow = () => setRowLabels([`Fila ${ROWS + 1}`, ...rowLabels], [0, ...rowElevations])
-  const removeRow = (i) => { if (ROWS > 1) setRowLabels(rowLabels.filter((_, idx) => idx !== i), rowElevations.filter((_, idx) => idx !== i)) }
-  const updateRowLabel = (i, val) => setRowLabels(rowLabels.map((l, idx) => idx === i ? val : l))
-  function updateRowElevation(i, val) {
-    const e = rowElevations.map((v, idx) => idx === i ? Math.max(0, parseInt(val) || 0) : v)
-    setShow(prev => ({ ...prev, row_elevations: e })); scheduleGridSave(rowLabels, COLS, e)
-  }
-  function reorderRows(newLabels) {
-    const newElevs = newLabels.map(label => { const i = rowLabels.indexOf(label); return i >= 0 ? rowElevations[i] : 0 })
-    setRowLabels(newLabels, newElevs)
-  }
-  function updateCols(n) {
-    const c = Math.max(4, Math.min(30, n))
-    setShow(prev => ({ ...prev, grid_cols: c })); scheduleGridSave(rowLabels, c, rowElevations)
-  }
 
   // ─── Soloists ────────────────────────────────────────────
   const toggleSoloist = (memberId) => {
@@ -250,7 +225,7 @@ export default function Editor() {
     const { x, y } = eventToCanvas(e, rotatedRef.current, dimsRef.current)
     const d = dimsRef.current, dax = currentDirAbsX()
     const dirMember = membersRef.current.find(m => m.role === 'director')
-    if (dirMember && dax != null && Math.hypot(x - dax, y - (d.GH + DIRECTOR_H / 2)) < TOKEN_R * 1.8) {
+    if (dirMember && dax != null && Math.hypot(x - dax, y - (d.GH + (d.CH - d.GH) / 2)) < TOKEN_R * 1.8) {
       setContextMenu({ x: e.clientX, y: e.clientY, member: dirMember }); return
     }
     let best = null, bestDist = TOKEN_R * 1.8
@@ -291,44 +266,6 @@ export default function Editor() {
       if (my >= yTop - 2 && my <= yBot + 2) { const d = Math.abs(mx - px); if (d < bestDist && d < 20) { bestDist = d; foundId = id } }
     }
     setHoverProfileId(foundId); setHoverProfileRow(null)
-  }
-
-  // ─── Trajectory ──────────────────────────────────────────
-  async function enterTrajectoryMode(memberId) {
-    if (!memberId) { setTrajectoryMode(false); setTrajectoryMemberId(''); return }
-    setTrajectoryMemberId(memberId); setTrajectoryMode(true)
-    const allMoments = momentsRef.current; if (!allMoments.length) return
-    const { data } = await supabase.from('positions').select('*').in('moment_id', allMoments.map(m => m.id))
-    const byMoment = {}
-    for (const m of allMoments) byMoment[m.id] = {}
-    for (const pos of (data ?? [])) {
-      if (!byMoment[pos.moment_id]) continue
-      if (pos.free_x != null && pos.free_y != null) byMoment[pos.moment_id][pos.member_id] = { free: true, x: pos.free_x, y: pos.free_y }
-      else if (pos.grid_row != null) byMoment[pos.moment_id][pos.member_id] = { row: pos.grid_row, col: pos.grid_col }
-    }
-    setAllSongPositions(byMoment)
-  }
-
-  // ─── Add moment ──────────────────────────────────────────
-  function openAddMoment() {
-    setNewMomentTitle(`Moment ${moments.length + 1}`)
-    setCloneFrom(''); setSelectedOtherSongId(''); setSelectedOtherMomentId(''); setSelectedTemplate('')
-    setAddingMoment(true); setEditingMoment(false)
-  }
-  async function handleCloneFromChange(val) {
-    setCloneFrom(val)
-    if (val === 'other' && otherSongs === null) {
-      const { data: songs } = await supabase.from('songs').select('*').eq('show_id', showId).order('order_index')
-      const songIds = (songs ?? []).map(s => s.id)
-      const { data: moms } = songIds.length ? await supabase.from('moments').select('*').in('song_id', songIds).order('order_index') : { data: [] }
-      const grouped = {}
-      for (const m of (moms ?? [])) (grouped[m.song_id] ??= []).push(m)
-      setOtherSongs((songs ?? []).filter(s => s.id !== songId)); setOtherSongMoments(grouped)
-    }
-  }
-  async function createMoment() {
-    const newMom = await _createMoment(newMomentTitle, cloneFrom, selectedOtherMomentId, mode, selectedTemplate)
-    if (newMom) { setAddingMoment(false); navigate(`/show/${showId}/song/${songId}/moment/${newMom.id}`) }
   }
 
   // ─── Moment meta save ────────────────────────────────────
@@ -377,7 +314,6 @@ export default function Editor() {
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIdsRef.current.size > 0) {
         e.preventDefault(); removeSelectedRef.current?.(); return
       }
-      // Undo/redo
       if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault(); undoRef.current?.(); return
       }
@@ -390,14 +326,6 @@ export default function Editor() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [trajectoryMode])
-
-  // ─── Grid drag-sort ──────────────────────────────────────
-  const rowSensors = useSensors(useSensor(PointerSensor))
-  const rowItems = rowLabels.map((label, i) => ({ id: String(i), label, elevation: rowElevations[i] ?? 0 }))
-  function handleRowDragEnd({ active, over }) {
-    if (!over || active.id === over.id) return
-    reorderRows(arrayMove(rowLabels, rowItems.findIndex(r => r.id === active.id), rowItems.findIndex(r => r.id === over.id)))
-  }
 
   // ─── Mode ─────────────────────────────────────────────────
   async function changeMode(newMode) {
@@ -464,8 +392,6 @@ export default function Editor() {
           navigate={navigate}
           VOICE_GROUPS={VOICE_GROUPS} ARRANGEMENT_PATTERNS={ARRANGEMENT_PATTERNS} VOICE_COLORS={VOICE_COLORS}
         />
-
-        {/* MomentLightsBar removed — llums actius no cal veure-los en mode posicions */}
 
         <div className="flex flex-1 min-h-0 relative overflow-hidden">
           {sidebarOpen && <div className="absolute inset-0 bg-black/60 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />}

@@ -19,14 +19,7 @@ import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
 import { ICON } from '../lib/ui'
 import { SkeletonRow } from '../components/ui/Skeleton'
 import { toast } from '../components/ui/Toast'
-
-function calcAge(birth_date) {
-  if (!birth_date) return null
-  const b = new Date(birth_date), now = new Date()
-  let age = now.getFullYear() - b.getFullYear()
-  if (now.getMonth() < b.getMonth() || (now.getMonth() === b.getMonth() && now.getDate() < b.getDate())) age--
-  return age
-}
+import { calcAge } from '../lib/formatters'
 
 function MemberMeta({ member }) {
   const parts = [VOICE_LABELS[member.voice]].filter(Boolean)

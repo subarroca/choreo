@@ -5,24 +5,7 @@ import { VOICE_COLORS, VOICE_LABELS, ROLE_LABELS } from '../lib/constants'
 import { supabase } from '../lib/supabase'
 import { inputCls } from './ui/Input'
 import Select from './ui/Select'
-
-// ─── Helpers ──────────────────────────────────────────────────
-function calcAge(birth_date) {
-  if (!birth_date) return null
-  const b = new Date(birth_date), now = new Date()
-  let age = now.getFullYear() - b.getFullYear()
-  if (now.getMonth() < b.getMonth() || (now.getMonth() === b.getMonth() && now.getDate() < b.getDate())) age--
-  return age
-}
-function yearsInChoir(joined_at) {
-  if (!joined_at) return null
-  const y = new Date().getFullYear() - new Date(joined_at).getFullYear()
-  return y < 1 ? 'menys d\'1 any' : `${y} any${y !== 1 ? 's' : ''}`
-}
-function deriveInitials(fn, ln) {
-  return ((fn?.trim()[0] ?? '') + (ln?.trim()[0] ?? '')).toUpperCase() || '?'
-}
-function deriveName(fn, ln) { return [fn, ln].filter(Boolean).join(' ') }
+import { calcAge, yearsInChoir, memberInitials, deriveName } from '../lib/formatters'
 
 const ALL_VOICES = ['soprano1','soprano2','alto1','alto2','tenor1','tenor2','baritone','bass']
 const ROLES = Object.keys(ROLE_LABELS)
@@ -142,7 +125,7 @@ function useMemberStats(memberId) {
 // ─── Profile view ─────────────────────────────────────────────
 function ProfileView({ member, onEdit }) {
   const c = VOICE_COLORS[member.voice] ?? VOICE_COLORS.extra
-  const initials = (member.initials || deriveInitials(member.first_name, member.last_name)).slice(0, 3)
+  const initials = memberInitials(member).slice(0, 3)
   const fullName = [member.first_name, member.last_name].filter(Boolean).join(' ') || member.name || '—'
   const age = calcAge(member.birth_date)
   const tenure = yearsInChoir(member.joined_at)
@@ -283,7 +266,7 @@ function EditForm({ member, isNew, onSave, onBack, onSetActive, onDelete }) {
   const [birthDate, setBirthDate] = useState(member?.birth_date ?? '')
   const [joinedAt,  setJoinedAt]  = useState(member?.joined_at ?? '')
 
-  const autoInitials = deriveInitials(firstName, lastName)
+  const autoInitials = memberInitials({ first_name: firstName, last_name: lastName })
   const isInactive = member?.active === false
 
   function handleSubmit(e) {

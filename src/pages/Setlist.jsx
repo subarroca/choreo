@@ -1,12 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import {
-  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
-  DragOverlay,
-} from '@dnd-kit/core'
-import {
-  arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
+import { DndContext, closestCenter, DragOverlay } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Pencil, X, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, MicVocal, Music, Plus } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
@@ -21,25 +16,28 @@ import Modal from '../components/ui/Modal'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
-import { toast } from '../components/ui/Toast'
 import { ICON } from '../lib/ui'
+import { useSetlistData } from '../hooks/useSetlistData'
 
 // ─── Main component ───────────────────────────────────────────
 export default function Setlist() {
   const { id: showId } = useParams()
   const navigate = useNavigate()
 
-  const [show, setShow] = useState(null)
-  const [parts, setParts] = useState([])
-  const [songs, setSongs] = useState([])
-  const [moments, setMoments] = useState({})
-  const [micAssignments, setMicAssignments] = useState({})
-  const [allMembers, setAllMembers] = useState([])
-  const [exclusions, setExclusions] = useState(new Set())
-  const [expandedParts, setExpandedParts] = useState({})
-  const [expandedSongs, setExpandedSongs] = useState({})
-  const [allExpanded, setAllExpanded] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const {
+    show, parts, songs, moments, micAssignments,
+    allMembers, setAllMembers, exclusions, loading, repertoire,
+    positionsByMoment, diffByMoment, soloistsByMoment,
+    expandedParts, setExpandedParts, expandedSongs, setExpandedSongs,
+    allExpanded, setAllExpanded, songSensors,
+    sections,
+    handleCreatePart, handleUpdatePart, handleDeletePart,
+    handleCreateSong, handleUpdateSong, handleDeleteSong,
+    handleSongDragEnd, handleReorderMoments,
+    handleAddMoment, handleDeleteMoment, handlePasteMoment,
+    toggleExclusion,
+  } = useSetlistData({ showId, navigate })
+
   const [creating, setCreating] = useState(false)
   const [creatingPart, setCreatingPart] = useState(false)
   const [editingSong, setEditingSong] = useState(null)
@@ -47,259 +45,17 @@ export default function Setlist() {
   const [showCast, setShowCast] = useState(false)
   const [activeDragId, setActiveDragId] = useState(null)
   const [editingMember, setEditingMember] = useState(null)
-  const [repertoire, setRepertoire] = useState([])
   const [copiedMoment, setCopiedMoment] = useState(null)
-  const [positionsByMoment, setPositionsByMoment] = useState({})
-  const [diffByMoment, setDiffByMoment] = useState({})
-  const [soloistsByMoment, setSoloistsByMoment] = useState({})
 
-  const songSensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  )
-
-  useEffect(() => {
-    async function load() {
-      const [showRes, partsRes, songsRes, membersRes, exclusionsRes, repRes] = await Promise.all([
-        supabase.from('shows').select('*').eq('id', showId).single(),
-        supabase.from('parts').select('*').eq('show_id', showId).order('order_index'),
-        supabase.from('songs').select('*').eq('show_id', showId).order('order_index'),
-        supabase.from('members').select('*').order('name'),
-        supabase.from('show_exclusions').select('member_id').eq('show_id', showId),
-        supabase.from('repertoire_songs').select('id, title, composer, type').order('title'),
-      ])
-      setRepertoire(repRes.data ?? [])
-      const showData = showRes.data
-      setShow(showData)
-      if (showData?.mic_assignments) {
-        setMicAssignments(typeof showData.mic_assignments === 'string'
-          ? JSON.parse(showData.mic_assignments)
-          : showData.mic_assignments)
-      }
-      const partList = partsRes.data ?? []
-      setParts(partList)
-      const partExp = {}; for (const p of partList) partExp[p.id] = true
-      setExpandedParts(partExp)
-      const songList = songsRes.data ?? []
-      setSongs(songList)
-      setAllMembers(membersRes.data ?? [])
-      setExclusions(new Set((exclusionsRes.data ?? []).map(e => e.member_id)))
-      const expInit = {}; for (const s of songList) expInit[s.id] = false
-      setExpandedSongs(expInit)
-      if (songList.length) {
-        const { data: momentData } = await supabase
-          .from('moments').select('*').in('song_id', songList.map(s => s.id)).order('order_index')
-        const grouped = {}
-        for (const s of songList) grouped[s.id] = []
-        for (const m of (momentData ?? [])) grouped[m.song_id] = [...(grouped[m.song_id] ?? []), m]
-        setMoments(grouped)
-
-        const allMomentIds = (momentData ?? []).map(m => m.id)
-        if (allMomentIds.length) {
-          const { data: posData } = await supabase
-            .from('positions').select('moment_id, grid_row, grid_col, member_id')
-            .in('moment_id', allMomentIds)
-          const memberVoice = {}
-          for (const m of (membersRes.data ?? [])) memberVoice[m.id] = m.voice
-          const posByMoment = {}
-          for (const p of (posData ?? [])) {
-            if (!posByMoment[p.moment_id]) posByMoment[p.moment_id] = []
-            posByMoment[p.moment_id].push({ row: p.grid_row, col: p.grid_col, voice: memberVoice[p.member_id], memberId: p.member_id })
-          }
-          setPositionsByMoment(posByMoment)
-
-          // Compute which members changed position vs previous moment per song
-          const diffSet = {}
-          for (const [songId, songMoments] of Object.entries(grouped)) {
-            for (let i = 1; i < songMoments.length; i++) {
-              const prevId = songMoments[i - 1].id
-              const currId = songMoments[i].id
-              const prev = posByMoment[prevId] ?? []
-              const curr = posByMoment[currId] ?? []
-              const prevMap = {}
-              for (const p of prev) prevMap[p.memberId] = `${p.row},${p.col}`
-              const changed = new Set()
-              for (const p of curr) {
-                if (prevMap[p.memberId] !== `${p.row},${p.col}`) changed.add(p.memberId)
-              }
-              for (const p of prev) {
-                if (!curr.find(c => c.memberId === p.memberId)) changed.add(p.memberId)
-              }
-              if (changed.size) diffSet[currId] = changed
-            }
-          }
-          setDiffByMoment(diffSet)
-
-          // Parse soloists from each moment
-          const soloistsMap = {}
-          for (const m of (momentData ?? [])) {
-            if (m.soloists) {
-              try { soloistsMap[m.id] = JSON.parse(m.soloists) } catch { soloistsMap[m.id] = [] }
-            }
-          }
-          setSoloistsByMoment(soloistsMap)
-        }
-      }
-      setLoading(false)
-    }
-    load()
-  }, [showId])
-
-  // ─── Parts CRUD ──────────────────────────────────────────
-  async function handleCreatePart({ title }) {
-    const { data, error } = await supabase.from('parts')
-      .insert({ show_id: showId, title, order_index: parts.length }).select().single()
-    if (!error) { setParts(prev => [...prev, data]); setCreatingPart(false); toast('Part creada') }
-  }
-
-  async function handleUpdatePart(partId, { title }) {
-    const { data, error } = await supabase.from('parts').update({ title }).eq('id', partId).select().single()
-    if (!error) { setParts(prev => prev.map(p => p.id === partId ? data : p)); setEditingPart(null); toast('Part desada') }
-  }
-
-  async function handleDeletePart(partId) {
-    if (!(await confirmDialog('Eliminar aquesta part? Les cançons quedaran sense part.'))) return
-    await supabase.from('parts').delete().eq('id', partId)
-    setSongs(prev => prev.map(s => s.part_id === partId ? { ...s, part_id: null } : s))
-    setParts(prev => prev.filter(p => p.id !== partId))
-    setEditingPart(null); toast('Part eliminada', 'warn')
-  }
-
-  // ─── Songs CRUD ──────────────────────────────────────────
-  async function handleCreateSong(fields) {
-    const { data, error } = await supabase.from('songs')
-      .insert({ ...fields, show_id: showId, order_index: songs.length }).select().single()
-    if (!error) { setSongs(prev => [...prev, data]); setMoments(prev => ({ ...prev, [data.id]: [] })); setCreating(false); toast('Cançó afegida') }
-  }
-
-  async function handleUpdateSong(songId, fields) {
-    const { data, error } = await supabase.from('songs').update(fields).eq('id', songId).select().single()
-    if (!error) { setSongs(prev => prev.map(s => s.id === songId ? data : s)); setEditingSong(null); toast('Cançó desada') }
-  }
-
-  async function handleDeleteSong(songId) {
-    if (!(await confirmDialog('Eliminar aquesta cançó i tots els seus moments?'))) return
-    await supabase.from('songs').delete().eq('id', songId)
-    setSongs(prev => prev.filter(s => s.id !== songId))
-    setMoments(prev => { const n = { ...prev }; delete n[songId]; return n })
-    setEditingSong(null); toast('Cançó eliminada', 'warn')
-  }
-
-  // ─── Song drag-and-drop (cross-part + reorder) ───────────
-  async function handleSongDragEnd({ active, over }) {
-    if (!over) return
-    const activeSong = songs.find(s => s.id === active.id)
-    if (!activeSong) return
-
-    // Dropped onto a part drop zone → move to that part
-    if (String(over.id).startsWith('drop-part-')) {
-      const targetPartId = over.id === 'drop-part-none' ? null : over.id.replace('drop-part-', '')
-      if (targetPartId !== activeSong.part_id) {
-        const { data, error } = await supabase.from('songs').update({ part_id: targetPartId }).eq('id', activeSong.id).select().single()
-        if (!error) setSongs(prev => prev.map(s => s.id === activeSong.id ? data : s))
-      }
-      return
-    }
-
-    // Dropped onto another song → reorder within same part, or move cross-part
-    const overSong = songs.find(s => s.id === over.id)
-    if (!overSong) return
-
-    if (activeSong.part_id !== overSong.part_id) {
-      const { data, error } = await supabase.from('songs').update({ part_id: overSong.part_id }).eq('id', activeSong.id).select().single()
-      if (!error) setSongs(prev => prev.map(s => s.id === activeSong.id ? data : s))
-      return
-    }
-
-    const partSongs = songs.filter(s => s.part_id === activeSong.part_id)
-    const oldIndex = partSongs.findIndex(s => s.id === activeSong.id)
-    const newIndex = partSongs.findIndex(s => s.id === overSong.id)
-    if (oldIndex === newIndex) return
-
-    const reordered = arrayMove(partSongs, oldIndex, newIndex)
-    const otherSongs = songs.filter(s => s.part_id !== activeSong.part_id)
-    const updated = [...otherSongs, ...reordered].map((s, i) => ({ ...s, order_index: i }))
-    setSongs(updated)
-    await Promise.all(reordered.map((s, i) => supabase.from('songs').update({ order_index: otherSongs.length + i }).eq('id', s.id)))
-  }
-
-  // ─── Moment reorder ──────────────────────────────────────
-  async function handleReorderMoments(songId, reordered) {
-    setMoments(prev => ({ ...prev, [songId]: reordered }))
-    await Promise.all(reordered.map((m, i) => supabase.from('moments').update({ order_index: i }).eq('id', m.id)))
-  }
-
-  // ─── Moments CRUD ────────────────────────────────────────
-  async function handleAddMoment(songId, navigateAfter = false) {
-    const existing = moments[songId] ?? []
-    const { data, error } = await supabase.from('moments')
-      .insert({ song_id: songId, title: `Moment ${existing.length + 1}`, order_index: existing.length, grid_mode: 'alternate' })
-      .select().single()
-    if (!error) {
-      setMoments(prev => ({ ...prev, [songId]: [...(prev[songId] ?? []), data] }))
-      setExpandedSongs(prev => ({ ...prev, [songId]: true }))
-      setAllExpanded(true)
-      toast('Moment creat')
-      if (navigateAfter) navigate(`/show/${showId}/song/${songId}/moment/${data.id}`)
-    }
-  }
-
-  async function handleDeleteMoment(momentId) {
-    if (!(await confirmDialog('Eliminar aquest moment?'))) return
-    await supabase.from('moments').delete().eq('id', momentId)
-    setMoments(prev => {
-      const next = {}
-      for (const [sid, list] of Object.entries(prev)) next[sid] = list.filter(m => m.id !== momentId)
-      return next
-    })
-    toast('Moment eliminat', 'warn')
-  }
-
-  // ─── Copy/paste moments ──────────────────────────────────
-  async function handlePasteMoment(targetSongId) {
-    if (!copiedMoment) return
-    const existing = moments[targetSongId] ?? []
-    const { data: newMom, error } = await supabase.from('moments')
-      .insert({ song_id: targetSongId, title: copiedMoment.title, order_index: existing.length, grid_mode: copiedMoment.grid_mode ?? 'alternate' })
-      .select().single()
-    if (error || !newMom) return
-    const { data: srcPos } = await supabase.from('positions').select('*').eq('moment_id', copiedMoment.id)
-    if (srcPos?.length) {
-      await supabase.from('positions').insert(srcPos.map(p => ({
-        moment_id: newMom.id, member_id: p.member_id,
-        grid_row: p.grid_row, grid_col: p.grid_col, free_x: p.free_x, free_y: p.free_y,
-      })))
-    }
-    setMoments(prev => ({ ...prev, [targetSongId]: [...(prev[targetSongId] ?? []), newMom] }))
-    setExpandedSongs(prev => ({ ...prev, [targetSongId]: true }))
-  }
-
-  // ─── Repertoire map (id → song) ──────────────────────────
   const repMap = Object.fromEntries(repertoire.map(r => [r.id, r]))
-
-  // ─── Group songs by part ─────────────────────────────────
-  const songsByPart = {}
-  for (const song of songs) {
-    const key = song.part_id ?? '__none__'
-    ;(songsByPart[key] ??= []).push(song)
-  }
-
-  const sections = [
-    ...parts.map(p => ({ key: p.id, part: p, songs: songsByPart[p.id] ?? [] })),
-    ...(songsByPart['__none__']?.length ? [{ key: '__none__', part: null, songs: songsByPart['__none__'] }] : []),
-  ]
-  if (!sections.length && !songs.length) {
-    sections.push({ key: '__none__', part: null, songs: [] })
-  }
 
   return (
     <>
     <Layout fullWidth>
       <div className="flex flex-col min-h-0 h-full">
-        {/* Show-level tab toolbar — flush to top */}
         <ShowToolbar showId={showId} showName={show?.name} />
 
-        {/* Action bar — secondary header strip */}
+        {/* Action bar */}
         <div className="flex items-center gap-2 px-4 py-2 bg-pane border-b border-rim shrink-0 flex-wrap">
           <button onClick={() => {
             const next = !allExpanded
@@ -328,7 +84,6 @@ export default function Setlist() {
         <div className="flex-1 min-h-0 overflow-y-auto pb-16 md:pb-0">
         <div className="p-4 md:p-6 space-y-4">
 
-        {/* Cast panel */}
         {showCast && <CastPanel showId={showId} allMembers={allMembers} exclusions={exclusions} onToggle={toggleExclusion} onEditMember={setEditingMember} />}
 
         {/* Part modal */}
@@ -340,9 +95,12 @@ export default function Setlist() {
         >
           <PartForm
             initial={editingPart ?? undefined}
-            onSave={creatingPart ? handleCreatePart : f => handleUpdatePart(editingPart.id, f)}
+            onSave={creatingPart
+              ? async (f) => { if (await handleCreatePart(f)) setCreatingPart(false) }
+              : async (f) => { if (await handleUpdatePart(editingPart.id, f)) setEditingPart(null) }
+            }
             onCancel={() => { setCreatingPart(false); setEditingPart(null) }}
-            onDelete={editingPart ? () => handleDeletePart(editingPart.id) : null}
+            onDelete={editingPart ? async () => { if (await handleDeletePart(editingPart.id)) setEditingPart(null) } : null}
           />
         </Modal>
 
@@ -358,13 +116,15 @@ export default function Setlist() {
             parts={parts}
             repertoire={repertoire}
             members={allMembers}
-            onSave={creating ? handleCreateSong : fields => handleUpdateSong(editingSong.id, fields)}
+            onSave={creating
+              ? async (f) => { if (await handleCreateSong(f)) setCreating(false) }
+              : async (f) => { if (await handleUpdateSong(editingSong.id, f)) setEditingSong(null) }
+            }
             onCancel={() => { setCreating(false); setEditingSong(null) }}
-            onDelete={editingSong ? () => handleDeleteSong(editingSong.id) : null}
+            onDelete={editingSong ? async () => { if (await handleDeleteSong(editingSong.id)) setEditingSong(null) } : null}
           />
         </Modal>
 
-        {/* Sections — single DndContext for cross-part song drag */}
         {loading ? <p className="text-faint">Carregant...</p> : (
           <DndContext sensors={songSensors} collisionDetection={closestCenter}
             onDragStart={({ active }) => setActiveDragId(active.id)}
@@ -377,7 +137,6 @@ export default function Setlist() {
 
                 return (
                   <div key={key} className="space-y-2">
-                    {/* Part header */}
                     {part ? (
                       <div
                         onClick={() => setExpandedParts(prev => ({ ...prev, [part.id]: !(prev[part.id] !== false) }))}
@@ -400,7 +159,6 @@ export default function Setlist() {
                       )
                     )}
 
-                    {/* Song list (droppable zone) */}
                     {isPartExpanded && (
                       <DroppableSongZone id={dropId} isEmpty={sectionSongs.length === 0}>
                         <SortableContext items={sectionSongs.map(s => s.id)} strategy={verticalListSortingStrategy}>
@@ -421,7 +179,7 @@ export default function Setlist() {
                               members={allMembers}
                               copiedMoment={copiedMoment}
                               onCopyMoment={setCopiedMoment}
-                              onPasteMoment={handlePasteMoment}
+                              onPasteMoment={songId => handlePasteMoment(songId, copiedMoment)}
                               positionsByMoment={positionsByMoment}
                               diffByMoment={diffByMoment}
                               soloistsByMoment={soloistsByMoment}
@@ -446,7 +204,6 @@ export default function Setlist() {
               )}
             </div>
 
-            {/* Drag overlay — ghost card shown while dragging */}
             <DragOverlay dropAnimation={null}>
               {activeDragId ? (() => {
                 const s = songs.find(s => s.id === activeDragId)
@@ -461,12 +218,11 @@ export default function Setlist() {
             </DragOverlay>
           </DndContext>
         )}
-        </div>{/* /p-4 */}
-        </div>{/* /overflow-y-auto */}
-      </div>{/* /flex-col */}
+        </div>
+        </div>
+      </div>
     </Layout>
 
-    {/* Member profile overlay */}
     {editingMember && (
       <PersonProfileOverlay
         member={editingMember}
@@ -493,14 +249,4 @@ export default function Setlist() {
     )}
     </>
   )
-
-  async function toggleExclusion(memberId, currentlyExcluded) {
-    if (currentlyExcluded) {
-      await supabase.from('show_exclusions').delete().eq('show_id', showId).eq('member_id', memberId)
-      setExclusions(prev => { const n = new Set(prev); n.delete(memberId); return n })
-    } else {
-      await supabase.from('show_exclusions').insert({ show_id: showId, member_id: memberId })
-      setExclusions(prev => new Set([...prev, memberId]))
-    }
-  }
 }

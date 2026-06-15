@@ -8,15 +8,16 @@ import PageContainer from '../components/ui/PageContainer'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
 import { ICON } from '../lib/ui'
+import { formatDate as formatDateBase } from '../lib/formatters'
+
+function formatDate(iso) {
+  return formatDateBase(iso, { day: 'numeric', month: 'short', year: 'numeric' })
+}
 
 const CATEGORY = {
   bug:     { label: 'Bug',     cls: 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/40 dark:text-red-400 dark:border-red-800' },
   millora: { label: 'Millora', cls: 'bg-cyan-100 text-cyan-700 border-cyan-300 dark:bg-cyan-900/40 dark:text-cyan-400 dark:border-cyan-800' },
   idea:    { label: 'Idea',    cls: 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800' },
-}
-
-function formatDate(iso) {
-  return new Date(iso).toLocaleDateString('ca-ES', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function buildClaudePrompt(pendingItems) {
