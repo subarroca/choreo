@@ -15,7 +15,7 @@ export default function LightingDashboard({ nextShow, readiness, readinessLoadin
           readinessLoading={readinessLoading}
           extraLinks={
             <>
-              <Link to={`/show/${nextShow.id}/llums`}>
+              <Link to={`/show/${nextShow.id}/lights`}>
                 <Button size="sm" variant="ghost">Il·luminació</Button>
               </Link>
               {can('rider', 'view') && (
@@ -45,7 +45,7 @@ export default function LightingDashboard({ nextShow, readiness, readinessLoadin
               <span className="text-xs font-medium">Rider tècnic</span>
             </Link>
           )}
-          <Link to="/assistencia"
+          <Link to="/attendance"
             className="flex flex-col items-center gap-2 rounded-xl border border-rim bg-pane p-4 text-muted hover:text-body hover:border-wire transition-colors group">
             <CalendarDays size={20} className="group-hover:text-cyan-400 transition-colors" />
             <span className="text-xs font-medium">Assajos</span>

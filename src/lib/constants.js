@@ -1,3 +1,5 @@
+import { t } from '../locales/ca'
+
 // Canonical order for displaying voice parts (high → low)
 export const VOICE_ORDER = ['soprano1','soprano2','alto1','alto2','tenor1','tenor2','baritone','bass']
 
@@ -17,15 +19,7 @@ export const VOICE_COLORS = {
   extra:    { bg: '#d1d5db', fg: '#111827' },      // gray-300
 }
 
-export const VOICE_LABELS = {
-  soprano1: 'Soprano 1', soprano2: 'Soprano 2',
-  alto1:    'Alto 1',    alto2:    'Alto 2',
-  tenor1:   'Tenor 1',   tenor2:   'Tenor 2',
-  baritone: 'Baríton',   bass:     'Baix',
-  director: 'Admin',
-  musician: 'Músic',
-  extra:    'Extra',
-}
+export const VOICE_LABELS = t.voices
 
 export const VOICE_SHORT = {
   soprano1: 'S1', soprano2: 'S2',
@@ -36,8 +30,8 @@ export const VOICE_SHORT = {
 }
 
 export const ROLE_LABELS = {
-  choir:    'Cor',
-  director: 'Admin',
-  musician: 'Músic',
-  extra:    'Extra',
+  choir:    t.roles.choir,
+  director: t.roles.admin,
+  musician: t.roles.musician,
+  extra:    t.roles.extra,
 }

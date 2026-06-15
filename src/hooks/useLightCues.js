@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { sortCues } from '../lib/lights'
 
-// Carrega tot el que necessita la vista de llums d'un show i exposa
-// el CRUD de cues i presets, amb updates optimistes com a la resta de pàgines.
+// Loads everything the lights view needs for a show and exposes
+// CRUD for cues and presets, with optimistic updates like the rest of the pages.
 export function useLightCues(showId) {
   const [show, setShow] = useState(null)
   const [songs, setSongs] = useState([])              // ordenades per order_index
@@ -92,10 +92,10 @@ export function useLightCues(showId) {
       cue_number: index + 1
     }))
 
-    // Actualització optimista
+    // Optimistic update
     setCues(sorted.map((cue, index) => ({ ...cue, cue_number: index + 1 })))
 
-    // Actualització a la base de dades
+    // Database update
     setSaving(true)
     for (const { id, cue_number } of updates) {
       await supabase.from('light_cues').update({ cue_number }).eq('id', id)

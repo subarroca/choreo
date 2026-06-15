@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { BookOpen, CalendarDays, LayoutDashboard, ArrowRight, MapPin, CalendarClock, Music, Check, X, ExternalLink, FileText, ChevronDown, ChevronUp, Users } from '../../lib/icons'
+import { t } from '../../locales/ca'
 import { useAuth } from '../../hooks/useAuth.jsx'
 import { useMyMember } from '../../hooks/useMyMember.js'
 import { supabase } from '../../lib/supabase'
@@ -9,14 +10,9 @@ import { daysUntil, parseRehearsalMeta } from './DashboardWidgets.jsx'
 import Badge from '../ui/Badge'
 import UpcomingBirthdays from './UpcomingBirthdays'
 import { VOICE_COLORS, VOICE_LABELS } from '../../lib/constants'
+import { t } from '../../locales/ca'
 
-const REHEARSAL_TYPES = {
-  veu:         'Veu',
-  coreo:       'Coreo',
-  ambdues:     'Veu + Coreo',
-  masterclass: 'Masterclass',
-  posicions:   'Passi de posicions',
-}
+const REHEARSAL_TYPES = t.rehearsalTypes
 
 const ATTACHMENT_COLORS = {
   reference: 'text-blue-400',
@@ -142,7 +138,7 @@ function RehearsalCard({ rehearsal, isFirst, nextShow, allSongs, myMemberId, sec
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="min-w-0">
           <p className="text-xs text-muted uppercase tracking-wide mb-0.5 truncate">
-            {isFirst ? 'Proper assaig' : 'Assaig'}
+            {isFirst ? t.dashboard.nextRehearsal : t.dashboard.rehearsal}
           </p>
           <p className="text-base font-bold text-body capitalize">{dateLabel}</p>
         </div>
@@ -229,7 +225,7 @@ export default function SingerDashboard({ nextShow, upcomingRehearsals, members,
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-muted uppercase tracking-wide">Propers assajos</h3>
-            <Link to="/assistencia" className="text-xs text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 flex items-center gap-1 transition-colors">
+            <Link to="/attendance" className="text-xs text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 flex items-center gap-1 transition-colors">
               Tots <ArrowRight size={ICON.xs} />
             </Link>
           </div>
@@ -248,7 +244,7 @@ export default function SingerDashboard({ nextShow, upcomingRehearsals, members,
         <h3 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Accés ràpid</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {nextShow && (
-            <Link to={`/show/${nextShow.id}/assaig`}
+            <Link to={`/show/${nextShow.id}/rehearsal`}
               className="flex flex-col items-center gap-2 rounded-xl border border-rim bg-pane p-4 text-muted hover:text-body hover:border-wire transition-colors group">
               <LayoutDashboard size={20} className="group-hover:text-cyan-400 transition-colors" />
               <span className="text-xs font-medium text-center">La meva posició</span>
@@ -261,7 +257,7 @@ export default function SingerDashboard({ nextShow, upcomingRehearsals, members,
               <span className="text-xs font-medium">Repertori</span>
             </Link>
           )}
-          <Link to="/assistencia"
+          <Link to="/attendance"
             className="flex flex-col items-center gap-2 rounded-xl border border-rim bg-pane p-4 text-muted hover:text-body hover:border-wire transition-colors group">
             <CalendarDays size={20} className="group-hover:text-cyan-400 transition-colors" />
             <span className="text-xs font-medium">Assajos</span>

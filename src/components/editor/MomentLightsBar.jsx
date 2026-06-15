@@ -4,8 +4,8 @@ import { Lightbulb } from '../../lib/icons'
 import { supabase } from '../../lib/supabase'
 import { formatCueNumber, cueSummary, lightColor, sortCues } from '../../lib/lights'
 
-// Barra fina sota la toolbar de l'editor: cues de llum vinculats al moment actual.
-// Si el moment no té cues, no es mostra res.
+// Thin bar below the editor toolbar: light cues linked to the current moment.
+// If the moment has no cues, nothing is rendered.
 export default function MomentLightsBar({ showId, momentId }) {
   const [cues, setCues] = useState([])
 
@@ -24,7 +24,7 @@ export default function MomentLightsBar({ showId, momentId }) {
       {cues.map(c => {
         const color = lightColor(c.front_color) ?? lightColor(c.back_color)
         return (
-          <Link key={c.id} to={`/show/${showId}/llums`}
+          <Link key={c.id} to={`/show/${showId}/lights`}
             className="flex items-center gap-1.5 text-xs text-muted hover:text-body bg-fill/80 hover:bg-fill rounded-md px-2 py-1 shrink-0 transition-colors">
             <span className="font-bold text-gray-200">{formatCueNumber(c.cue_number)}</span>
             {color && <span className="w-2.5 h-2.5 rounded-full border border-wire" style={{ background: color.hex }} />}

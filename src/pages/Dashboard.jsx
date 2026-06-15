@@ -17,6 +17,7 @@ import LightingDashboard from '../components/dashboard/LightingDashboard.jsx'
 import SoundDashboard from '../components/dashboard/SoundDashboard.jsx'
 import Button from '../components/ui/Button'
 import { Link } from 'react-router-dom'
+import { t } from '../locales/ca'
 
 // ─── Greeting ────────────────────────────────────────────────────────────────
 
@@ -29,13 +30,13 @@ function greeting() {
 
 function personaBadge(persona) {
   const map = {
-    admin:          { label: 'Administrador',  cls: 'bg-amber-500/20 text-amber-400' },
-    director:       { label: 'Director',       cls: 'bg-cyan-500/20 text-cyan-400' },
-    choreographer:  { label: 'Coreògraf',      cls: 'bg-violet-500/20 text-violet-400' },
-    lighting:       { label: 'Il·luminador',   cls: 'bg-amber-500/20 text-amber-400' },
-    sound:          { label: 'Tècnic de so',   cls: 'bg-emerald-500/20 text-emerald-400' },
-    cap_de_corda:   { label: 'Cap de corda',   cls: 'bg-orange-500/20 text-orange-400' },
-    member:         { label: 'Membre',         cls: 'bg-fill text-faint' },
+    admin:          { label: t.roles.administrator, cls: 'bg-amber-500/20 text-amber-400' },
+    director:       { label: t.roles.director,      cls: 'bg-cyan-500/20 text-cyan-400' },
+    choreographer:  { label: t.roles.choreographer, cls: 'bg-violet-500/20 text-violet-400' },
+    lighting:       { label: t.roles.lighting,      cls: 'bg-amber-500/20 text-amber-400' },
+    sound:          { label: t.roles.sound,         cls: 'bg-emerald-500/20 text-emerald-400' },
+    cap_de_corda:   { label: t.roles.capDeCorda,    cls: 'bg-orange-500/20 text-orange-400' },
+    member:         { label: t.roles.member_label,  cls: 'bg-fill text-faint' },
   }
   return map[persona] ?? map.member
 }
@@ -172,9 +173,9 @@ export default function Dashboard() {
               <NextShowCard show={nextShow} readiness={showReadiness} readinessLoading={readinessLoading}
                 extraLinks={
                   <>
-                    <Link to={`/show/${nextShow.id}/assaig`}><Button size="sm" variant="ghost">Guia d'assaig</Button></Link>
-                    <Link to={`/show/${nextShow.id}/llums`}><Button size="sm" variant="ghost">Il·luminació</Button></Link>
-                    <Link to={`/show/${nextShow.id}/mics`}><Button size="sm" variant="ghost">Micròfons</Button></Link>
+                    <Link to={`/show/${nextShow.id}/rehearsal`}><Button size="sm" variant="ghost">{t.dashboard.rehearsalGuide}</Button></Link>
+                    <Link to={`/show/${nextShow.id}/lights`}><Button size="sm" variant="ghost">{t.dashboard.lighting}</Button></Link>
+                    <Link to={`/show/${nextShow.id}/mics`}><Button size="sm" variant="ghost">{t.mics.microphones}</Button></Link>
                   </>
                 }
               />

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { t } from '../locales/ca'
 import { CalendarDays, Plus, Check, X, Clock, Bell, Plane, Briefcase, HeartPulse, MessageSquare, MapPin, Pencil, BookOpen, ChevronDown, Music, ExternalLink, FileText } from '../lib/icons'
 import Button from '../components/ui/Button'
 import { useAuth } from '../hooks/useAuth.jsx'
@@ -19,22 +20,19 @@ import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
 import { supabase } from '../lib/supabase'
 
 const STATUS_CONFIG = {
-  present:  { label: 'Present',  icon: Check,  cls: 'bg-green-100 text-green-700 border-green-300 dark:bg-green-700/30 dark:text-green-300 dark:border-green-700/50' },
-  absent:   { label: 'Absent',   icon: X,      cls: 'bg-red-100 text-red-700 border-red-300 dark:bg-red-700/30 dark:text-red-300 dark:border-red-700/50' },
-  excused:  { label: 'Excusat', icon: Clock,  cls: 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-700/30 dark:text-amber-300 dark:border-amber-700/50' },
+  present:  { label: t.attendanceStatus.present,  icon: Check,  cls: 'bg-green-100 text-green-700 border-green-300 dark:bg-green-700/30 dark:text-green-300 dark:border-green-700/50' },
+  absent:   { label: t.attendanceStatus.absent,   icon: X,      cls: 'bg-red-100 text-red-700 border-red-300 dark:bg-red-700/30 dark:text-red-300 dark:border-red-700/50' },
+  excused:  { label: t.attendanceStatus.excused,  icon: Clock,  cls: 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-700/30 dark:text-amber-300 dark:border-amber-700/50' },
 }
 
 const REASONS = {
-  viatge:   { label: 'Viatge',   icon: Plane },
-  feina:    { label: 'Feina',    icon: Briefcase },
-  malaltia: { label: 'Malaltia', icon: HeartPulse },
-  altre:    { label: 'Altre',    icon: MessageSquare },
+  viatge:   { label: t.reasons.viatge,   icon: Plane },
+  feina:    { label: t.reasons.feina,    icon: Briefcase },
+  malaltia: { label: t.reasons.malaltia, icon: HeartPulse },
+  altre:    { label: t.reasons.altre,    icon: MessageSquare },
 }
 
-const REHEARSAL_TYPES = {
-  veu: 'Veu', coreo: 'Coreo', ambdues: 'Veu + Coreo',
-  masterclass: 'Masterclass', posicions: 'Passi de posicions',
-}
+const REHEARSAL_TYPES = t.rehearsalTypes
 
 function parseRehearsalMeta(notes) {
   if (!notes) return { type: '', time: '', location: '', freeNotes: '' }
@@ -153,7 +151,7 @@ export default function Attendance() {
 
   const tabs = (
     <div className="flex gap-1">
-      {[['assajos', 'Assajos'], ['resum', 'Resum acumulat']].map(([key, label]) => (
+      {[['assajos', t.attendance.tabRehearsals], ['resum', t.attendance.tabSummary]].map(([key, label]) => (
         <button key={key} onClick={() => setTab(key)}
           className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
             tab === key ? 'border-cyan-500 text-cyan-600 dark:border-cyan-400 dark:text-cyan-300' : 'border-transparent text-muted hover:text-body'
@@ -166,10 +164,10 @@ export default function Attendance() {
 
   const headerActions = (
     <div className="flex items-center gap-2">
-      {saving && <span className="text-xs text-ghost">Guardant…</span>}
+      {saving && <span className="text-xs text-ghost">{t.saving}</span>}
       {isAdmin && tab === 'assajos' && (
         <Button size="sm" onClick={() => setAddingDate(v => !v)}>
-          <Plus size={14} /> Nou assaig
+          <Plus size={14} /> {t.attendance.newRehearsal}
         </Button>
       )}
     </div>
@@ -178,14 +176,14 @@ export default function Attendance() {
   return (
     <Layout fullWidth>
       <PageContainer
-        header={<PageHeader title="Assajos" icon={CalendarDays} actions={headerActions} tabs={tabs} />}
+        header={<PageHeader title={t.attendance.pageTitle} icon={CalendarDays} actions={headerActions} tabs={tabs} />}
       >
       <div className="space-y-4 pt-2">
 
         {/* New rehearsal form */}
         {isAdmin && addingDate && (
           <div className="rounded-xl border border-line bg-pane p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-body">Nou assaig</h3>
+            <h3 className="text-sm font-semibold text-body">{t.attendance.newRehearsal}</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-muted">Data *</label>
@@ -209,13 +207,13 @@ export default function Attendance() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button size="sm" onClick={addRehearsalDate} disabled={!newDate}>Afegir assaig</Button>
-              <Button size="sm" variant="ghost" onClick={resetForm}>Cancel·lar</Button>
+              <Button size="sm" onClick={addRehearsalDate} disabled={!newDate}>{t.attendance.addRehearsal}</Button>
+              <Button size="sm" variant="ghost" onClick={resetForm}>{t.cancel}</Button>
             </div>
           </div>
         )}
 
-        {loading ? <p className="text-faint text-sm">Carregant...</p> : tab === 'assajos' ? (
+        {loading ? <p className="text-faint text-sm">{t.loading}</p> : tab === 'assajos' ? (
           <div className="space-y-4">
             {isAdmin && (
               <RehearsalScheduleConfig
@@ -257,7 +255,7 @@ export default function Attendance() {
                               {formatDate(r.date)}
                             </span>
                             {type && <Badge color="cyan">{REHEARSAL_TYPES[type]}</Badge>}
-                            {isNext && <Badge color="amber">Proper</Badge>}
+                            {isNext && <Badge color="amber">{t.attendance.upcoming}</Badge>}
                           </div>
                           {(time || loc) && (
                             <div className="flex items-center gap-3 mt-1 text-xs text-muted">
@@ -284,7 +282,7 @@ export default function Attendance() {
                   {!showAllRehearsals && hidden.length > 0 && (
                     <button onClick={() => setShowAllRehearsals(true)}
                       className="flex items-center justify-center gap-1.5 text-xs text-muted hover:text-body py-2 transition-colors">
-                      <ChevronDown size={13} /> Veure tots ({rehearsals.length} assajos)
+                      <ChevronDown size={13} /> {t.attendance.showAll(rehearsals.length)}
                     </button>
                   )}
                 </div>
@@ -294,7 +292,7 @@ export default function Attendance() {
             {!selected ? (
               <div className="text-center py-16 text-ghost">
                 <CalendarDays size={40} className="mx-auto mb-4 opacity-30" />
-                <p>Afegeix una data per registrar l'assistència.</p>
+                <p>{t.attendance.emptyHint}</p>
               </div>
             ) : (
               <>
@@ -306,7 +304,7 @@ export default function Attendance() {
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-sm font-semibold text-body">{formatDate(selected.date)}</span>
                           {meta.type && <Badge color="cyan">{REHEARSAL_TYPES[meta.type]}</Badge>}
-                          {upcoming && <Badge color="amber">Proper</Badge>}
+                          {upcoming && <Badge color="amber">{t.attendance.upcoming}</Badge>}
                         </div>
                         <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
                           {meta.time && <span className="flex items-center gap-1"><Clock size={11} />{meta.time}</span>}
@@ -334,16 +332,16 @@ export default function Attendance() {
                   <div className="bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-700/30 rounded-xl p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-2">
-                        <Bell size={14} /> Avisos d'absència
+                        <Bell size={14} /> {t.attendance.absenceNotices}
                       </h3>
                       <button onClick={() => setShowNotifyForm(v => !v)}
                         className="flex items-center gap-1.5 text-xs bg-amber-100 hover:bg-amber-200 dark:bg-amber-700/30 dark:hover:bg-amber-700/50 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700/40 px-3 py-1.5 rounded-lg transition-colors">
-                        <Plus size={12} /> No vinc
+                        <Plus size={12} /> {t.attendance.notComing}
                       </button>
                     </div>
                     {showNotifyForm && (
                       <div className="flex flex-wrap items-end gap-2 p-3 bg-white dark:bg-pane/50 rounded-lg border border-amber-200 dark:border-amber-700/20">
-                        <Select label="Qui no ve" value={notifyMemberId} onChange={e => setNotifyMemberId(e.target.value)}>
+                        <Select label={t.attendance.whoNotComing} value={notifyMemberId} onChange={e => setNotifyMemberId(e.target.value)}>
                           <option value="">— Selecciona —</option>
                           {members.map(m => (
                             <option key={m.id} value={m.id}>
@@ -351,18 +349,18 @@ export default function Attendance() {
                             </option>
                           ))}
                         </Select>
-                        <Select label="Motiu" value={notifyReason} onChange={e => setNotifyReason(e.target.value)}>
+                        <Select label={t.attendance.reason} value={notifyReason} onChange={e => setNotifyReason(e.target.value)}>
                           {Object.entries(REASONS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                         </Select>
                         <button onClick={handleSubmitNotice} disabled={!notifyMemberId}
                           className="bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-                          Enviar avís
+                          {t.attendance.sendNotice}
                         </button>
-                        <button onClick={() => setShowNotifyForm(false)} className="text-faint hover:text-body text-sm py-2">Cancel·lar</button>
+                        <button onClick={() => setShowNotifyForm(false)} className="text-faint hover:text-body text-sm py-2">{t.cancel}</button>
                       </div>
                     )}
                     {members.filter(m => attendance[m.id]?.status === 'excused').length === 0
-                      ? <p className="text-xs text-ghost">Ningú ha avisat d'absència.</p>
+                      ? <p className="text-xs text-ghost">{t.attendance.noAbsenceNotices}</p>
                       : members.filter(m => attendance[m.id]?.status === 'excused').map(m => {
                           const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
                           const reason = attendance[m.id]?.reason

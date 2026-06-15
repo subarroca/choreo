@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
 import { toast } from '../components/ui/Toast'
 import { formatDate } from '../lib/formatters'
+import { t } from '../locales/ca'
 
 const STATUS_CYCLE = ['present', 'absent', 'excused']
 
@@ -68,7 +69,7 @@ export function useAttendanceData() {
       const updated = [...rehearsals, data].sort((a, b) => a.date < b.date ? -1 : 1)
       setRehearsals(updated)
       setSelectedId(data.id)
-      toast('Assaig afegit')
+      toast(t.attendance.added)
     }
     return !!data
   }
@@ -76,19 +77,19 @@ export function useAttendanceData() {
   async function saveRehearsalMeta(id, type, time, location, notes) {
     const notesStr = serializeRehearsalMeta(type, time, location, notes)
     const { data } = await supabase.from('rehearsals').update({ notes: notesStr }).eq('id', id).select().single()
-    if (data) { setRehearsals(prev => prev.map(r => r.id === data.id ? data : r)); toast('Assaig desat') }
+    if (data) { setRehearsals(prev => prev.map(r => r.id === data.id ? data : r)); toast(t.attendance.saved) }
     return data
   }
 
   async function deleteRehearsal(id) {
     const r = rehearsals.find(x => x.id === id)
-    if (!(await confirmDialog(`Eliminar l'assaig del ${formatDate(r.date)} i tots els registres?`))) return
+    if (!(await confirmDialog(t.attendance.deleteConfirm(formatDate(r.date))))) return
     await supabase.from('attendance').delete().eq('rehearsal_id', id)
     await supabase.from('rehearsals').delete().eq('id', id)
     const newList = rehearsals.filter(x => x.id !== id)
     setRehearsals(newList)
     setSelectedId(newList.length ? newList[newList.length - 1].id : null)
-    toast('Assaig eliminat', 'warn')
+    toast(t.attendance.deleted, 'warn')
   }
 
   async function toggleStatus(memberId) {

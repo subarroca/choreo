@@ -3,9 +3,9 @@ import { X, Play, Pause, SkipBack, ChevronLeft, ChevronRight } from '../../lib/i
 import { lyricsLines, buildPlaybackSteps, sortCues, effectiveMomentId, formatCueNumber, cueSummary, lightColor } from '../../lib/lights'
 import StageSim from './StageSim'
 
-// Mode reproducció (karaoke): recorre la cançó pas a pas — línies de
-// lletra i cues en ordre — mostrant llums i posicions a cada moment.
-// GO manual (tap, fletxes, espai) o auto-play amb velocitat ajustable.
+// Playback mode (karaoke): steps through a song — lyric lines and cues
+// in order — showing lights and positions at each moment.
+// Manual GO (tap, arrows, space) or auto-play with adjustable speed.
 export default function LightsPlayer({
   song, repSong, cues, allCues, show, members, momentsBySong,
   positionsByMoment, loadMomentPositions, onClose,
@@ -17,10 +17,10 @@ export default function LightsPlayer({
   const [secondsPerStep, setSecondsPerStep] = useState(3)
   const timerRef = useRef(null)
 
-  // Estat actual: últim cue disparat fins al pas actual
+  // Current state: last cue fired up to the current step
   const currentCue = useMemo(() => {
     for (let i = stepIdx; i >= 0; i--) if (steps[i]?.cue) return steps[i].cue
-    // Abans del primer cue de la cançó: estat de l'últim cue anterior del show
+    // Before the first cue of the song: state of the last preceding cue in the show
     const first = sortCues(cues)[0]
     if (!first) return null
     const n = Number(first.cue_number) || 0
@@ -67,7 +67,7 @@ export default function LightsPlayer({
     return null
   })()
 
-  // Finestra de lletra al voltant de la línia actual
+  // Lyric window around the current line
   const windowLines = []
   if (currentLine != null) {
     for (let i = currentLine - 2; i <= currentLine + 3; i++) {
@@ -89,7 +89,7 @@ export default function LightsPlayer({
 
   return (
     <div className="fixed inset-0 z-50 bg-page flex flex-col">
-      {/* Barra superior */}
+      {/* Top bar */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-rim shrink-0">
         <span className="text-sm font-semibold text-body truncate">{song.title}</span>
         <span className="text-xs text-ghost shrink-0">pas {stepIdx + 1}/{steps.length}</span>
@@ -142,7 +142,7 @@ export default function LightsPlayer({
               placements={effMomentId ? (positionsByMoment[effMomentId] ?? {}) : {}}
               gridMode={effMoment?.grid_mode ?? 'alternate'} cue={currentCue ?? {}} className="w-full h-auto" />
           </div>
-          {/* Estat de llums actual */}
+          {/* Current light state */}
           <div className="flex items-center gap-2 flex-wrap">
             {currentCue ? (
               <>

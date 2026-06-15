@@ -6,6 +6,7 @@ import { ConfirmHost } from './components/ui/ConfirmDialog'
 import { ToastHost } from './components/ui/Toast'
 import { GlobalSearchModal, useGlobalSearch } from './components/GlobalSearch'
 import OfflineBanner from './components/OfflineBanner'
+import { t } from './locales/ca'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Shows from './pages/Shows'
@@ -27,7 +28,7 @@ function RequireAuth({ children }) {
   const { session, loading } = useAuth()
   if (loading) return (
     <div className="min-h-screen bg-page flex items-center justify-center">
-      <span className="text-faint text-sm">Carregant...</span>
+      <span className="text-faint text-sm">{t.loading}</span>
     </div>
   )
   if (!session) return <Navigate to="/login" replace />
@@ -40,7 +41,7 @@ function RequireSection({ section, children }) {
   const { session, loading, can } = useAuth()
   if (loading) return (
     <div className="min-h-screen bg-page flex items-center justify-center">
-      <span className="text-faint text-sm">Carregant...</span>
+      <span className="text-faint text-sm">{t.loading}</span>
     </div>
   )
   if (!session) return <Navigate to="/login" replace />
@@ -64,11 +65,11 @@ function AppRoutes() {
       <Route path="/members" element={<RequireSection section="members"><Members /></RequireSection>} />
       <Route path="/show/:id/song/:sid/moment/:mid" element={<RequireSection section="staging"><Editor /></RequireSection>} />
       <Route path="/show/:id/mics" element={<RequireSection section="mics"><Mics /></RequireSection>} />
-      <Route path="/show/:id/llums" element={<RequireSection section="lights"><Lights /></RequireSection>} />
+      <Route path="/show/:id/lights" element={<RequireSection section="lights"><Lights /></RequireSection>} />
       <Route path="/show/:id/rider" element={<RequireSection section="rider"><Rider /></RequireSection>} />
       <Route path="/show/:id/poster" element={<RequireSection section="shows"><Poster /></RequireSection>} />
-      <Route path="/show/:id/assaig" element={<RequireSection section="shows"><Rehearsal /></RequireSection>} />
-      <Route path="/assistencia" element={<RequireSection section="attendance"><Attendance /></RequireSection>} />
+      <Route path="/show/:id/rehearsal" element={<RequireSection section="shows"><Rehearsal /></RequireSection>} />
+      <Route path="/attendance" element={<RequireSection section="attendance"><Attendance /></RequireSection>} />
       <Route path="/songs" element={<RequireSection section="repertoire"><Songs /></RequireSection>} />
       <Route path="/admin" element={<RequireSection section="users"><Admin /></RequireSection>} />
       <Route path="/analytics" element={<RequireAuth><Analytics /></RequireAuth>} />

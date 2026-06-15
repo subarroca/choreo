@@ -4,20 +4,21 @@ import { useClickOutside } from '../hooks/useClickOutside.js'
 import { ListOrdered, ImageIcon, MicVocal, Lightbulb, FileText, ChevronDown, PlayCircle, ChevronLeft } from '../lib/icons'
 import { ACCENT } from '../lib/ui.js'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { t } from '../locales/ca'
 
 const TAB_IDLE = 'text-muted hover:text-body hover:bg-fill'
 
 // `section` gates visibility per role via can(section,'view').
 const MAIN_TABS = [
-  { key: 'setlist', path: '',        label: 'Escaleta', icon: ListOrdered, section: 'shows'  },
-  { key: 'assaig',  path: '/assaig', label: 'Assaig',   icon: PlayCircle,  section: 'shows'  },
-  { key: 'llums',   path: '/llums',  label: 'Llums',    icon: Lightbulb,   section: 'lights' },
-  { key: 'poster',  path: '/poster', label: 'Pòster',   icon: ImageIcon,   section: 'shows'  },
+  { key: 'setlist',   path: '',           label: t.tabs.setlist,   icon: ListOrdered, section: 'shows'  },
+  { key: 'rehearsal', path: '/rehearsal', label: t.tabs.rehearsal, icon: PlayCircle,  section: 'shows'  },
+  { key: 'lights',    path: '/lights',    label: t.tabs.lights,    icon: Lightbulb,   section: 'lights' },
+  { key: 'poster',    path: '/poster',    label: t.tabs.poster,    icon: ImageIcon,   section: 'shows'  },
 ]
 
 const RIDER_TABS = [
-  { key: 'mics',  path: '/mics',  label: 'Micros',   icon: MicVocal, section: 'mics'  },
-  { key: 'rider', path: '/rider', label: 'Document', icon: FileText, section: 'rider' },
+  { key: 'mics',  path: '/mics',  label: t.tabs.mics,     icon: MicVocal, section: 'mics'  },
+  { key: 'rider', path: '/rider', label: t.tabs.document, icon: FileText, section: 'rider' },
 ]
 
 export default function ShowToolbar({ showId, showName }) {
@@ -37,7 +38,7 @@ export default function ShowToolbar({ showId, showName }) {
         <ChevronLeft size={16} />
       </Link>
       <nav className="flex items-center gap-1.5 text-sm text-faint min-w-0 mr-1 shrink-0">
-        <Link to="/" className="hover:text-soft">Espectacles</Link>
+        <Link to="/" className="hover:text-soft">{t.breadcrumb.shows}</Link>
         <span>/</span>
         <Link to={base} className="hover:text-soft truncate max-w-[160px]">{showName ?? '…'}</Link>
       </nav>

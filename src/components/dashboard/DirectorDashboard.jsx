@@ -10,7 +10,7 @@ function QuickActions() {
     { to: '/shows',      label: 'Espectacles', Icon: Clapperboard, show: true },
     { to: '/members',    label: 'Persones',    Icon: Users,        show: can('members', 'view') },
     { to: '/songs',      label: 'Repertori',   Icon: BookOpen,     show: can('repertoire', 'view') },
-    { to: '/assistencia',label: 'Assajos',     Icon: CalendarDays, show: true },
+    { to: '/attendance', label: 'Assajos',     Icon: CalendarDays, show: true },
     { to: '/admin',      label: 'Admin',       Icon: Shield,       show: can('users', 'view') },
   ].filter(a => a.show)
 

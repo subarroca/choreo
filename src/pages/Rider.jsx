@@ -11,9 +11,9 @@ const EFFECT_ICONS = {
   Moon, Wind, Sparkles, Move, Pause, Theater, ScanFace
 }
 
-// Rider tècnic imprimible: portada + cue sheet de llums per cançó
-// (amb plànols d'escenari) + annex de micròfons.
-// «Imprimir» → el navegador genera el PDF.
+// Printable technical rider: cover + light cue sheet per song
+// (with stage diagrams) + mic appendix.
+// "Print" → the browser generates the PDF.
 export default function Rider() {
   const { id: showId } = useParams()
   const {
@@ -35,7 +35,7 @@ export default function Rider() {
   )
   const hasMicData = mics.length > 0 && Object.keys(micAssignments).length > 0
 
-  // Agrupa cues per cançó en ordre de número (les estructurals fan de separadors)
+  // Group cues by song in number order (structural cues act as separators)
   const groups = []
   let current = null
   for (const cue of sortCues(cues)) {

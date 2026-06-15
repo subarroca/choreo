@@ -1,7 +1,7 @@
 import { formatCueNumber, cueSummary, sideColorHex, cueEffects, TRIGGER_TYPES } from '../../lib/lights'
 
-// Vista taula: tots els cues del show en ordre de número,
-// amb separadors quan canvia la cançó (com la graella de micros).
+// Table view: all cues for the show in number order,
+// with separators when the song changes (like the mic grid).
 export default function CueTable({ cues, songs, selectedCueId, onSelectCue }) {
   const songMap = Object.fromEntries(songs.map(s => [s.id, s]))
 

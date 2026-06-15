@@ -1,5 +1,5 @@
-// Vocabulari del disseny de llums — basat en les memòries reals
-// del tècnic ("NO FR", "poc FR", "FR", "+FR", "FOSC", "barrido",
+// Lighting design vocabulary — based on real technician notes
+// ("NO FR", "poc FR", "FR", "+FR", "FOSC", "barrido",
 // "chase", "mòbils", "canó", "+ SALA"…)
 
 // ─── Intensitats: 5 passes consistents en % ───────────────────
@@ -19,8 +19,8 @@ export const LIGHT_SCOPES = [
   { value: 'solistes', label: 'Només solistes' },
 ]
 
-// ─── Focus per banda: tres per frontal i tres per contra ──────
-// (vistos des del públic), cadascun amb intensitat pròpia.
+// ─── Fixtures per side: three for front and three for back ────
+// (viewed from the audience), each with its own intensity.
 export const LIGHT_ZONES = [
   { value: 'esquerra', label: 'Esquerra', short: 'esq' },
   { value: 'centre',   label: 'Centre',   short: 'cen' },
@@ -38,7 +38,7 @@ export const LIGHT_EFFECTS = [
   { value: 'stop_mov', label: 'Freeze', icon: 'Pause' },
 ]
 
-// Sala i públic: opcions pròpies, fora dels efectes d'escenari
+// House and audience: their own options, separate from stage effects
 export const AUDIENCE_OPTIONS = [
   { value: 'sala',   label: 'Llums de sala', icon: 'Theater' },
   { value: 'public', label: 'Públic', icon: 'ScanFace' },
@@ -65,8 +65,8 @@ export const LIGHT_COLORS = [
 
 export const lightColor = (id) => LIGHT_COLORS.find(c => c.id === id) ?? null
 
-// Retorna tots els colors únics d'una banda com a array de hex.
-// Si hi ha nivells actius però cap color assignat, retorna gris (neutre).
+// Returns all unique colors for a side as an array of hex values.
+// If there are active levels but no color assigned, returns grey (neutral).
 export function sideColorHexes(cue, side) {
   const zc = cueZoneColors(cue, side)
   const colors = ZONE_KEYS.map(z => zc[z]).filter(Boolean)
@@ -132,8 +132,8 @@ export function formatCueNumber(n) {
   return String(Number(n))
 }
 
-// "F 75% càlid" si els tres focus van iguals;
-// "F esq25 · cen100 càlid" si van diferents.
+// "F 75% càlid" if all three fixtures match;
+// "F esq25 · cen100 càlid" if they differ.
 function sideSummary(cue, side) {
   const levels = cueLevels(cue, side)
   const vals = ZONE_KEYS.map(z => levels[z])
@@ -153,7 +153,7 @@ function sideSummary(cue, side) {
   return txt
 }
 
-// Resum compacte de l'estat de llum:
+// Compact summary of the light state:
 // "F 75% càlid · C cen50 lila · mòbils · sala · prog. 3s"
 export function cueSummary(cue) {
   const parts = []
@@ -175,8 +175,8 @@ export function cueSummary(cue) {
   return parts.join(' · ')
 }
 
-// Resum ultra-compacte per als chips (només efectes i transicions,
-// sense info de colors/nivells que ja es veuen visualment)
+// Ultra-compact summary for chips (effects and transitions only,
+// without color/level info that is already visible)
 export function cueSummaryCompact(cue) {
   const parts = []
   const effects = cueEffects(cue)
@@ -198,7 +198,7 @@ export function cueSummaryCompact(cue) {
   return parts.length > 0 ? parts.join(' · ') : ''
 }
 
-// Següent número de cue lliure (enter següent al màxim)
+// Next free cue number (integer after the maximum)
 export function nextCueNumber(cues) {
   if (!cues?.length) return 1
   return Math.floor(Math.max(...cues.map(c => Number(c.cue_number) || 0))) + 1
@@ -208,13 +208,13 @@ export function sortCues(cues) {
   return [...cues].sort((a, b) => (Number(a.cue_number) || 0) - (Number(b.cue_number) || 0))
 }
 
-// Línies de lletra d'una cançó (índexs estables per ancorar cues)
+// Lyric lines of a song (stable indices for anchoring cues)
 export function lyricsLines(lyrics) {
   return (lyrics ?? '').split('\n')
 }
 
-// Moment efectiu d'un cue: el seu propi, o el de l'últim cue anterior
-// que en tingui (les posicions persisteixen fins que canvien).
+// Effective moment of a cue: its own, or that of the last preceding cue
+// that has one (positions persist until they change).
 export function effectiveMomentId(cue, allCues) {
   if (!cue) return null
   if (cue.moment_id) return cue.moment_id
@@ -223,10 +223,10 @@ export function effectiveMomentId(cue, allCues) {
   return prev.length ? prev[prev.length - 1].moment_id : null
 }
 
-// ─── Reproducció (mode karaoke) ───────────────────────────────
-// Seqüència de passos d'una cançó: línies de lletra en ordre,
-// amb els cues intercalats al seu punt (per línia ancorada o,
-// si no en tenen, com a pas propi en ordre de número).
+// ─── Playback (karaoke mode) ──────────────────────────────────
+// Sequence of steps for a song: lyric lines in order,
+// with cues interleaved at their point (by anchored line or,
+// if they have none, as their own step in cue number order).
 export function buildPlaybackSteps(lines, cues) {
   const steps = []
   let pointer = 0

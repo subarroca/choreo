@@ -6,14 +6,9 @@ import { VOICE_COLORS, VOICE_SHORT } from '../../lib/constants'
 import { supabase } from '../../lib/supabase'
 import Button from '../ui/Button'
 import Badge from '../ui/Badge'
+import { t } from '../../locales/ca'
 
-const REHEARSAL_TYPES = {
-  veu:         'Veu',
-  coreo:       'Coreo',
-  ambdues:     'Veu + Coreo',
-  masterclass: 'Masterclass',
-  posicions:   'Passi de posicions',
-}
+const REHEARSAL_TYPES = t.rehearsalTypes
 
 export function parseRehearsalMeta(notes) {
   if (!notes) return { type: '', freeNotes: '' }
@@ -225,7 +220,7 @@ function RehearsalMiniCard({ rehearsal, attendanceMap, myMemberId }) {
 
   return (
     <div className="rounded-xl border border-rim bg-pane p-3 flex flex-col gap-2 hover:border-wire transition-colors">
-      <Link to="/assistencia" className="flex items-start justify-between gap-2">
+      <Link to="/attendance" className="flex items-start justify-between gap-2">
         <span className="text-sm font-semibold text-body">{formatDateShort(rehearsal.date)}</span>
         <span className={`text-xs shrink-0 ${days === 0 ? 'text-amber-400 font-semibold' : days === 1 ? 'text-amber-400' : 'text-ghost'}`}>
           {days === 0 ? 'Avui' : days === 1 ? 'Demà' : `${days}d`}
@@ -272,7 +267,7 @@ export function UpcomingRehearsals({ rehearsals, attendanceMap, myMemberId }) {
     <div>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-muted uppercase tracking-wide">Propers assajos</h3>
-        <Link to="/assistencia" className="text-xs text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 flex items-center gap-1 transition-colors">
+        <Link to="/attendance" className="text-xs text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 flex items-center gap-1 transition-colors">
           Veure tots <ArrowRight size={ICON.xs} />
         </Link>
       </div>

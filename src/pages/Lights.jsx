@@ -4,6 +4,7 @@ import { Plus, Menu, ListOrdered, AlignLeft, Play, Hash } from '../lib/icons'
 import Layout from '../components/Layout'
 import ShowToolbar from '../components/ShowToolbar'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
+import { t } from '../locales/ca'
 import Modal from '../components/ui/Modal'
 import Button from '../components/ui/Button'
 import Textarea from '../components/ui/Textarea'
@@ -103,13 +104,13 @@ export default function Lights() {
 
   async function handleDeleteCue() {
     if (!selectedCue) return
-    if (!(await confirmDialog('Eliminar aquest cue de llums?'))) return
+    if (!(await confirmDialog(t.lightsConfirm.deleteCue))) return
     await deleteCue(selectedCue.id)
     setSelectedCueId(null)
   }
 
   async function handleDeleteCueById(cue) {
-    if (!(await confirmDialog('Eliminar aquest cue de llums?'))) return
+    if (!(await confirmDialog(t.lightsConfirm.deleteCue))) return
     await deleteCue(cue.id)
     if (selectedCueId === cue.id) setSelectedCueId(null)
   }

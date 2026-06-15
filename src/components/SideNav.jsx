@@ -10,26 +10,27 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import useFeedback from '../hooks/useFeedback.js'
 import ProfileMenu from './ProfileMenu.jsx'
 import { ICON } from '../lib/ui.js'
+import { t } from '../locales/ca'
 
 function useNavItems() {
   const { can, isPrivileged } = useAuth()
   const { pendingCount } = useFeedback()
   const items = []
-  items.push({ to: '/', label: 'Inici', Icon: Home })
+  items.push({ to: '/', label: t.nav.home, Icon: Home })
   if (can('repertoire', 'view'))
-    items.push({ to: '/songs', label: 'Cançons', Icon: Music2 })
+    items.push({ to: '/songs', label: t.nav.songs, Icon: Music2 })
   if (can('shows', 'view'))
-    items.push({ to: '/shows', label: 'Espectacles', Icon: Clapperboard })
+    items.push({ to: '/shows', label: t.nav.shows, Icon: Clapperboard })
   if (can('attendance', 'view'))
-    items.push({ to: '/assistencia', label: 'Assajos', Icon: CalendarDays })
+    items.push({ to: '/attendance', label: t.nav.rehearsals, Icon: CalendarDays })
   if (can('members', 'view'))
-    items.push({ to: '/members', label: 'Persones', Icon: Users })
+    items.push({ to: '/members', label: t.nav.members, Icon: Users })
   if (isPrivileged)
-    items.push({ to: '/analytics', label: 'Analítica', Icon: BarChart3 })
+    items.push({ to: '/analytics', label: t.nav.analytics, Icon: BarChart3 })
   if (can('users', 'view'))
-    items.push({ to: '/admin', label: 'Admin', Icon: Shield })
+    items.push({ to: '/admin', label: t.nav.admin, Icon: Shield })
   if (isPrivileged)
-    items.push({ to: '/feedback', label: 'Feedback', Icon: MessageSquarePlus, badge: pendingCount || null })
+    items.push({ to: '/feedback', label: t.nav.feedback, Icon: MessageSquarePlus, badge: pendingCount || null })
   return items
 }
 
@@ -108,9 +109,9 @@ function DesktopRail({ items, isActive, onSignOut }) {
         <div className={expanded ? 'px-1' : 'flex justify-center'}>
           <ProfileMenu onSignOut={onSignOut} expanded={expanded} />
         </div>
-        <button onClick={toggleExpanded} title={expanded ? 'Col·lapsar' : 'Expandir'} className={itemCls(false)}>
+        <button onClick={toggleExpanded} title={expanded ? t.nav.collapse : t.nav.expand} className={itemCls(false)}>
           {expanded ? <PanelLeftClose size={ICON.md} className="shrink-0" /> : <PanelLeftOpen size={ICON.md} className="shrink-0" />}
-          {expanded && <span>Col·lapsar</span>}
+          {expanded && <span>{t.nav.collapse}</span>}
         </button>
       </div>
     </aside>

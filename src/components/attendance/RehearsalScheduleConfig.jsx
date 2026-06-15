@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { List, RotateCcw, Plus } from '../../lib/icons'
+import { t } from '../../locales/ca'
 import Button from '../ui/Button'
 import { inputCls } from '../ui/Input'
 import Select from '../ui/Select'
@@ -73,7 +74,7 @@ export default function RehearsalScheduleConfig({ schedule, onScheduleChange, ex
       <button onClick={() => setOpen(v => !v)}
         className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left hover:bg-fill/50 transition-colors">
         <span className="flex items-center gap-2 text-sm font-semibold text-body">
-          <List size={14} className="text-muted" /> Horari habitual d'assaig
+          <List size={14} className="text-muted" /> {t.attendance.scheduleLabel}
         </span>
         <span className="text-xs text-muted">{DAYS[cfg.day_of_week ?? 2]} · {cfg.time || '—'} · {cfg.location || 'Lloc no definit'}</span>
       </button>

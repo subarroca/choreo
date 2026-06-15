@@ -77,7 +77,7 @@ export const SEED_ATTENDANCE = [
   { rehearsal_id: 'reh-06', member_id: 'dev-m-a2-ar', status: 'excused', reason: 'malaltia' },
   { rehearsal_id: 'reh-06', member_id: 'dev-m-bar-4', status: 'excused', reason: 'feina' },
 
-  // ── reh-07 (19 mai — assaig amb piano) ───────────────────────
+  // ── reh-07 (19 mai — rehearsal with piano) ───────────────────
   { rehearsal_id: 'reh-07', member_id: 'dev-m-bar-3', status: 'absent',  reason: 'feina' },
   { rehearsal_id: 'reh-07', member_id: 'dev-m-t1-aa', status: 'excused', reason: 'viatge' },
   { rehearsal_id: 'reh-07', member_id: 'dev-m-s2-ic', status: 'absent',  reason: 'malaltia' },
@@ -90,7 +90,7 @@ export const SEED_ATTENDANCE = [
   { rehearsal_id: 'reh-08', member_id: 'dev-m-a1-sc', status: 'absent',  reason: '' },
   { rehearsal_id: 'reh-08', member_id: 'dev-m-t1-mp', status: 'excused', reason: 'viatge' },
 
-  // ── reh-09 (02 jun — assaig general) ─────────────────────────
+  // ── reh-09 (02 jun — full run-through) ───────────────────────
   { rehearsal_id: 'reh-09', member_id: 'dev-m-bar-3', status: 'absent',  reason: 'feina' },
   { rehearsal_id: 'reh-09', member_id: 'dev-m-t1-sp', status: 'excused', reason: 'feina' },
   { rehearsal_id: 'reh-09', member_id: 'dev-m-a2-cg', status: 'excused', reason: 'malaltia' },

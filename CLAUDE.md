@@ -63,6 +63,7 @@ src/
 │   └── ui/         # Shared primitives (Button, Input, ConfirmDialog)
 ├── hooks/          # Custom React hooks (auth, data, drag, queries)
 ├── lib/            # Pure utilities, constants, canvas rendering, Supabase client
+├── locales/        # UI strings (ca.js) — single source of truth for all Catalan text
 ```
 
 ### Data Flow
@@ -81,10 +82,10 @@ Supabase (or localStorage in dev mode) → custom hooks → React components →
 | `/` | Shows | CRUD concerts (name, date, venue, poster) |
 | `/show/:id` | Setlist | Songs organized in parts, moments per song, cast management |
 | `/show/:id/song/:sid/moment/:mid` | Editor | Grid-based member positioning (square/alternate/free/semicircle modes), drag-drop, auto-arrange templates |
-| `/show/:id/llums` | Lights | Light cue design (front/back zones, colors, effects, followspots), lyric triggers, presets, karaoke playback, 3D visualization |
+| `/show/:id/lights` | Lights | Light cue design (front/back zones, colors, effects, followspots), lyric triggers, presets, karaoke playback, 3D visualization |
 | `/show/:id/mics` | Mics | Microphone assignments per moment |
 | `/show/:id/rider` | Rider | Printable technical rider (cover + cue sheets + mic grid) |
-| `/show/:id/assaig` | Rehearsal | Position guide per member (neighbors, grid position, visual grid) |
+| `/show/:id/rehearsal` | Rehearsal | Position guide per member (neighbors, grid position, visual grid) |
 | `/show/:id/poster` | Poster | Upload/manage show poster |
 | `/members` | Members | Roster with voice part, height, birthdate, active status |
 | `/songs` | Songs | Repertoire library (lyrics, composer, attachments) |
@@ -134,4 +135,4 @@ React 18, react-router-dom 7, @supabase/supabase-js, @dnd-kit/core + sortable, p
 
 ## Language
 
-All UI text is in Catalan. Dates formatted as `ca-ES`. Variable names and code comments in English.
+All UI text is in Catalan and must be centralized in `src/locales/ca.js` — import `{ t }` from there. Dates formatted as `ca-ES`. Variable names, code comments, route paths, and object keys are all in English.

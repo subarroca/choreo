@@ -7,18 +7,20 @@
 // toggles; once applied they remain editable per user.
 // ────────────────────────────────────────────────────────────────────────
 
+import { t } from ‘../locales/ca’
+
 // Every gated area of the app. `view` controls visibility (nav, pages, tabs);
 // `edit` controls mutation (forms, drag-drop, create/delete).
 export const SECTIONS = [
-  { key: 'shows',      label: 'Espectacles', desc: 'Veure i gestionar concerts' },
-  { key: 'members',    label: 'Persones',    desc: 'Roster de cantaires' },
-  { key: 'repertoire', label: 'Repertori',   desc: 'Biblioteca de cançons' },
-  { key: 'staging',    label: 'Posicions',   desc: 'Editor de posicions i moments' },
-  { key: 'lights',     label: 'Llums',       desc: 'Disseny de cues d’il·luminació' },
-  { key: 'mics',       label: 'Micros',      desc: 'Assignacions de micròfons' },
-  { key: 'attendance', label: 'Assajos',     desc: 'Assistència i italianes' },
-  { key: 'rider',      label: 'Rider',       desc: 'Document tècnic imprimible' },
-  { key: 'users',      label: 'Usuaris',     desc: 'Gestió de permisos (només admin)' },
+  { key: ‘shows’,      label: t.sections.shows.label,      desc: t.sections.shows.desc },
+  { key: ‘members’,    label: t.sections.members.label,    desc: t.sections.members.desc },
+  { key: ‘repertoire’, label: t.sections.repertoire.label, desc: t.sections.repertoire.desc },
+  { key: ‘staging’,    label: t.sections.staging.label,    desc: t.sections.staging.desc },
+  { key: ‘lights’,     label: t.sections.lights.label,     desc: t.sections.lights.desc },
+  { key: ‘mics’,       label: t.sections.mics.label,       desc: t.sections.mics.desc },
+  { key: ‘attendance’, label: t.sections.attendance.label, desc: t.sections.attendance.desc },
+  { key: ‘rider’,      label: t.sections.rider.label,      desc: t.sections.rider.desc },
+  { key: ‘users’,      label: t.sections.users.label,      desc: t.sections.users.desc },
 ]
 
 export const SECTION_KEYS = SECTIONS.map(s => s.key)
@@ -38,13 +40,13 @@ function build({ edit = [], view = [] }) {
 // Role templates. `admin`/`director` get full access via role bypass in useAuth;
 // they are listed here so the simulator and Admin presets are complete.
 export const ROLE_TEMPLATES = {
-  admin:         { label: 'Admin',          perms: { ...ALL_EDIT } },
-  director:      { label: 'Director',        perms: build({ edit: SECTION_KEYS.filter(k => k !== 'users') }) },
-  choreographer: { label: 'Coreògraf',       perms: build({ edit: ['staging', 'shows'], view: ['members', 'repertoire', 'attendance', 'mics', 'rider'] }) },
-  lighting:      { label: 'Il·luminador',    perms: build({ edit: ['lights'], view: ['shows', 'repertoire', 'rider', 'attendance'] }) },
-  sound:         { label: 'Tècnic de so',    perms: build({ edit: ['mics'], view: ['shows', 'rider', 'staging', 'attendance'] }) },
-  cap_de_corda:  { label: 'Cap de corda',    perms: build({ edit: ['attendance'], view: ['members', 'shows', 'staging', 'repertoire'] }) },
-  member:        { label: 'Cantaire',        perms: build({ view: ['shows', 'repertoire', 'attendance', 'staging'] }) },
+  admin:         { label: t.roles.admin,        perms: { ...ALL_EDIT } },
+  director:      { label: t.roles.director,     perms: build({ edit: SECTION_KEYS.filter(k => k !== 'users') }) },
+  choreographer: { label: t.roles.choreographer, perms: build({ edit: ['staging', 'shows'], view: ['members', 'repertoire', 'attendance', 'mics', 'rider'] }) },
+  lighting:      { label: t.roles.lighting,     perms: build({ edit: ['lights'], view: ['shows', 'repertoire', 'rider', 'attendance'] }) },
+  sound:         { label: t.roles.sound,        perms: build({ edit: ['mics'], view: ['shows', 'rider', 'staging', 'attendance'] }) },
+  cap_de_corda:  { label: t.roles.capDeCorda,   perms: build({ edit: ['attendance'], view: ['members', 'shows', 'staging', 'repertoire'] }) },
+  member:        { label: t.roles.member,       perms: build({ view: ['shows', 'repertoire', 'attendance', 'staging'] }) },
 }
 
 export const TEMPLATE_KEYS = Object.keys(ROLE_TEMPLATES)
