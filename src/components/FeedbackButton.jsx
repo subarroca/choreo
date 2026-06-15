@@ -8,11 +8,18 @@ import Modal from './ui/Modal'
 import Button from './ui/Button'
 import Textarea from './ui/Textarea'
 
+const CATEGORIES = [
+  { value: 'millora', label: 'Millora' },
+  { value: 'bug',     label: 'Bug' },
+  { value: 'idea',    label: 'Idea' },
+]
+
 export default function FeedbackButton() {
   const { user } = useAuth()
   const location = useLocation()
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
+  const [category, setCategory] = useState('millora')
   const [sending, setSending] = useState(false)
 
   async function handleSend() {
@@ -20,19 +27,15 @@ export default function FeedbackButton() {
     if (!msg) return
     setSending(true)
     try {
-      if (import.meta.env.VITE_DEV_MODE === 'true') {
-        const stored = JSON.parse(localStorage.getItem('dev_feedback') ?? '[]')
-        stored.push({ message: msg, url: location.pathname, created_at: new Date().toISOString() })
-        localStorage.setItem('dev_feedback', JSON.stringify(stored))
-      } else {
-        await supabase.from('feedback').insert({
-          user_id: user?.id ?? null,
-          message: msg,
-          url: location.pathname,
-        })
-      }
+      await supabase.from('feedback').insert({
+        user_id: user?.id ?? null,
+        message: msg,
+        url: location.pathname,
+        category,
+      })
       toast('Gràcies pel suggeriment!')
       setText('')
+      setCategory('millora')
       setOpen(false)
     } catch {
       toast.error('Error en enviar el suggeriment')
@@ -43,7 +46,6 @@ export default function FeedbackButton() {
 
   return (
     <>
-      {/* Floating trigger */}
       <button
         onClick={() => setOpen(true)}
         title="Suggereix una millora"
@@ -67,6 +69,22 @@ export default function FeedbackButton() {
         }
       >
         <p className="text-xs text-faint mb-3">Descriu el que vols millorar, un problema que has trobat, o una idea nova.</p>
+        <div className="flex gap-2 mb-3">
+          {CATEGORIES.map(c => (
+            <button
+              key={c.value}
+              type="button"
+              onClick={() => setCategory(c.value)}
+              className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
+                category === c.value
+                  ? 'bg-cyan-900/30 border-cyan-700 text-cyan-400'
+                  : 'bg-fill border-line text-ghost hover:text-muted'
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
         <Textarea
           value={text}
           onChange={e => setText(e.target.value)}

@@ -21,6 +21,7 @@ import Poster from './pages/Poster'
 import Rehearsal from './pages/Rehearsal'
 import Attendance from './pages/Attendance'
 import Analytics from './pages/Analytics'
+import FeedbackAdmin from './pages/FeedbackAdmin'
 
 function RequireAuth({ children }) {
   const { session, loading } = useAuth()
@@ -71,6 +72,7 @@ function AppRoutes() {
       <Route path="/songs" element={<RequireSection section="repertoire"><Songs /></RequireSection>} />
       <Route path="/admin" element={<RequireSection section="users"><Admin /></RequireSection>} />
       <Route path="/analytics" element={<RequireAuth><Analytics /></RequireAuth>} />
+      <Route path="/feedback" element={<RequireAuth><FeedbackAdmin /></RequireAuth>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
