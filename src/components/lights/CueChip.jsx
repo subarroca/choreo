@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { Spotlight, Copy, Trash2 } from 'lucide-react'
 import { formatCueNumber, cueSummaryCompact, sideColorHexes, cueEffects, cueFollowspots } from '../../lib/lights'
 
+const DRAG_THRESHOLD = 8
+
 export default function CueChip({ cue, selected, onClick, onDuplicate, onDelete, compact = false, dragHandleProps }) {
   const frontHexes = sideColorHexes(cue, 'front')
   const backHexes = sideColorHexes(cue, 'back')
@@ -10,6 +12,7 @@ export default function CueChip({ cue, selected, onClick, onDuplicate, onDelete,
   const summary = cueSummaryCompact(cue)
   const [menu, setMenu] = useState(null) // { x, y }
   const menuRef = useRef(null)
+  const touchRef = useRef({ active: false, moved: false, startX: 0, startY: 0 })
 
   useEffect(() => {
     if (!menu) return
@@ -20,8 +23,29 @@ export default function CueChip({ cue, selected, onClick, onDuplicate, onDelete,
     return () => document.removeEventListener('mousedown', onClickOutside)
   }, [menu])
 
+  function handleTouchStart(e) {
+    const t = e.touches[0]
+    touchRef.current = { active: true, moved: false, startX: t.clientX, startY: t.clientY }
+  }
+
+  function handleTouchMove(e) {
+    if (!touchRef.current.active) return
+    const t = e.touches[0]
+    const d = Math.hypot(t.clientX - touchRef.current.startX, t.clientY - touchRef.current.startY)
+    if (d > DRAG_THRESHOLD) {
+      touchRef.current.moved = true
+      if (menu) setMenu(null)
+    }
+  }
+
+  function handleTouchEnd() {
+    touchRef.current.active = false
+  }
+
   function handleContextMenu(e) {
     if (!onDuplicate && !onDelete) return
+    // Suppress when triggered by a touch drag (long-press while moving)
+    if (touchRef.current.active && touchRef.current.moved) { e.preventDefault(); return }
     e.preventDefault()
     e.stopPropagation()
     setMenu({ x: e.clientX, y: e.clientY })
@@ -32,6 +56,9 @@ export default function CueChip({ cue, selected, onClick, onDuplicate, onDelete,
     <button
       onClick={onClick}
       onContextMenu={handleContextMenu}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       {...(dragHandleProps ?? {})}
       className={`inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-colors min-h-[40px] ${
         dragHandleProps ? 'cursor-grab active:cursor-grabbing select-none' : ''

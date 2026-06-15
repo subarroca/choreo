@@ -4,7 +4,7 @@ import {
   RotateCcw, Waypoints, Pencil,
   ChevronLeft, ChevronRight,
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
-  Plus, Target, LayoutTemplate, X,
+  Plus, Target, LayoutTemplate, X, Trash2,
   Menu, Crosshair, MoreHorizontal, Undo2, Redo2,
 } from 'lucide-react'
 import ArrangePanel from './ArrangePanel'
@@ -27,7 +27,7 @@ export default function EditorToolbar({
   onNavigateToSong, onSetHighlightId, onEnterTrajectoryMode, onShiftSelected, onSetRotated,
   onSetSidebarOpen, onSetEditingMoment, onOpenAddMoment, onSetTrajectoryMode, onSetFocusPicker,
   onSetShowArrange, onSetArrangeAxis, onSetArrangeReplaceAll, onAutoPlace, onClearSelection,
-  onResetDirector, canUndo, canRedo, onUndo, onRedo, navigate,
+  onDeleteSelected, onResetDirector, canUndo, canRedo, onUndo, onRedo, navigate,
   VOICE_GROUPS, ARRANGEMENT_PATTERNS, VOICE_COLORS,
 }) {
   const [showOverflow, setShowOverflow] = useState(false)
@@ -137,10 +137,13 @@ export default function EditorToolbar({
           </div>
         )}
 
-        {/* Selected count badge */}
+        {/* Selected count badge + delete */}
         {!trajectoryMode && selectedIds.size > 0 && (
           <span className="flex items-center gap-1 text-xs text-cyan-400 border border-cyan-800 px-2 py-1 rounded-full">
             {selectedIds.size}
+            <button onClick={onDeleteSelected} className="flex items-center text-red-400 hover:text-red-300 ml-0.5" title="Eliminar seleccionats (Del)">
+              <Trash2 size={10} />
+            </button>
             <button onClick={onClearSelection} className="flex items-center"><X size={10} /></button>
           </span>
         )}

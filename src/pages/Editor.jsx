@@ -111,6 +111,7 @@ export default function Editor() {
   const dimsRef = useRef(null)
   const gridSaveTimerRef = useRef(null)
   const shiftSelectedRef = useRef(null)
+  const removeSelectedRef = useRef(null)
   const undoRef = useRef(null)
   const redoRef = useRef(null)
   const allSongPositionsRef = useRef(allSongPositions)
@@ -356,6 +357,13 @@ export default function Editor() {
     applyPlacements(next)
   }
   shiftSelectedRef.current = shiftSelected
+  removeSelectedRef.current = function removeSelected() {
+    if (selectedIdsRef.current.size === 0) return
+    const next = { ...placementsRef.current }
+    for (const id of selectedIdsRef.current) delete next[id]
+    applyPlacements(next)
+    setSelectedIds(new Set())
+  }
   undoRef.current = () => undo(placementsRef.current)
   redoRef.current = () => redo(placementsRef.current)
 
@@ -366,6 +374,9 @@ export default function Editor() {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if (e.key === 'Escape' && trajectoryMode) { setTrajectoryMode(false); setTrajectoryMemberId(''); return }
       if (e.key === '?') { setShowShortcuts(v => !v); return }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIdsRef.current.size > 0) {
+        e.preventDefault(); removeSelectedRef.current?.(); return
+      }
       // Undo/redo
       if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault(); undoRef.current?.(); return
@@ -445,6 +456,7 @@ export default function Editor() {
           onSetArrangeAxis={setArrangeAxis} onSetArrangeReplaceAll={setArrangeReplaceAll}
           onAutoPlace={(pat, axis, rep) => _autoPlace(pat, axis, rep, placementsRef, membersRef, dimsRef, applyPlacements)}
           onClearSelection={() => setSelectedIds(new Set())}
+          onDeleteSelected={() => removeSelectedRef.current?.()}
           onResetDirector={() => setDirectorManualX(null)}
           canUndo={canUndo} canRedo={canRedo}
           onUndo={() => undo(placementsRef.current)}
