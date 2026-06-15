@@ -1,9 +1,12 @@
 import { useState } from 'react'
-import { MessageSquarePlus, X, Send } from 'lucide-react'
+import { MessageSquarePlus, Send } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { toast } from './ui/Toast'
 import { useLocation } from 'react-router-dom'
+import Modal from './ui/Modal'
+import Button from './ui/Button'
+import Textarea from './ui/Textarea'
 
 export default function FeedbackButton() {
   const { user } = useAuth()
@@ -49,43 +52,31 @@ export default function FeedbackButton() {
         <MessageSquarePlus size={18} />
       </button>
 
-      {/* Modal */}
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50"
-          onClick={e => { if (e.target === e.currentTarget) setOpen(false) }}>
-          <div className="w-full max-w-md bg-pane border border-line rounded-2xl shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-rim">
-              <h3 className="text-sm font-semibold text-body">Suggeriment de millora</h3>
-              <button onClick={() => setOpen(false)} className="text-faint hover:text-body p-1 rounded-lg hover:bg-fill transition-colors">
-                <X size={15} />
-              </button>
-            </div>
-            <div className="p-5">
-              <p className="text-xs text-faint mb-3">Descriu el que vols millorar, un problema que has trobat, o una idea nova.</p>
-              <textarea
-                value={text}
-                onChange={e => setText(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSend() }}
-                placeholder="Escriu aquí el teu suggeriment…"
-                rows={4}
-                autoFocus
-                className="w-full bg-fill border border-line rounded-xl px-3 py-2.5 text-sm text-body placeholder:text-ghost focus:outline-none focus:border-cyan-500 resize-none"
-              />
-              <div className="flex items-center justify-between mt-3">
-                <span className="text-[11px] text-ghost">{location.pathname}</span>
-                <button
-                  onClick={handleSend}
-                  disabled={!text.trim() || sending}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-700 text-white text-sm font-medium hover:bg-cyan-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Send size={13} />
-                  {sending ? 'Enviant…' : 'Enviar'}
-                </button>
-              </div>
-            </div>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Suggeriment de millora"
+        width="sm"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <span className="text-[11px] text-ghost">{location.pathname}</span>
+            <Button size="sm" loading={sending} disabled={!text.trim()} onClick={handleSend}>
+              <Send size={13} /> {sending ? 'Enviant…' : 'Enviar'}
+            </Button>
           </div>
-        </div>
-      )}
+        }
+      >
+        <p className="text-xs text-faint mb-3">Descriu el que vols millorar, un problema que has trobat, o una idea nova.</p>
+        <Textarea
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSend() }}
+          placeholder="Escriu aquí el teu suggeriment…"
+          rows={4}
+          autoFocus
+          className="resize-none"
+        />
+      </Modal>
     </>
   )
 }

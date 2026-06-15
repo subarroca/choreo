@@ -7,6 +7,7 @@ import Layout from '../components/Layout'
 import ShowToolbar from '../components/ShowToolbar'
 import Button from '../components/ui/Button'
 import { ICON } from '../lib/ui'
+import { inputClsSm } from '../components/ui/Input'
 
 // ─── Helpers ──────────────────────────────────────────────────
 function memberInitials(m) {
@@ -123,8 +124,6 @@ export default function Mics() {
     return prevMember && currMember && prevMember !== currMember
   }
 
-  const inputCls = 'bg-fill border border-line rounded-lg px-2 py-1 text-xs text-body focus:outline-none focus:border-cyan-500'
-
   return (
     <Layout fullWidth>
       <div className="flex flex-col h-full">
@@ -161,7 +160,7 @@ export default function Mics() {
               <div className="flex gap-1 mt-2">
                 <input value={newMicLabel} onChange={e => setNewMicLabel(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addMic()}
-                  placeholder={String(mics.length + 1)} className={inputCls + ' flex-1 min-w-0'} />
+                  placeholder={String(mics.length + 1)} className={inputClsSm + ' flex-1 min-w-0'} />
                 <Button onClick={addMic} className="w-9 h-9 !p-0 shrink-0">
                   <Plus size={ICON.md} />
                 </Button>

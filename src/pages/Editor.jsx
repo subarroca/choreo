@@ -420,7 +420,6 @@ export default function Editor() {
     { id: 'square', Icon: LayoutGrid, label: 'Quadrat' }, { id: 'alternate', Icon: Hexagon, label: 'Alternat' },
     { id: 'free', Icon: Move, label: 'Lliure' }, { id: 'semicircle', Icon: Disc, label: 'Semicercle' },
   ]
-  const inputCls = 'bg-fill border border-line rounded-lg px-2 py-1 text-xs text-body focus:outline-none focus:border-cyan-500'
 
   // ─── Render ───────────────────────────────────────────────
   return (
@@ -494,7 +493,7 @@ export default function Editor() {
             editMomentTitle={editMomentTitle} editMomentSubtitle={editMomentSubtitle}
             setEditMomentTitle={setEditMomentTitle} setEditMomentSubtitle={setEditMomentSubtitle}
             onSave={saveMomentMeta} onDelete={() => handleDeleteMoment(momentId)}
-            onCancel={() => setEditingMoment(false)} inputCls={inputCls} />
+            onCancel={() => setEditingMoment(false)} />
         )}
         {addingMoment && (
           <AddMomentPanel
@@ -505,7 +504,7 @@ export default function Editor() {
             selectedTemplate={selectedTemplate} setSelectedTemplate={setSelectedTemplate}
             setSelectedOtherSongId={setSelectedOtherSongId} setSelectedOtherMomentId={setSelectedOtherMomentId}
             onCloneFromChange={handleCloneFromChange} onCreate={createMoment}
-            onCancel={() => setAddingMoment(false)} inputCls={inputCls} />
+            onCancel={() => setAddingMoment(false)} />
         )}
       </div>
 

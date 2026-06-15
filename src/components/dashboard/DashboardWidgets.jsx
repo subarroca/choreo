@@ -3,6 +3,7 @@ import { Clapperboard, CalendarDays, ArrowRight, MapPin, Clock, X } from 'lucide
 import { ICON } from '../../lib/ui'
 import { VOICE_COLORS, VOICE_SHORT } from '../../lib/constants'
 import Button from '../ui/Button'
+import Badge from '../ui/Badge'
 
 const REHEARSAL_TYPES = {
   veu:         'Veu',
@@ -214,9 +215,9 @@ export function UpcomingRehearsals({ rehearsals, attendanceMap }) {
                 </span>
               </div>
               {meta.type && (
-                <span className="self-start text-xs bg-cyan-100 text-cyan-700 dark:bg-cyan-700/20 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700/40 px-2 py-0.5 rounded-full">
+                <Badge color="cyan" className="self-start">
                   {REHEARSAL_TYPES[meta.type]}
-                </span>
+                </Badge>
               )}
               {(excusedCount > 0 || absentCount > 0) && (
                 <div className="flex items-center gap-2 text-xs text-ghost mt-auto">

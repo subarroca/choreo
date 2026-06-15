@@ -3,6 +3,7 @@ import { BookOpen, CalendarDays, LayoutDashboard, Clapperboard, ArrowRight, MapP
 import { useAuth } from '../../hooks/useAuth.jsx'
 import { ICON } from '../../lib/ui'
 import { daysUntil, parseRehearsalMeta } from './DashboardWidgets.jsx'
+import Badge from '../ui/Badge'
 
 const REHEARSAL_TYPES = {
   veu:         'Veu',
@@ -41,9 +42,9 @@ function NextRehearsalCard({ rehearsal }) {
         )}
       </div>
       {meta.type && (
-        <span className="inline-block mt-3 text-xs bg-cyan-100 text-cyan-700 dark:bg-cyan-700/20 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700/40 px-2 py-0.5 rounded-full">
+        <Badge color="cyan" className="mt-3">
           {REHEARSAL_TYPES[meta.type] ?? meta.type}
-        </span>
+        </Badge>
       )}
       {meta.freeNotes && !meta.type && (
         <p className="text-xs text-soft mt-2">{meta.freeNotes}</p>

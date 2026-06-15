@@ -6,7 +6,7 @@ import ShowToolbar from '../components/ShowToolbar'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
 import Modal from '../components/ui/Modal'
 import Button from '../components/ui/Button'
-import { inputCls } from '../components/ui/Input'
+import Textarea from '../components/ui/Textarea'
 import { ICON } from '../lib/ui'
 import { useLightCues } from '../hooks/useLightCues'
 import { nextCueNumber, sortCues, lyricsLines } from '../lib/lights'
@@ -36,9 +36,9 @@ function LyricsEditor({ repSong, onSave, onClose }) {
       }
     >
       <div className="flex flex-col gap-3 h-full">
-        <textarea value={text} onChange={e => setText(e.target.value)} autoFocus
+        <Textarea value={text} onChange={e => setText(e.target.value)} autoFocus
           placeholder={'Una línia per vers.\nLes línies buides separen estrofes.'}
-          className={inputCls + ' flex-1 min-h-[400px] resize-none leading-relaxed'} />
+          className="flex-1 min-h-[400px] resize-none leading-relaxed" />
         <p className="text-xs text-ghost">Els cues queden ancorats al número de línia: si afegeixes o esborres línies enmig, revisa els ancoratges.</p>
       </div>
     </Modal>
@@ -196,7 +196,7 @@ export default function Lights() {
                 return (
                   <button key={s.id} onClick={() => { setSelectedSongId(s.id); setSelectedCueId(null); setSidebarOpen(false) }}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
-                      s.id === selectedSongId ? 'bg-cyan-700/30 text-cyan-200' : 'text-muted hover:text-white hover:bg-fill'}`}>
+                      s.id === selectedSongId ? 'bg-cyan-700/40 text-cyan-200' : 'text-muted hover:text-white hover:bg-fill'}`}>
                     <span className="text-xs text-ghost w-5 shrink-0">{i + 1}.</span>
                     {isSection && <Icon size={ICON.sm} className={`shrink-0 ${rt.color}`} />}
                     <span className="flex-1 truncate">{s.title}</span>

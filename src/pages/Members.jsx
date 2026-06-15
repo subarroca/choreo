@@ -9,6 +9,7 @@ import EmptyState from '../components/ui/EmptyState'
 import ListRow from '../components/ui/ListRow'
 import Avatar, { memberInitials } from '../components/ui/Avatar'
 import Button from '../components/ui/Button'
+import Chip from '../components/ui/Chip'
 import PersonProfileOverlay from '../components/PersonProfileOverlay'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'
@@ -192,20 +193,14 @@ export default function Members() {
                 <div className="flex items-center gap-1.5 pb-1">
                   <span className="text-xs text-ghost">Ordenar:</span>
                   {[['last_name','Cognom'],['first_name','Nom'],['voice','Corda']].map(([k,l]) => (
-                    <button key={k} onClick={() => setSortBy(k)}
-                      className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
-                        sortBy === k ? 'border-cyan-600 text-cyan-400' : 'border-line text-faint hover:text-body'
-                      }`}>{l}</button>
+                    <Chip key={k} active={sortBy === k} onClick={() => setSortBy(k)}>{l}</Chip>
                   ))}
                 </div>
                 {/* Voice filter pills */}
                 <div className="flex flex-wrap gap-1.5 pb-0.5">
-                  <button
-                    onClick={() => setFilterVoice('')}
-                    className={`px-3 py-1 rounded-full text-xs border transition-colors ${!filterVoice ? 'border-cyan-600 text-cyan-400' : 'border-line text-faint hover:text-body'}`}
-                  >
+                  <Chip active={!filterVoice} onClick={() => setFilterVoice('')}>
                     Totes <span className="text-ghost ml-1">{activeMembers.length}</span>
-                  </button>
+                  </Chip>
                   {VOICE_ORDER.filter(v => voiceCounts[v] > 0).map(v => {
                     const c = VOICE_COLORS[v]
                     return (

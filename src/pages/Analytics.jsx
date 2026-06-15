@@ -280,7 +280,7 @@ export default function Analytics() {
                 {TABS.map(({ id, label, Icon }) => (
                   <button key={id} onClick={() => setTab(id)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                      tab === id ? 'bg-cyan-700/30 text-cyan-300' : 'text-muted hover:text-body hover:bg-fill'
+                      tab === id ? 'bg-cyan-700/40 text-cyan-300' : 'text-muted hover:text-body hover:bg-fill'
                     }`}>
                     <Icon size={14} />{label}
                   </button>

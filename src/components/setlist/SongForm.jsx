@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { Search, X, Music, MessageSquare, AlertTriangle, Info } from 'lucide-react'
 import Button from '../ui/Button'
+import { inputCls } from '../ui/Input'
+import Select from '../ui/Select'
+import Textarea from '../ui/Textarea'
 
 export function parseDuration(str) {
   if (!str) return null
@@ -137,8 +140,6 @@ export default function SongForm({ initial, parts, repertoire = [], members = []
     }
   }
 
-  const inputCls = 'w-full bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-500'
-
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       {/* Type selector */}
@@ -190,13 +191,10 @@ export default function SongForm({ initial, parts, repertoire = [], members = []
               <input value={durationStr} onChange={e => setDurationStr(e.target.value)} placeholder="3:45" className={inputCls} />
             </div>
             {parts.length > 0 && (
-              <div className="space-y-1">
-                <label className="text-xs text-muted">Part</label>
-                <select value={partId} onChange={e => setPartId(e.target.value)} className={inputCls}>
-                  <option value="">Sense part</option>
-                  {parts.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-                </select>
-              </div>
+              <Select label="Part" value={partId} onChange={e => setPartId(e.target.value)}>
+                <option value="">Sense part</option>
+                {parts.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+              </Select>
             )}
           </div>
         </>
@@ -210,12 +208,9 @@ export default function SongForm({ initial, parts, repertoire = [], members = []
               placeholder={type === 'text' ? 'Presentació, diàleg…' : 'Canvi de posicions, teló…'}
               className={inputCls} />
           </div>
-          <div className="space-y-1">
-            <label className="text-xs text-muted">{type === 'text' ? 'Text' : 'Indicació'}</label>
-            <textarea value={body} onChange={e => setBody(e.target.value)} rows={4}
-              placeholder={type === 'text' ? 'El text que es dirà…' : 'Instrucció per al director o tècnic…'}
-              className={inputCls + ' resize-y'} />
-          </div>
+          <Textarea label={type === 'text' ? 'Text' : 'Indicació'}
+            value={body} onChange={e => setBody(e.target.value)} rows={4}
+            placeholder={type === 'text' ? 'El text que es dirà…' : 'Instrucció per al director o tècnic…'} />
           {type === 'text' && members.length > 0 && (
             <div className="space-y-1.5">
               <label className="text-xs text-muted">Qui parla</label>
@@ -223,13 +218,10 @@ export default function SongForm({ initial, parts, repertoire = [], members = []
             </div>
           )}
           {parts.length > 0 && (
-            <div className="space-y-1">
-              <label className="text-xs text-muted">Part</label>
-              <select value={partId} onChange={e => setPartId(e.target.value)} className={inputCls}>
-                <option value="">Sense part</option>
-                {parts.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-              </select>
-            </div>
+            <Select label="Part" value={partId} onChange={e => setPartId(e.target.value)}>
+              <option value="">Sense part</option>
+              {parts.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+            </Select>
           )}
         </>
       )}

@@ -3,6 +3,8 @@ import { X, AtSign, Mail, Ruler, Calendar, UserPlus, Pencil, ChevronLeft, Chevro
 import { memberShowComplexity, COMPLEXITY_COLORS } from '../lib/positionComplexity'
 import { VOICE_COLORS, VOICE_LABELS, ROLE_LABELS } from '../lib/constants'
 import { supabase } from '../lib/supabase'
+import { inputCls } from './ui/Input'
+import Select from './ui/Select'
 
 // ─── Helpers ──────────────────────────────────────────────────
 function calcAge(birth_date) {
@@ -24,7 +26,6 @@ function deriveName(fn, ln) { return [fn, ln].filter(Boolean).join(' ') }
 
 const ALL_VOICES = ['soprano1','soprano2','alto1','alto2','tenor1','tenor2','baritone','bass']
 const ROLES = Object.keys(ROLE_LABELS)
-const inputCls = 'w-full bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-500 placeholder-gray-600'
 const labelCls = 'text-xs text-faint mb-1 block'
 
 // ─── Voice dropdown ───────────────────────────────────────────
@@ -345,12 +346,9 @@ function EditForm({ member, isNew, onSave, onBack, onSetActive, onDelete }) {
             placeholder={autoInitials} className={inputCls + ' uppercase'} />
         </div>
 
-        <div className="space-y-1">
-          <label className={labelCls}>Rol</label>
-          <select value={role} onChange={e => setRole(e.target.value)} className={inputCls}>
-            {ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-          </select>
-        </div>
+        <Select label="Rol" value={role} onChange={e => setRole(e.target.value)}>
+          {ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+        </Select>
 
         {role === 'choir' && (
           <div className="space-y-1">

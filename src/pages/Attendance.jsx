@@ -4,6 +4,10 @@ import Button from '../components/ui/Button'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
+import { inputCls } from '../components/ui/Input'
+import Select from '../components/ui/Select'
+import Textarea from '../components/ui/Textarea'
+import Badge from '../components/ui/Badge'
 import Layout from '../components/Layout'
 import PageContainer from '../components/ui/PageContainer'
 import PageHeader from '../components/ui/PageHeader'
@@ -227,8 +231,6 @@ export default function Attendance() {
     if (s) stats[s] = (stats[s] ?? 0) + 1
   }
 
-  const inputCls = 'bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-500'
-
   const tabs = (
     <div className="flex gap-1">
       {[['assajos', 'Assajos'], ['resum', 'Resum acumulat']].map(([key, label]) => (
@@ -284,13 +286,10 @@ export default function Attendance() {
                 <label className="text-xs text-muted">Lloc</label>
                 <input type="text" placeholder="Sala, adreça…" value={newLocation} onChange={e => setNewLocation(e.target.value)} className={inputCls} />
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted">Tipus</label>
-                <select value={newType} onChange={e => setNewType(e.target.value)} className={inputCls}>
-                  <option value="">— Tipus —</option>
-                  {Object.entries(REHEARSAL_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
-              </div>
+              <Select label="Tipus" value={newType} onChange={e => setNewType(e.target.value)}>
+                <option value="">— Tipus —</option>
+                {Object.entries(REHEARSAL_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </Select>
               <div className="flex flex-col gap-1 col-span-2 sm:col-span-2">
                 <label className="text-xs text-muted">Notes</label>
                 <input type="text" placeholder="Notes opcionals" value={newNotes} onChange={e => setNewNotes(e.target.value)} className={inputCls} />
@@ -324,14 +323,10 @@ export default function Attendance() {
                           {formatDate(r.date)}
                         </span>
                         {meta.type && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-700 dark:bg-cyan-700/20 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700/40">
-                            {REHEARSAL_TYPES[meta.type]}
-                          </span>
+                          <Badge color="cyan">{REHEARSAL_TYPES[meta.type]}</Badge>
                         )}
                         {upcoming && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-700/30 dark:text-amber-300 border border-amber-200 dark:border-amber-700/40">
-                            Proper
-                          </span>
+                          <Badge color="amber">Proper</Badge>
                         )}
                       </div>
                       {(meta.time || meta.location) && (
@@ -374,8 +369,8 @@ export default function Attendance() {
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold text-body">{formatDate(selected.date)}</span>
-                      {meta.type && <span className="text-xs bg-cyan-100 text-cyan-700 dark:bg-cyan-700/20 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700/40 px-2 py-0.5 rounded-full">{REHEARSAL_TYPES[meta.type]}</span>}
-                      {upcoming && <span className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-700/30 dark:text-amber-300 border border-amber-200 dark:border-amber-700/40 px-2 py-0.5 rounded-full">Proper</span>}
+                      {meta.type && <Badge color="cyan">{REHEARSAL_TYPES[meta.type]}</Badge>}
+                      {upcoming && <Badge color="amber">Proper</Badge>}
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
                       {meta.time && <span className="flex items-center gap-1"><Clock size={11} />{meta.time}</span>}
@@ -410,25 +405,19 @@ export default function Attendance() {
 
                     {showNotifyForm && (
                       <div className="flex flex-wrap items-end gap-2 p-3 bg-white dark:bg-pane/50 rounded-lg border border-amber-200 dark:border-amber-700/20">
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs text-ghost">Qui no ve</label>
-                          <select value={notifyMemberId} onChange={e => setNotifyMemberId(e.target.value)} className={inputCls + ' py-1'}>
-                            <option value="">— Selecciona —</option>
-                            {members.map(m => (
-                              <option key={m.id} value={m.id}>
-                                {m.last_name ? `${m.last_name}, ${m.first_name ?? ''}` : m.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs text-ghost">Motiu</label>
-                          <select value={notifyReason} onChange={e => setNotifyReason(e.target.value)} className={inputCls + ' py-1'}>
-                            {Object.entries(REASONS).map(([k, v]) => (
-                              <option key={k} value={k}>{v.label}</option>
-                            ))}
-                          </select>
-                        </div>
+                        <Select label="Qui no ve" value={notifyMemberId} onChange={e => setNotifyMemberId(e.target.value)}>
+                          <option value="">— Selecciona —</option>
+                          {members.map(m => (
+                            <option key={m.id} value={m.id}>
+                              {m.last_name ? `${m.last_name}, ${m.first_name ?? ''}` : m.name}
+                            </option>
+                          ))}
+                        </Select>
+                        <Select label="Motiu" value={notifyReason} onChange={e => setNotifyReason(e.target.value)}>
+                          {Object.entries(REASONS).map(([k, v]) => (
+                            <option key={k} value={k}>{v.label}</option>
+                          ))}
+                        </Select>
                         <button onClick={submitNotice} disabled={!notifyMemberId}
                           className="bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white text-sm px-4 py-2 rounded-lg transition-colors">
                           Enviar avís
@@ -452,9 +441,9 @@ export default function Attendance() {
                                 {m.last_name ? `${m.last_name}, ${m.first_name ?? ''}` : m.name}
                               </span>
                               {reason && (
-                                <span className="flex items-center gap-1 text-xs bg-amber-100 dark:bg-amber-700/20 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-700/30">
+                                <Badge color="amber">
                                   <ReasonIcon size={10} /> {REASONS[reason]?.label}
-                                </span>
+                                </Badge>
                               )}
                               {isAdmin && (
                                 <button onClick={() => toggleStatus(m.id)} className="ml-auto text-xs text-ghost hover:text-red-400 transition-colors">
@@ -567,10 +556,10 @@ export default function Attendance() {
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-muted">Notes</label>
-              <textarea rows={3} value={editNotes} onChange={e => setEditNotes(e.target.value)}
+              <Textarea rows={3} value={editNotes} onChange={e => setEditNotes(e.target.value)}
                 disabled={!isAdmin}
                 placeholder="Notes opcionals"
-                className="bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-500 resize-y disabled:opacity-60" />
+                className="disabled:opacity-60" />
             </div>
             {!isAdmin && <p className="text-xs text-ghost">Només els directors poden editar els detalls.</p>}
           </div>

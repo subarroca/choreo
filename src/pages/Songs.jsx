@@ -15,6 +15,8 @@ import { confirmDialog } from '../components/ui/ConfirmDialog'
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
 import { SkeletonRow } from '../components/ui/Skeleton'
 import { ICON } from '../lib/ui'
+import Select from '../components/ui/Select'
+import Textarea from '../components/ui/Textarea'
 
 const DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true'
 
@@ -83,12 +85,9 @@ function AttachmentEditor({ attachments, onChange }) {
       {adding ? (
         <div className="bg-fill/60 border border-line rounded-xl p-3 space-y-2.5">
           <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className={labelCls}>Tipus</label>
-              <select value={type} onChange={e => setType(e.target.value)} className={inputCls}>
-                {ATTACHMENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </div>
+            <Select label="Tipus" value={type} onChange={e => setType(e.target.value)}>
+              {ATTACHMENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </Select>
             <div>
               <label className={labelCls}>Etiqueta</label>
               <input value={label} onChange={e => setLabel(e.target.value)}
@@ -178,12 +177,9 @@ function SongForm({ initial, onSave, onCancel, onDelete }) {
         <input value={notes} onChange={e => setNotes(e.target.value)}
           placeholder="Observacions, arranjador…" className={inputCls} />
       </div>
-      <div className="space-y-1">
-        <label className={labelCls}>Lletra</label>
-        <textarea value={lyrics} onChange={e => setLyrics(e.target.value)} rows={6}
-          placeholder="Una línia per vers. Serveix per ancorar els cues de llum."
-          className={inputCls + ' resize-y leading-relaxed'} />
-      </div>
+      <Textarea label="Lletra" value={lyrics} onChange={e => setLyrics(e.target.value)} rows={6}
+        placeholder="Una línia per vers. Serveix per ancorar els cues de llum."
+        className="leading-relaxed" />
       <div className="border-t border-rim pt-4 space-y-2">
         <p className="text-xs text-faint uppercase tracking-wider">Recursos</p>
         <AttachmentEditor attachments={attachments} onChange={setAttachments} />

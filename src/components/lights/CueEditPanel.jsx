@@ -7,10 +7,11 @@ import {
   formatCueNumber, presetToCueFields, PRESET_FIELDS, effectiveMomentId,
 } from '../../lib/lights'
 import StageSim from './StageSim'
+import Select from '../ui/Select'
+import Textarea from '../ui/Textarea'
 
 const EFFECT_ICONS = { Moon, Wind, Sparkles, Move, Pause, Theater, ScanFace }
 
-const inputCls = 'w-full bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-500 placeholder-gray-600'
 const labelCls = 'text-xs text-faint uppercase tracking-wider font-medium mb-1.5 block'
 
 function ChipRow({ options, value, onSelect, multi = false, showIcons = false }) {
@@ -255,12 +256,12 @@ export default function CueEditPanel({
           {followspots.map((fs, i) => (
             <div key={i} className="bg-fill/50 border border-line rounded-lg p-2 space-y-1.5">
               <div className="flex items-center gap-1.5">
-                <select value={fs.member_id ?? ''}
+                <Select value={fs.member_id ?? ''}
                   onChange={e => setFollowspots(followspots.map((f, idx) => idx === i ? { ...f, member_id: e.target.value || null } : f))}
-                  className={inputCls + ' !py-1.5 flex-1'}>
+                  className="!py-1.5 flex-1">
                   <option value="">— Persona —</option>
                   {choirMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                </select>
+                </Select>
                 <button onClick={() => setFollowspots(followspots.filter((_, idx) => idx !== i))}
                   className="text-ghost hover:text-red-400 p-1 transition-colors shrink-0"><X size={14} /></button>
               </div>
@@ -298,9 +299,9 @@ export default function CueEditPanel({
           )}
         </div>
 
-        <textarea value={notes} onChange={e => setNotes(e.target.value)}
+        <Textarea value={notes} onChange={e => setNotes(e.target.value)}
           onBlur={() => notes !== (cue.notes ?? '') && onChange({ notes })}
-          rows={1} placeholder="Notes per al tècnic…" className={inputCls + ' resize-y !py-1.5 text-xs'} />
+          rows={1} placeholder="Notes per al tècnic…" className="!py-1.5 text-xs" />
 
         {/* Presets + eliminar */}
         <div className="border-t border-rim pt-3 space-y-2">
