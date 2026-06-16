@@ -11,7 +11,7 @@ const TAB_IDLE = 'text-muted hover:text-body hover:bg-fill'
 // `section` gates visibility per role via can(section,'view').
 const MAIN_TABS = [
   { key: 'setlist',   path: '',           label: t.tabs.setlist,   icon: ListOrdered, section: 'shows'  },
-  { key: 'rehearsal', path: '/rehearsal', label: t.tabs.rehearsal, icon: PlayCircle,  section: 'shows'  },
+  { key: 'staging',     path: '/staging',     label: t.tabs.staging,     icon: PlayCircle,  section: 'shows'  },
   { key: 'lights',    path: '/lights',    label: t.tabs.lights,    icon: Lightbulb,   section: 'lights' },
   { key: 'poster',    path: '/poster',    label: t.tabs.poster,    icon: ImageIcon,   section: 'shows'  },
 ]

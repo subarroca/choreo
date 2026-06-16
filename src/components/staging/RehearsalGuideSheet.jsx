@@ -1,8 +1,8 @@
 import { X } from '../../lib/icons'
 import { VOICE_COLORS } from '../../lib/constants'
-import { firstName } from '../../lib/rehearsalGuide'
+import { firstName, rowChipStyle } from '../../lib/stagingGuide'
 
-export default function RehearsalGuideSheet({ highlightedMember, guideData, currentIdx, onNavigate, onClose }) {
+export default function RehearsalGuideSheet({ highlightedMember, guideData, currentIdx, onNavigate, onClose, rowElevations, rowLabels }) {
   if (!highlightedMember) return null
   const color = (VOICE_COLORS[highlightedMember.voice] ?? VOICE_COLORS.extra).bg
   const initials = highlightedMember.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
@@ -46,18 +46,28 @@ export default function RehearsalGuideSheet({ highlightedMember, guideData, curr
                   <p className="text-xs font-semibold text-body mb-0.5">{entry.moment.title}</p>
                   {entry.row == null
                     ? <p className="text-[11px] text-ghost">Sense posició assignada</p>
-                    : <>
-                        <p className="text-[11px] text-cyan-400 font-medium">{entry.posDesc}</p>
-                        <div className="flex flex-wrap gap-x-4 mt-0.5">
-                          {entry.left && <span className="text-[11px] text-muted">← {firstName(entry.left)}</span>}
-                          {entry.right && <span className="text-[11px] text-muted">{firstName(entry.right)} →</span>}
-                          {entry.front.length > 0 && (
-                            <span className="text-[11px] text-faint">
-                              davant: {entry.front.map(m => firstName(m)).join(', ')}
+                    : (() => {
+                        const chip = rowChipStyle(entry.row, rowElevations, rowLabels)
+                        const colPart = entry.posDesc.split(' · ')[1]
+                        return <>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold leading-none"
+                              style={{ background: chip.color, color: chip.textColor }}>
+                              {chip.label}
                             </span>
-                          )}
-                        </div>
-                      </>
+                            {colPart && <span className="text-[11px] text-muted">{colPart}</span>}
+                          </div>
+                          <div className="flex flex-wrap gap-x-4 mt-0.5">
+                            {entry.left && <span className="text-[11px] text-muted">← {firstName(entry.left)}</span>}
+                            {entry.right && <span className="text-[11px] text-muted">{firstName(entry.right)} →</span>}
+                            {entry.front.length > 0 && (
+                              <span className="text-[11px] text-faint">
+                                davant: {entry.front.map(m => firstName(m)).join(', ')}
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      })()
                   }
                 </button>
               </div>

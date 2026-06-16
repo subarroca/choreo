@@ -7,20 +7,20 @@
 // toggles; once applied they remain editable per user.
 // ────────────────────────────────────────────────────────────────────────
 
-import { t } from ‘../locales/ca’
+import { t } from '../locales/ca'
 
 // Every gated area of the app. `view` controls visibility (nav, pages, tabs);
 // `edit` controls mutation (forms, drag-drop, create/delete).
 export const SECTIONS = [
-  { key: ‘shows’,      label: t.sections.shows.label,      desc: t.sections.shows.desc },
-  { key: ‘members’,    label: t.sections.members.label,    desc: t.sections.members.desc },
-  { key: ‘repertoire’, label: t.sections.repertoire.label, desc: t.sections.repertoire.desc },
-  { key: ‘staging’,    label: t.sections.staging.label,    desc: t.sections.staging.desc },
-  { key: ‘lights’,     label: t.sections.lights.label,     desc: t.sections.lights.desc },
-  { key: ‘mics’,       label: t.sections.mics.label,       desc: t.sections.mics.desc },
-  { key: ‘attendance’, label: t.sections.attendance.label, desc: t.sections.attendance.desc },
-  { key: ‘rider’,      label: t.sections.rider.label,      desc: t.sections.rider.desc },
-  { key: ‘users’,      label: t.sections.users.label,      desc: t.sections.users.desc },
+  { key: 'shows',      label: t.sections.shows.label,      desc: t.sections.shows.desc },
+  { key: 'members',    label: t.sections.members.label,    desc: t.sections.members.desc },
+  { key: 'repertoire', label: t.sections.repertoire.label, desc: t.sections.repertoire.desc },
+  { key: 'staging',    label: t.sections.staging.label,    desc: t.sections.staging.desc },
+  { key: 'lights',     label: t.sections.lights.label,     desc: t.sections.lights.desc },
+  { key: 'mics',       label: t.sections.mics.label,       desc: t.sections.mics.desc },
+  { key: 'attendance', label: t.sections.attendance.label, desc: t.sections.attendance.desc },
+  { key: 'rider',      label: t.sections.rider.label,      desc: t.sections.rider.desc },
+  { key: 'users',      label: t.sections.users.label,      desc: t.sections.users.desc },
 ]
 
 export const SECTION_KEYS = SECTIONS.map(s => s.key)

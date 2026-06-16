@@ -1,439 +1,452 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, X, List, Crosshair, RotateCcw, BookOpen, ZoomIn, ZoomOut, Play, Pause } from '../lib/icons'
+import { useState, useEffect } from 'react'
+import { t } from '../locales/ca'
+import { parseJsonArray, parseJson } from '../lib/parseJson'
+import { CalendarDays, Plus, Check, X, Clock, Bell, Plane, Briefcase, HeartPulse, MessageSquare, MapPin, Pencil, BookOpen, ChevronDown, Music, ExternalLink, FileText } from '../lib/icons'
+import Button from '../components/ui/Button'
+import { useAuth } from '../hooks/useAuth.jsx'
+import { VOICE_COLORS, VOICE_LABELS } from '../lib/constants'
+import { inputCls } from '../components/ui/Input'
+import Select from '../components/ui/Select'
+import Badge from '../components/ui/Badge'
+import Layout from '../components/Layout'
+import PageContainer from '../components/ui/PageContainer'
+import PageHeader from '../components/ui/PageHeader'
+import SummaryView from '../components/SummaryView'
+import RehearsalDetailModal from '../components/rehearsal/RehearsalDetailModal'
+import RehearsalScheduleConfig from '../components/rehearsal/RehearsalScheduleConfig'
+import { memberInitials, formatDate, isUpcoming } from '../lib/formatters'
+import { useRehearsalData } from '../hooks/useRehearsalData'
+import { useMyMember } from '../hooks/useMyMember.js'
+import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
 import { supabase } from '../lib/supabase'
-import {
-  CELL, LABEL_W, DIRECTOR_H, TOKEN_R, DEFAULT_ROW_LABELS, DEFAULT_COLS,
-  VOICE_ORDER, getMemberPixelPos, drawAll,
-} from '../lib/editorCanvas'
-import { computeGuide } from '../lib/rehearsalGuide'
-import RehearsalFocusPicker from '../components/rehearsal/RehearsalFocusPicker'
-import RehearsalGuideSheet from '../components/rehearsal/RehearsalGuideSheet'
-import RehearsalNavMenu from '../components/rehearsal/RehearsalNavMenu'
-import ShowToolbar from '../components/ShowToolbar'
 
-const LONG_PRESS_MS = 550
-const ZOOM_MIN = 0.5, ZOOM_MAX = 3.0
-const RUN_SPEEDS = [3, 5, 8, 12]
+const STATUS_CONFIG = {
+  present:  { label: t.attendanceStatus.present,  icon: Check,  cls: 'bg-green-100 text-green-700 border-green-300 dark:bg-green-700/30 dark:text-green-300 dark:border-green-700/50' },
+  absent:   { label: t.attendanceStatus.absent,   icon: X,      cls: 'bg-red-100 text-red-700 border-red-300 dark:bg-red-700/30 dark:text-red-300 dark:border-red-700/50' },
+  excused:  { label: t.attendanceStatus.excused,  icon: Clock,  cls: 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-700/30 dark:text-amber-300 dark:border-amber-700/50' },
+}
 
-export default function Rehearsal() {
-  const { id: showId } = useParams()
-  const canvasRef = useRef(null)
-  const canvasWrapRef = useRef(null)
-  const longPressTimerRef = useRef(null)
-  const lastPinchDistRef = useRef(null)
-  const swipeStartRef = useRef(null)
-  const runTimerRef = useRef(null)
+const REASONS = {
+  viatge:   { label: t.reasons.viatge,   icon: Plane },
+  feina:    { label: t.reasons.feina,    icon: Briefcase },
+  malaltia: { label: t.reasons.malaltia, icon: HeartPulse },
+  altre:    { label: t.reasons.altre,    icon: MessageSquare },
+}
 
-  const [show, setShow] = useState(null)
-  const [members, setMembers] = useState([])
-  const [steps, setSteps] = useState([])
-  const [positionsByMoment, setPositionsByMoment] = useState({})
-  const [currentIdx, setCurrentIdx] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [focusOpen, setFocusOpen] = useState(false)
-  const [guideOpen, setGuideOpen] = useState(false)
-  const [highlightId, setHighlightId] = useState(() => localStorage.getItem('rehearsalHighlight') || '')
-  const [rotated, setRotated] = useState(() => localStorage.getItem('rotated') === 'true')
-  const [zoom, setZoom] = useState(1.0)
-  const [pressIndicator, setPressIndicator] = useState(null)
-  const [running, setRunning] = useState(false)
-  const [runSpeed, setRunSpeed] = useState(5)
+const REHEARSAL_TYPES = t.rehearsalTypes
 
-  useEffect(() => {
-    async function load() {
-      const [showRes, songsRes, membersRes, exclusionsRes] = await Promise.all([
-        supabase.from('shows').select('*').eq('id', showId).single(),
-        supabase.from('songs').select('*').eq('show_id', showId).order('order_index'),
-        supabase.from('members').select('*').order('name'),
-        supabase.from('show_exclusions').select('member_id').eq('show_id', showId),
-      ])
-      const showData = showRes.data
-      setShow(showData)
-      const excludedIds = new Set((exclusionsRes.data ?? []).map(e => e.member_id))
-      const mems = (membersRes.data ?? []).filter(m => m.active !== false && !excludedIds.has(m.id))
-      setMembers(mems)
-
-      const songList = (songsRes.data ?? []).filter(s => !s.type || s.type === 'song')
-      if (!songList.length) { setLoading(false); return }
-
-      const { data: moms } = await supabase.from('moments').select('*')
-        .in('song_id', songList.map(s => s.id)).order('order_index')
-
-      const stepList = []
-      for (const song of songList)
-        for (const moment of (moms ?? []).filter(m => m.song_id === song.id))
-          stepList.push({ song, moment })
-      setSteps(stepList)
-
-      if (stepList.length) {
-        const momentIds = stepList.map(s => s.moment.id)
-        const { data: positions } = await supabase.from('positions').select('*').in('moment_id', momentIds)
-        const byMoment = {}
-        for (const pos of (positions ?? [])) {
-          if (!byMoment[pos.moment_id]) byMoment[pos.moment_id] = {}
-          if (pos.free_x != null && pos.free_y != null)
-            byMoment[pos.moment_id][pos.member_id] = { free: true, x: pos.free_x, y: pos.free_y }
-          else if (pos.grid_row != null)
-            byMoment[pos.moment_id][pos.member_id] = { row: pos.grid_row, col: pos.grid_col }
-        }
-        setPositionsByMoment(byMoment)
-      }
-      setLoading(false)
+function parseRehearsalMeta(notes) {
+  if (!notes) return { type: '', time: '', location: '', freeNotes: '' }
+  try {
+    const p = parseJson(notes)
+    if (p && typeof p === 'object' && ('type' in p || 'time' in p || 'location' in p)) {
+      return { type: p.type ?? '', time: p.time ?? '', location: p.location ?? '', freeNotes: p.notes ?? '' }
     }
-    load()
-  }, [showId])
+  } catch {}
+  return { type: '', time: '', location: '', freeNotes: notes }
+}
 
-  const current = steps[currentIdx] ?? null
-  const rowLabels = show?.grid_rows ?? DEFAULT_ROW_LABELS
-  const rowElevations = show?.row_elevations ?? rowLabels.map((_, i, a) => (a.length - 1 - i) * 40)
-  const ROWS = rowLabels.length
-  const COLS = show?.grid_cols ?? DEFAULT_COLS
-  const GW = COLS * CELL, GH = ROWS * CELL
-  const CW = LABEL_W + GW, CH = GH + DIRECTOR_H
-  const dims = { ROWS, COLS, rowLabels, GW, GH, CW, CH, rowElevations }
+const ATTACHMENT_COLORS = { reference: 'text-blue-400', score: 'text-purple-400', audio: 'text-green-400' }
 
-  const currentRef = useRef(current)
-  const membersRef = useRef(members)
-  const positionsByMomentRef = useRef(positionsByMoment)
-  const rotatedRef = useRef(rotated)
-  const highlightIdRef = useRef(highlightId)
-  const dimsRef = useRef(dims)
-  useEffect(() => { currentRef.current = current }, [current])
-  useEffect(() => { membersRef.current = members }, [members])
-  useEffect(() => { positionsByMomentRef.current = positionsByMoment }, [positionsByMoment])
-  useEffect(() => { rotatedRef.current = rotated }, [rotated])
-  useEffect(() => { highlightIdRef.current = highlightId }, [highlightId])
-  useEffect(() => { dimsRef.current = dims }, [dims])
+function RehearsalSongs({ rehearsal, allSongs }) {
+  let songIds = []
+  songIds = parseJsonArray(rehearsal?.song_ids)
+  if (!songIds.length || !allSongs?.length) return null
+  const songs = songIds.map(id => allSongs.find(s => s.id === id)).filter(Boolean)
+  if (!songs.length) return null
+  return (
+    <div className="rounded-xl border border-rim bg-pane p-4 space-y-2">
+      <h4 className="text-sm font-semibold text-body flex items-center gap-2"><Music size={14} /> Temes a estudiar</h4>
+      <div className="flex flex-col gap-2">
+        {songs.map(song => {
+          let atts = []
+          atts = parseJsonArray(song.attachments)
+          return (
+            <div key={song.id} className="flex flex-col gap-0.5">
+              <p className="text-sm font-medium text-body">{song.title}</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+                {atts.map((a, i) => {
+                  const colorCls = ATTACHMENT_COLORS[a.type] ?? 'text-muted'
+                  const Icon = a.type === 'score' ? FileText : a.type === 'audio' ? Music : ExternalLink
+                  return (
+                    <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
+                      className={`flex items-center gap-1 text-xs ${colorCls} hover:underline`}>
+                      <Icon size={11} /> {a.label}
+                    </a>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
-  useEffect(() => {
-    if (!canvasRef.current || !current || !show) return
-    const placements = positionsByMoment[current.moment.id] ?? {}
-    const prevPlacements = currentIdx > 0
-      ? (positionsByMoment[steps[currentIdx - 1]?.moment.id] ?? {})
-      : {}
-    const changedIds = new Set(
-      members
-        .filter(m => m.role !== 'director')
-        .filter(m => {
-          const cur = placements[m.id]
-          const prev = prevPlacements[m.id]
-          if (!cur || !prev) return false
-          if (cur.free) return cur.x !== prev.x || cur.y !== prev.y
-          return cur.row !== prev.row || cur.col !== prev.col
-        })
-        .map(m => m.id)
-    )
-    const mode = current.moment.grid_mode ?? 'alternate'
-    const directorMember = members.find(m => m.role === 'director') ?? null
-    drawAll(canvasRef.current, {
-      placements, members, mode, highlightId,
-      directorAbsX: LABEL_W + GW / 2, directorMember, drag: null,
-      selectedIds: new Set(), rotated, dims,
-      trajectoryConfig: null, soloistMicMap: {},
-      transparent: true, changedIds,
-    })
-  }, [positionsByMoment, members, current, show, dims, highlightId, rotated, currentIdx])
+export default function Attendance() {
+  const { role } = useAuth()
+  const isAdmin = role === 'admin' || role === 'director'
+  const myMember = useMyMember()
 
-  const prev = useCallback(() => { if (currentIdx > 0) setCurrentIdx(i => i - 1) }, [currentIdx])
-  const next = useCallback(() => { if (currentIdx < steps.length - 1) setCurrentIdx(i => i + 1) }, [currentIdx, steps.length])
+  const {
+    members, rehearsals, setRehearsals, schedule, setSchedule, selectedId, setSelectedId,
+    attendance, loading, saving,
+    summaryData, loadSummary,
+    addRehearsal, saveRehearsalMeta, deleteRehearsal,
+    toggleStatus, setReason, submitNotice,
+  } = useRehearsalData()
 
-  // ── Auto run-through ──────────────────────────────────────────
-  useEffect(() => {
-    if (!running) { clearInterval(runTimerRef.current); return }
-    runTimerRef.current = setInterval(() => {
-      setCurrentIdx(i => {
-        if (i >= steps.length - 1) { setRunning(false); return i }
-        return i + 1
-      })
-    }, runSpeed * 1000)
-    return () => clearInterval(runTimerRef.current)
-  }, [running, runSpeed, steps.length])
-
-  useEffect(() => {
-    function onKey(e) {
-      if (focusOpen || menuOpen || guideOpen) return
-      const tag = document.activeElement?.tagName
-      if (tag === 'INPUT' || tag === 'SELECT') return
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); prev() }
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); next() }
-      if (e.key === ' ') { e.preventDefault(); setRunning(v => !v) }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [currentIdx, steps.length, focusOpen, menuOpen, guideOpen, prev, next])
-
-  function setHighlight(id) {
-    setHighlightId(id)
-    if (id) localStorage.setItem('rehearsalHighlight', id)
-    else localStorage.removeItem('rehearsalHighlight')
-    setFocusOpen(false)
-  }
-
-  function toggleRotated() {
-    const next = !rotated
-    setRotated(next)
-    localStorage.setItem('rotated', next)
-  }
-
-  // ── Long-press ───────────────────────────────────────────────
-  function hitTestMember(visualX, visualY) {
-    const canvas = canvasRef.current
-    if (!canvas) return null
-    const rect = canvas.getBoundingClientRect()
-    const scaleX = CW / rect.width, scaleY = CH / rect.height
-    let cx = visualX * scaleX, cy = visualY * scaleY
-    if (rotatedRef.current) { cx = CW - cx; cy = CH - cy }
-    const cur = currentRef.current
-    if (!cur) return null
-    const placements = positionsByMomentRef.current[cur.moment.id] ?? {}
-    const mode = cur.moment.grid_mode ?? 'alternate'
-    const d = dimsRef.current
-    let best = null, bestDist = TOKEN_R * 2.5
-    for (const m of membersRef.current) {
-      if (m.role === 'director') continue
-      const pos = placements[m.id]; if (!pos) continue
-      const pt = getMemberPixelPos(pos, mode, d)
-      const dist = Math.hypot(cx - pt.x, cy - pt.y)
-      if (dist < bestDist) { bestDist = dist; best = m }
-    }
-    return best
-  }
-
-  function handlePointerDown(e) {
-    if (e.button !== 0 && e.pointerType !== 'touch' && e.button !== undefined) return
-    clearTimeout(longPressTimerRef.current)
-    const canvas = canvasRef.current
-    const rect = canvas.getBoundingClientRect()
-    const vx = e.clientX - rect.left, vy = e.clientY - rect.top
-    swipeStartRef.current = { x: e.clientX, y: e.clientY }
-    setPressIndicator({ x: vx, y: vy })
-    longPressTimerRef.current = setTimeout(() => {
-      const m = hitTestMember(vx, vy)
-      setPressIndicator(null)
-      if (m) setHighlight(highlightIdRef.current === m.id ? '' : m.id)
-    }, LONG_PRESS_MS)
-  }
-
-  function cancelLongPress() {
-    clearTimeout(longPressTimerRef.current)
-    setPressIndicator(null)
-  }
-
-  function handlePointerMove(e) {
-    if (!pressIndicator) return
-    const canvas = canvasRef.current
-    const rect = canvas.getBoundingClientRect()
-    const dx = (e.clientX - rect.left) - pressIndicator.x
-    const dy = (e.clientY - rect.top) - pressIndicator.y
-    if (Math.hypot(dx, dy) > 12) cancelLongPress()
-  }
-
-  // ── Swipe to navigate ─────────────────────────────────────────
-  function handlePointerUp(e) {
-    cancelLongPress()
-    const start = swipeStartRef.current
-    if (!start || focusOpen || menuOpen || guideOpen) return
-    const dx = e.clientX - start.x, dy = e.clientY - start.y
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      if (dx < 0) next(); else prev()
-    }
-    swipeStartRef.current = null
-  }
-
-  // ── Pinch-to-zoom ────────────────────────────────────────────
-  useEffect(() => {
-    const wrap = canvasWrapRef.current
-    if (!wrap) return
-    function onTouchStart(e) {
-      if (e.touches.length === 2)
-        lastPinchDistRef.current = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY,
-        )
-    }
-    function onTouchMove(e) {
-      if (e.touches.length === 2 && lastPinchDistRef.current != null) {
-        e.preventDefault()
-        const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY)
-        setZoom(z => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z * (d / lastPinchDistRef.current))))
-        lastPinchDistRef.current = d
-      }
-    }
-    function onTouchEnd() { lastPinchDistRef.current = null }
-    wrap.addEventListener('touchstart', onTouchStart, { passive: true })
-    wrap.addEventListener('touchmove', onTouchMove, { passive: false })
-    wrap.addEventListener('touchend', onTouchEnd, { passive: true })
-    return () => {
-      wrap.removeEventListener('touchstart', onTouchStart)
-      wrap.removeEventListener('touchmove', onTouchMove)
-      wrap.removeEventListener('touchend', onTouchEnd)
-    }
+  const { data: allSongs = [] } = useSupabaseQuery(async () => {
+    const { data } = await supabase.from('repertoire_songs').select('id, title, attachments')
+    return data ?? []
   }, [])
 
-  const highlightedMember = highlightId ? members.find(m => m.id === highlightId) : null
-  const guideData = highlightId && steps.length
-    ? computeGuide(highlightId, steps, positionsByMoment, members, dims)
-    : []
+  const [tab, setTab] = useState('assajos')
+  const [showAllRehearsals, setShowAllRehearsals] = useState(false)
 
-  const canvasTransform = [
-    zoom !== 1 ? `scale(${zoom})` : '',
-    rotated ? 'rotate(180deg)' : '',
-  ].filter(Boolean).join(' ') || undefined
+  // New rehearsal form
+  const [addingDate, setAddingDate] = useState(false)
+  const [newDate, setNewDate] = useState('')
+  const [newTime, setNewTime] = useState('')
+  const [newLocation, setNewLocation] = useState('')
+  const [newType, setNewType] = useState('')
+  const [newNotes, setNewNotes] = useState('')
 
-  if (loading) return (
-    <div className="min-h-screen bg-page flex items-center justify-center">
-      <span className="text-faint text-sm">Carregant…</span>
+  // Detail panel (state kept minimal — edit state lives inside RehearsalDetailModal)
+  const [detailRehearsal, setDetailRehearsal] = useState(null)
+
+  // Absence notification form
+  const [notifyMemberId, setNotifyMemberId] = useState('')
+  const [notifyReason, setNotifyReason] = useState('viatge')
+  const [showNotifyForm, setShowNotifyForm] = useState(false)
+
+  useEffect(() => {
+    if (tab === 'resum') loadSummary()
+  }, [tab, loadSummary])
+
+  function resetForm() {
+    setNewDate(''); setNewTime(''); setNewLocation(''); setNewType(''); setNewNotes('')
+    setAddingDate(false)
+  }
+
+  async function addRehearsalDate() {
+    if (!newDate) return
+    await addRehearsal(newDate, newType, newTime, newLocation, newNotes)
+    resetForm()
+  }
+
+  async function handleSubmitNotice() {
+    await submitNotice(notifyMemberId, notifyReason)
+    setNotifyMemberId(''); setNotifyReason('viatge'); setShowNotifyForm(false)
+  }
+
+  const selected = rehearsals.find(r => r.id === selectedId)
+  const upcoming = selected && isUpcoming(selected.date)
+
+  const stats = { present: 0, absent: 0, excused: 0 }
+  for (const m of members) {
+    const s = attendance[m.id]?.status ?? (upcoming ? null : 'present')
+    if (s) stats[s] = (stats[s] ?? 0) + 1
+  }
+
+  const tabs = (
+    <div className="flex gap-1">
+      {[['assajos', t.attendance.tabRehearsals], ['resum', t.attendance.tabSummary]].map(([key, label]) => (
+        <button key={key} onClick={() => setTab(key)}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            tab === key ? 'border-cyan-500 text-cyan-600 dark:border-cyan-400 dark:text-cyan-300' : 'border-transparent text-muted hover:text-body'
+          }`}>
+          {label}
+        </button>
+      ))}
     </div>
   )
 
-  if (!steps.length) return (
-    <div className="min-h-screen bg-page flex flex-col items-center justify-center gap-4">
-      <p className="text-faint text-sm">No hi ha moments a aquest espectacle.</p>
-      <Link to={`/show/${showId}`} className="text-cyan-400 text-sm hover:underline">Tornar a l'escaleta</Link>
+  const headerActions = (
+    <div className="flex items-center gap-2">
+      {saving && <span className="text-xs text-ghost">{t.saving}</span>}
+      {isAdmin && tab === 'assajos' && (
+        <Button size="sm" onClick={() => setAddingDate(v => !v)}>
+          <Plus size={14} /> {t.attendance.newRehearsal}
+        </Button>
+      )}
     </div>
   )
 
   return (
-    <div className="bg-page flex flex-col overflow-hidden select-none" style={{ height: '100dvh' }}>
-      <ShowToolbar showId={showId} showName={show?.name} />
+    <Layout fullWidth>
+      <PageContainer
+        header={<PageHeader title={t.attendance.pageTitle} icon={CalendarDays} actions={headerActions} tabs={tabs} />}
+      >
+      <div className="space-y-4 pt-2">
 
-      {/* Canvas area */}
-      <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden p-1 relative"
-        ref={canvasWrapRef}>
-        <canvas ref={canvasRef} width={CW} height={CH}
-          style={{ maxWidth: '100%', maxHeight: '100%', display: 'block', touchAction: 'none', transform: canvasTransform }}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={cancelLongPress}
-        />
-
-        {pressIndicator && (
-          <div key={`${pressIndicator.x}-${pressIndicator.y}`}
-            style={{ position: 'absolute', left: pressIndicator.x, top: pressIndicator.y,
-              transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
-            <div style={{ width: 52, height: 52, borderRadius: '50%',
-              border: '3px solid rgba(34, 211, 238, 0.9)',
-              animation: `rehearsal-ring ${LONG_PRESS_MS}ms linear forwards` }} />
+        {/* New rehearsal form */}
+        {isAdmin && addingDate && (
+          <div className="rounded-xl border border-line bg-pane p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-body">{t.attendance.newRehearsal}</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted">Data *</label>
+                <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className={inputCls} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted">Hora</label>
+                <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} className={inputCls} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted">Lloc</label>
+                <input type="text" placeholder="Sala, adreça…" value={newLocation} onChange={e => setNewLocation(e.target.value)} className={inputCls} />
+              </div>
+              <Select label="Tipus" value={newType} onChange={e => setNewType(e.target.value)}>
+                <option value="">— Tipus —</option>
+                {Object.entries(REHEARSAL_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </Select>
+              <div className="flex flex-col gap-1 col-span-2 sm:col-span-2">
+                <label className="text-xs text-muted">Notes</label>
+                <input type="text" placeholder="Notes opcionals" value={newNotes} onChange={e => setNewNotes(e.target.value)} className={inputCls} />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={addRehearsalDate} disabled={!newDate}>{t.attendance.addRehearsal}</Button>
+              <Button size="sm" variant="ghost" onClick={resetForm}>{t.cancel}</Button>
+            </div>
           </div>
         )}
 
-        {/* Run-through speed selector (only when running) */}
-        {running && (
-          <div className="absolute top-2 left-2 flex items-center gap-1 bg-fill/90 border border-amber-600/60 rounded-lg px-2 py-1">
-            <span className="text-[10px] text-amber-400">Auto</span>
-            <select value={runSpeed} onChange={e => setRunSpeed(Number(e.target.value))}
-              onClick={e => e.stopPropagation()}
-              className="bg-transparent text-[10px] text-amber-300 focus:outline-none">
-              {RUN_SPEEDS.map(s => <option key={s} value={s}>{s}s</option>)}
-            </select>
-          </div>
-        )}
-
-        {/* Zoom buttons */}
-        <div className="absolute top-2 right-2 flex flex-col gap-1">
-          <button onClick={() => setZoom(z => Math.min(ZOOM_MAX, +(z + 0.25).toFixed(2)))}
-            className="w-9 h-9 flex items-center justify-center rounded-lg bg-fill/80 border border-line text-muted hover:text-body active:bg-raised transition-colors">
-            <ZoomIn size={16} />
-          </button>
-          <button onClick={() => setZoom(z => Math.max(ZOOM_MIN, +(z - 0.25).toFixed(2)))}
-            className="w-9 h-9 flex items-center justify-center rounded-lg bg-fill/80 border border-line text-muted hover:text-body active:bg-raised transition-colors">
-            <ZoomOut size={16} />
-          </button>
-          {zoom !== 1.0 && (
-            <button onClick={() => setZoom(1.0)}
-              className="w-9 h-7 flex items-center justify-center rounded-lg bg-fill/80 border border-line text-faint text-[10px] hover:text-body transition-colors">
-              1:1
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Bottom sheets */}
-      {focusOpen && (
-        <RehearsalFocusPicker
-          members={members} highlightId={highlightId}
-          onSelect={setHighlight} onClose={() => setFocusOpen(false)} />
-      )}
-      {guideOpen && highlightedMember && (
-        <RehearsalGuideSheet
-          highlightedMember={highlightedMember} guideData={guideData}
-          currentIdx={currentIdx} onNavigate={setCurrentIdx} onClose={() => setGuideOpen(false)} />
-      )}
-      {menuOpen && (
-        <RehearsalNavMenu
-          steps={steps} currentIdx={currentIdx}
-          onNavigate={setCurrentIdx} onClose={() => setMenuOpen(false)} />
-      )}
-
-      {/* Bottom bar */}
-      <div className="flex items-center border-t border-rim bg-pane shrink-0">
-        <button onClick={prev} disabled={currentIdx === 0}
-          className="w-16 h-16 flex items-center justify-center text-body disabled:opacity-25 active:bg-fill transition-colors shrink-0">
-          <ChevronLeft size={30} />
-        </button>
-
-        <div className="flex-1 min-w-0 flex items-center gap-1 py-1 px-1">
-          <div className="flex-1 min-w-0 text-center">
-            <p className="text-[11px] text-faint leading-none truncate">{current?.song.title}</p>
-            <p className="text-sm font-semibold text-body leading-tight truncate">{current?.moment.title}</p>
-          </div>
-          <div className="flex items-center gap-0.5 shrink-0">
-            <button onClick={() => { setFocusOpen(v => !v); setMenuOpen(false); setGuideOpen(false) }}
-              className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-colors ${
-                highlightId ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-line text-faint hover:text-body'
-              }`}>
-              <Crosshair size={15} />
-            </button>
-            {highlightId && (
-              <button onClick={() => { setGuideOpen(v => !v); setFocusOpen(false); setMenuOpen(false) }}
-                className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-colors ${
-                  guideOpen ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-line text-faint hover:text-body'
-                }`}>
-                <BookOpen size={15} />
-              </button>
+        {loading ? <p className="text-faint text-sm">{t.loading}</p> : tab === 'assajos' ? (
+          <div className="space-y-4">
+            {isAdmin && (
+              <RehearsalScheduleConfig
+                schedule={schedule}
+                onScheduleChange={setSchedule}
+                existingDates={rehearsals.map(r => r.date)}
+                onRehearsalsGenerated={newReh => setRehearsals(prev =>
+                  [...prev, ...newReh].sort((a, b) => a.date < b.date ? -1 : 1)
+                )}
+              />
             )}
-            {/* Run-through toggle */}
-            <button onClick={() => setRunning(v => !v)}
-              className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-colors ${
-                running ? 'border-amber-600 text-amber-400 bg-amber-900/20' : 'border-line text-faint hover:text-body'
-              }`}
-              title="Mode run-through (espai per pausar)">
-              {running ? <Pause size={15} /> : <Play size={15} />}
-            </button>
-            <button onClick={toggleRotated}
-              className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-colors ${
-                rotated ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-line text-faint hover:text-body'
-              }`}>
-              <RotateCcw size={15} />
-            </button>
-            <button onClick={() => { setMenuOpen(v => !v); setFocusOpen(false); setGuideOpen(false) }}
-              className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-colors ${
-                menuOpen ? 'border-cyan-600 text-cyan-400 bg-cyan-900/20' : 'border-line text-faint hover:text-body'
-              }`}>
-              <List size={15} />
-            </button>
-            <Link to={`/show/${showId}`}
-              className="w-10 h-10 flex items-center justify-center rounded-lg border border-line text-faint hover:text-body transition-colors">
-              <X size={15} />
-            </Link>
+
+            {(() => {
+              const todayStr = new Date().toISOString().slice(0, 10)
+              const past = rehearsals.filter(r => r.date < todayStr)
+              const upcoming = rehearsals.filter(r => r.date >= todayStr)
+              const lastPast = past.slice(-1)
+              const next3 = upcoming.slice(0, 3)
+              const hidden = [...past.slice(0, -1), ...upcoming.slice(3)]
+              const visible = showAllRehearsals ? rehearsals : [...lastPast, ...next3]
+              return (
+                <div className="flex flex-col gap-2">
+                  {visible.map(r => {
+                    const meta = parseRehearsalMeta(r.notes)
+                    const time  = r.time  ?? meta.time
+                    const loc   = r.location ?? meta.location
+                    const type  = r.type  ?? meta.type
+                    const active = selectedId === r.id
+                    const isNext = isUpcoming(r.date)
+                    const isPast = r.date < todayStr
+                    return (
+                      <div key={r.id} className={`relative group ${isPast && !isNext ? 'opacity-60' : ''}`}>
+                        <button onClick={() => setSelectedId(r.id)}
+                          className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
+                            active ? 'bg-cyan-50 border-cyan-300 dark:bg-cyan-700/20 dark:border-cyan-600' : 'bg-pane border-rim hover:bg-fill'
+                          }`}>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-sm font-semibold ${active ? 'text-cyan-700 dark:text-cyan-300' : 'text-body'}`}>
+                              {formatDate(r.date)}
+                            </span>
+                            {type && <Badge color="cyan">{REHEARSAL_TYPES[type]}</Badge>}
+                            {isNext && <Badge color="amber">{t.attendance.upcoming}</Badge>}
+                          </div>
+                          {(time || loc) && (
+                            <div className="flex items-center gap-3 mt-1 text-xs text-muted">
+                              {time && <span className="flex items-center gap-1"><Clock size={11} />{time}</span>}
+                              {loc  && <span className="flex items-center gap-1"><MapPin size={11} />{loc}</span>}
+                            </div>
+                          )}
+                        </button>
+                        {isAdmin && (
+                          <button onClick={() => setDetailRehearsal(r)} title="Editar detalls"
+                            className="absolute right-10 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center text-ghost hover:text-body hover:bg-fill transition-colors opacity-0 group-hover:opacity-100">
+                            <Pencil size={13} />
+                          </button>
+                        )}
+                        {isAdmin && (
+                          <button onClick={() => deleteRehearsal(r.id)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center text-ghost hover:text-red-500 hover:bg-fill transition-colors opacity-0 group-hover:opacity-100">
+                            <X size={13} />
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {!showAllRehearsals && hidden.length > 0 && (
+                    <button onClick={() => setShowAllRehearsals(true)}
+                      className="flex items-center justify-center gap-1.5 text-xs text-muted hover:text-body py-2 transition-colors">
+                      <ChevronDown size={13} /> {t.attendance.showAll(rehearsals.length)}
+                    </button>
+                  )}
+                </div>
+              )
+            })()}
+
+            {!selected ? (
+              <div className="text-center py-16 text-ghost">
+                <CalendarDays size={40} className="mx-auto mb-4 opacity-30" />
+                <p>{t.attendance.emptyHint}</p>
+              </div>
+            ) : (
+              <>
+                {(() => {
+                  const meta = parseRehearsalMeta(selected.notes)
+                  return (
+                    <div className="flex items-start gap-3 px-4 py-3 bg-pane border border-rim rounded-xl">
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-semibold text-body">{formatDate(selected.date)}</span>
+                          {meta.type && <Badge color="cyan">{REHEARSAL_TYPES[meta.type]}</Badge>}
+                          {upcoming && <Badge color="amber">{t.attendance.upcoming}</Badge>}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
+                          {meta.time && <span className="flex items-center gap-1"><Clock size={11} />{meta.time}</span>}
+                          {meta.location && <span className="flex items-center gap-1"><MapPin size={11} />{meta.location}</span>}
+                          {meta.freeNotes && <span className="text-ghost">{meta.freeNotes}</span>}
+                        </div>
+                      </div>
+                      {!upcoming && (
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center gap-1 text-sm text-green-600 dark:text-green-400"><Check size={13} /> {stats.present}</span>
+                          <span className="flex items-center gap-1 text-sm text-red-600 dark:text-red-400"><X size={13} /> {stats.absent}</span>
+                          <span className="flex items-center gap-1 text-sm text-amber-600 dark:text-amber-400"><Clock size={13} /> {stats.excused}</span>
+                          <span className="text-xs text-ghost">/ {members.length}</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {/* Songs to study */}
+                <RehearsalSongs rehearsal={selected} allSongs={allSongs} />
+
+                {/* Absence notifications (upcoming rehearsal) */}
+                {upcoming && (
+                  <div className="bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-700/30 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-2">
+                        <Bell size={14} /> {t.attendance.absenceNotices}
+                      </h3>
+                      <button onClick={() => setShowNotifyForm(v => !v)}
+                        className="flex items-center gap-1.5 text-xs bg-amber-100 hover:bg-amber-200 dark:bg-amber-700/30 dark:hover:bg-amber-700/50 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700/40 px-3 py-1.5 rounded-lg transition-colors">
+                        <Plus size={12} /> {t.attendance.notComing}
+                      </button>
+                    </div>
+                    {showNotifyForm && (
+                      <div className="flex flex-wrap items-end gap-2 p-3 bg-white dark:bg-pane/50 rounded-lg border border-amber-200 dark:border-amber-700/20">
+                        <Select label={t.attendance.whoNotComing} value={notifyMemberId} onChange={e => setNotifyMemberId(e.target.value)}>
+                          <option value="">— Selecciona —</option>
+                          {members.map(m => (
+                            <option key={m.id} value={m.id}>
+                              {m.last_name ? `${m.last_name}, ${m.first_name ?? ''}` : m.name}
+                            </option>
+                          ))}
+                        </Select>
+                        <Select label={t.attendance.reason} value={notifyReason} onChange={e => setNotifyReason(e.target.value)}>
+                          {Object.entries(REASONS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                        </Select>
+                        <button onClick={handleSubmitNotice} disabled={!notifyMemberId}
+                          className="bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white text-sm px-4 py-2 rounded-lg transition-colors">
+                          {t.attendance.sendNotice}
+                        </button>
+                        <button onClick={() => setShowNotifyForm(false)} className="text-faint hover:text-body text-sm py-2">{t.cancel}</button>
+                      </div>
+                    )}
+                    {members.filter(m => attendance[m.id]?.status === 'excused').length === 0
+                      ? <p className="text-xs text-ghost">{t.attendance.noAbsenceNotices}</p>
+                      : members.filter(m => attendance[m.id]?.status === 'excused').map(m => {
+                          const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
+                          const reason = attendance[m.id]?.reason
+                          const ReasonIcon = reason ? REASONS[reason]?.icon : Clock
+                          return (
+                            <div key={m.id} className="flex items-center gap-2 text-sm">
+                              <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                                style={{ backgroundColor: c.bg, color: c.fg }}>{memberInitials(m)}</span>
+                              <span className="text-body">
+                                {m.last_name ? `${m.last_name}, ${m.first_name ?? ''}` : m.name}
+                              </span>
+                              {reason && <Badge color="amber"><ReasonIcon size={10} /> {REASONS[reason]?.label}</Badge>}
+                              {isAdmin && (
+                                <button onClick={() => toggleStatus(m.id)} className="ml-auto text-xs text-ghost hover:text-red-400 transition-colors">
+                                  <X size={12} />
+                                </button>
+                              )}
+                            </div>
+                          )
+                        })
+                    }
+                  </div>
+                )}
+
+                {/* Member attendance list (past rehearsals) */}
+                {!upcoming && (
+                  <div className="space-y-1">
+                    {members.map(m => {
+                      const status = attendance[m.id]?.status ?? 'present'
+                      const reason = attendance[m.id]?.reason ?? ''
+                      const cfg = STATUS_CONFIG[status]
+                      const StatusIcon = cfg.icon
+                      const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
+                      return (
+                        <div key={m.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-pane hover:bg-fill/30 transition-colors">
+                          <span className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                            style={{ backgroundColor: c.bg, color: c.fg }}>{memberInitials(m)}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm text-body truncate">
+                              {m.last_name
+                                ? <><span className="font-semibold">{m.last_name}</span>{m.first_name ? `, ${m.first_name}` : ''}</>
+                                : <span className="font-medium">{m.name}</span>}
+                            </div>
+                            <div className="text-xs font-medium" style={{ color: c.bg }}>{VOICE_LABELS[m.voice]}</div>
+                          </div>
+                          {(status === 'absent' || status === 'excused') && isAdmin && (
+                            <select value={reason} onChange={e => setReason(m.id, e.target.value)}
+                              className="text-xs bg-fill border border-line rounded-lg px-2 py-1 text-muted focus:outline-none focus:border-cyan-500">
+                              <option value="">Motiu…</option>
+                              {Object.entries(REASONS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                            </select>
+                          )}
+                          {(status === 'absent' || status === 'excused') && !isAdmin && reason && (
+                            <span className="text-xs text-ghost">{REASONS[reason]?.label}</span>
+                          )}
+                          {isAdmin ? (
+                            <button onClick={() => toggleStatus(m.id)}
+                              className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium shrink-0 transition-colors ${cfg.cls}`}>
+                              <StatusIcon size={11} /> {cfg.label}
+                            </button>
+                          ) : (
+                            <span className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium shrink-0 ${cfg.cls}`}>
+                              <StatusIcon size={11} /> {cfg.label}
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </>
+            )}
           </div>
-        </div>
-
-        <button onClick={next} disabled={currentIdx >= steps.length - 1}
-          className="w-16 h-16 flex items-center justify-center text-body disabled:opacity-25 active:bg-fill transition-colors shrink-0">
-          <ChevronRight size={30} />
-        </button>
+        ) : (
+          <SummaryView members={members} rehearsals={rehearsals} summaryData={summaryData} />
+        )}
       </div>
+      </PageContainer>
 
-      <style>{`
-        @keyframes rehearsal-ring {
-          from { transform: scale(0.3); opacity: 1; }
-          to   { transform: scale(1);   opacity: 0; }
-        }
-      `}</style>
-    </div>
+      <RehearsalDetailModal
+        rehearsal={detailRehearsal}
+        isAdmin={isAdmin}
+        onSave={saveRehearsalMeta}
+        onClose={() => setDetailRehearsal(null)}
+      />
+    </Layout>
   )
 }

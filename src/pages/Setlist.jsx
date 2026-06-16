@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { DndContext, closestCenter, DragOverlay } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { Pencil, X, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, MicVocal, Music, Plus } from '../lib/icons'
+import { Pencil, X, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown, MicVocal, Music, Plus, Undo2, Redo2 } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 import ShowToolbar from '../components/ShowToolbar'
@@ -18,6 +18,7 @@ import EmptyState from '../components/ui/EmptyState'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
 import { ICON } from '../lib/ui'
 import { useSetlistData } from '../hooks/useSetlistData'
+import { useHistoryHotkeys } from '../hooks/useHistory'
 
 // ─── Main component ───────────────────────────────────────────
 export default function Setlist() {
@@ -25,6 +26,7 @@ export default function Setlist() {
   const navigate = useNavigate()
 
   const {
+    history,
     show, parts, songs, moments, micAssignments,
     allMembers, setAllMembers, exclusions, loading, repertoire,
     positionsByMoment, diffByMoment, soloistsByMoment,
@@ -37,6 +39,8 @@ export default function Setlist() {
     handleAddMoment, handleDeleteMoment, handlePasteMoment,
     toggleExclusion,
   } = useSetlistData({ showId, navigate })
+
+  useHistoryHotkeys(history)
 
   const [creating, setCreating] = useState(false)
   const [creatingPart, setCreatingPart] = useState(false)
@@ -72,6 +76,16 @@ export default function Setlist() {
             <MicVocal size={13} /> Membres {exclusions.size > 0 && <span className="ml-1 text-yellow-500">({allMembers.length - exclusions.size}/{allMembers.length})</span>}
           </button>
           <div className="flex-1" />
+          <button onClick={history.undo} disabled={!history.canUndo}
+            aria-label="Desfés" aria-keyshortcuts="Control+Z Meta+Z" title="Desfés (Ctrl/Cmd+Z)"
+            className="p-1.5 rounded-lg text-faint hover:text-body hover:bg-fill disabled:opacity-30 disabled:hover:bg-transparent">
+            <Undo2 size={ICON.sm} />
+          </button>
+          <button onClick={history.redo} disabled={!history.canRedo}
+            aria-label="Refés" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z" title="Refés (Ctrl/Cmd+Shift+Z)"
+            className="p-1.5 rounded-lg text-faint hover:text-body hover:bg-fill disabled:opacity-30 disabled:hover:bg-transparent">
+            <Redo2 size={ICON.sm} />
+          </button>
           <Button size="sm" variant="ghost" onClick={() => setCreatingPart(true)}>
             <Plus size={ICON.sm} /> Nova part
           </Button>

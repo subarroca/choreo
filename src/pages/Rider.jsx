@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { Printer, Moon, Wind, Sparkles, Move, Pause, Theater, ScanFace, Spotlight } from '../lib/icons'
+import { parseJsonArray, parseJson } from '../lib/parseJson'
 import Button from '../components/ui/Button'
 import { ICON } from '../lib/ui'
 import { useLightCues } from '../hooks/useLightCues'
@@ -25,10 +26,8 @@ export default function Rider() {
   }
 
   const songMap = Object.fromEntries(songs.map(s => [s.id, s]))
-  const mics = Array.isArray(show?.mics) ? show.mics : (show?.mics ? JSON.parse(show.mics) : [])
-  const micAssignments = show?.mic_assignments
-    ? (typeof show.mic_assignments === 'string' ? JSON.parse(show.mic_assignments) : show.mic_assignments)
-    : {}
+  const mics = parseJsonArray(show?.mics)
+  const micAssignments = parseJson(show?.mic_assignments, {})
   const memberName = (id) => members.find(m => m.id === id)?.name ?? ''
   const allMoments = songs.flatMap(s =>
     (momentsBySong[s.id] ?? []).map(m => ({ ...m, song_title: s.title }))

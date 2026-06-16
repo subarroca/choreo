@@ -3,6 +3,7 @@ import { LayoutDashboard } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'
+import { parseJsonArray, parseJson } from '../lib/parseJson'
 import { useMyMember } from '../hooks/useMyMember.js'
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
 import Layout from '../components/Layout'
@@ -151,9 +152,7 @@ export default function Dashboard() {
       positionedMoments = new Set((posData ?? []).map(p => p.moment_id)).size
     }
     const songsWithCues = new Set((cueRes.data ?? []).map(c => c.song_id)).size
-    const micAssign = nextShow.mic_assignments
-      ? (typeof nextShow.mic_assignments === 'string' ? JSON.parse(nextShow.mic_assignments) : nextShow.mic_assignments)
-      : {}
+    const micAssign = parseJson(nextShow.mic_assignments, {})
     return {
       positions: momentIds.length ? (positionedMoments / momentIds.length) * 100 : 0,
       lights: songs.length ? (songsWithCues / songs.length) * 100 : 0,
@@ -173,7 +172,7 @@ export default function Dashboard() {
               <NextShowCard show={nextShow} readiness={showReadiness} readinessLoading={readinessLoading}
                 extraLinks={
                   <>
-                    <Link to={`/show/${nextShow.id}/rehearsal`}><Button size="sm" variant="ghost">{t.dashboard.rehearsalGuide}</Button></Link>
+                    <Link to={`/show/${nextShow.id}/staging`}><Button size="sm" variant="ghost">{t.dashboard.rehearsalGuide}</Button></Link>
                     <Link to={`/show/${nextShow.id}/lights`}><Button size="sm" variant="ghost">{t.dashboard.lighting}</Button></Link>
                     <Link to={`/show/${nextShow.id}/mics`}><Button size="sm" variant="ghost">{t.mics.microphones}</Button></Link>
                   </>

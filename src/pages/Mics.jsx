@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { X, Plus, ArrowRight, Menu } from '../lib/icons'
 import { supabase } from '../lib/supabase'
+import { parseJsonArray, parseJson } from '../lib/parseJson'
 import { VOICE_COLORS } from '../lib/constants'
 import Layout from '../components/Layout'
 import ShowToolbar from '../components/ShowToolbar'
@@ -39,8 +40,8 @@ export default function Mics() {
       ])
       const s = showRes.data
       setShow(s)
-      setMics(Array.isArray(s?.mics) ? s.mics : (s?.mics ? JSON.parse(s.mics) : []))
-      setAssignments(s?.mic_assignments ? (typeof s.mic_assignments === 'string' ? JSON.parse(s.mic_assignments) : s.mic_assignments) : {})
+      setMics(parseJsonArray(s?.mics))
+      setAssignments(parseJson(s?.mic_assignments, {}))
       setMembers((membersRes.data ?? []).filter(m => m.active !== false))
 
       const songList = songsRes.data ?? []

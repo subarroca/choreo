@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Clapperboard, Pencil, Trash2, ImageIcon, X, Plus } from '../lib/icons'
+import { Clapperboard, Pencil, Trash2, ImageIcon, X, Plus, Undo2, Redo2 } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'
@@ -15,7 +15,8 @@ import { confirmDialog } from '../components/ui/ConfirmDialog'
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
 import { ICON } from '../lib/ui'
 import { SkeletonCard } from '../components/ui/Skeleton'
-import { toast } from '../components/ui/Toast'
+import { runMutation } from '../lib/mutate'
+import { useHistory, useHistoryHotkeys } from '../hooks/useHistory'
 
 function ShowForm({ initial, onSave, onCancel, onDelete }) {
   const [name, setName] = useState(initial?.name ?? '')
@@ -226,28 +227,70 @@ export default function Shows() {
     }
   }, [loading])
 
-  async function handleCreate(fields) {
-    const payload = { ...fields, created_by: user.id }
-    if (currentChoirId) payload.choir_id = currentChoirId
-    const { data, error } = await supabase.from('shows').insert(payload).select().single()
-    if (error) { toast.error('Error en crear l\'espectacle'); return }
-    setShows(prev => [data, ...prev]); setFormShow(null)
-    toast('Espectacle creat')
+  const history = useHistory()
+  useHistoryHotkeys(history)
+
+  function insertShowCmd(row, msg) {
+    return runMutation({
+      optimistic: () => setShows(prev => [row, ...prev]),
+      persist: () => supabase.from('shows').insert(row),
+      rollback: () => setShows(prev => prev.filter(s => s.id !== row.id)),
+      errorMsg: 'Error en crear l\'espectacle', successMsg: msg,
+    })
+  }
+  function deleteShowCmd(row, msg) {
+    return runMutation({
+      optimistic: () => { setShows(prev => prev.filter(s => s.id !== row.id)); setFormShow(null) },
+      persist: () => supabase.from('shows').delete().eq('id', row.id),
+      rollback: () => setShows(prev => [row, ...prev]),
+      errorMsg: 'Error en eliminar l\'espectacle', successMsg: msg,
+    })
+  }
+  function updateShowCmd(id, fields, prevFields, msg) {
+    return runMutation({
+      optimistic: () => setShows(prev => prev.map(s => s.id === id ? { ...s, ...fields } : s)),
+      persist: async () => {
+        const res = await supabase.from('shows').update(fields).eq('id', id).select().single()
+        if (!res.error) setShows(prev => prev.map(s => s.id === id ? res.data : s))
+        return res
+      },
+      rollback: () => setShows(prev => prev.map(s => s.id === id ? { ...s, ...prevFields } : s)),
+      errorMsg: 'Error en desar', successMsg: msg,
+    })
   }
 
-  async function handleUpdate(id, fields) {
-    const { data, error } = await supabase.from('shows').update(fields).eq('id', id).select().single()
-    if (error) { toast.error('Error en desar'); return }
-    setShows(prev => prev.map(s => s.id === id ? data : s)); setFormShow(null)
-    toast('Canvis desats')
+  function handleCreate(fields) {
+    const row = { id: crypto.randomUUID(), created_by: user.id, ...fields }
+    if (currentChoirId) row.choir_id = currentChoirId
+    history.dispatch({
+      label: 'create-show',
+      do: () => insertShowCmd(row, 'Espectacle creat'),
+      undo: () => deleteShowCmd(row, 'Creació desfeta'),
+    })
+    setFormShow(null)
+  }
+
+  function handleUpdate(id, fields) {
+    const prev = shows.find(s => s.id === id)
+    if (!prev) return
+    const prevFields = Object.fromEntries(Object.keys(fields).map(k => [k, prev[k]]))
+    history.dispatch({
+      label: 'update-show',
+      do: () => updateShowCmd(id, fields, prevFields, 'Canvis desats'),
+      undo: () => updateShowCmd(id, prevFields, fields, 'Canvi desfet'),
+    })
+    setFormShow(null)
   }
 
   async function handleDelete(id) {
     if (!(await confirmDialog('Eliminar aquest espectacle?'))) return
-    await supabase.from('shows').delete().eq('id', id)
-    setShows(prev => prev.filter(s => s.id !== id))
-    setFormShow(null)
-    toast('Espectacle eliminat', 'warn')
+    const row = shows.find(s => s.id === id)
+    if (!row) return
+    history.dispatch({
+      label: 'delete-show',
+      do: () => deleteShowCmd(row, 'Espectacle eliminat'),
+      undo: () => insertShowCmd(row, 'Eliminació desfeta'),
+    })
   }
 
   return (
@@ -258,9 +301,21 @@ export default function Shows() {
             title="Espectacles"
             icon={Clapperboard}
             actions={canEdit && (
-              <Button onClick={() => setFormShow('new')}>
-                <Plus size={ICON.sm} /> Nou espectacle
-              </Button>
+              <div className="flex items-center gap-1.5">
+                <button onClick={history.undo} disabled={!history.canUndo}
+                  aria-label="Desfés" aria-keyshortcuts="Control+Z Meta+Z" title="Desfés (Ctrl/Cmd+Z)"
+                  className="p-2 rounded-lg text-faint hover:text-body hover:bg-fill disabled:opacity-30 disabled:hover:bg-transparent">
+                  <Undo2 size={ICON.sm} />
+                </button>
+                <button onClick={history.redo} disabled={!history.canRedo}
+                  aria-label="Refés" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z" title="Refés (Ctrl/Cmd+Shift+Z)"
+                  className="p-2 rounded-lg text-faint hover:text-body hover:bg-fill disabled:opacity-30 disabled:hover:bg-transparent">
+                  <Redo2 size={ICON.sm} />
+                </button>
+                <Button onClick={() => setFormShow('new')}>
+                  <Plus size={ICON.sm} /> Nou espectacle
+                </Button>
+              </div>
             )}
           />
         }

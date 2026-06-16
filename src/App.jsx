@@ -19,8 +19,8 @@ import Admin from './pages/Admin'
 import Lights from './pages/Lights'
 import Rider from './pages/Rider'
 import Poster from './pages/Poster'
+import Staging from './pages/Staging'
 import Rehearsal from './pages/Rehearsal'
-import Attendance from './pages/Attendance'
 import Analytics from './pages/Analytics'
 import FeedbackAdmin from './pages/FeedbackAdmin'
 
@@ -68,8 +68,8 @@ function AppRoutes() {
       <Route path="/show/:id/lights" element={<RequireSection section="lights"><Lights /></RequireSection>} />
       <Route path="/show/:id/rider" element={<RequireSection section="rider"><Rider /></RequireSection>} />
       <Route path="/show/:id/poster" element={<RequireSection section="shows"><Poster /></RequireSection>} />
-      <Route path="/show/:id/rehearsal" element={<RequireSection section="shows"><Rehearsal /></RequireSection>} />
-      <Route path="/attendance" element={<RequireSection section="attendance"><Attendance /></RequireSection>} />
+      <Route path="/show/:id/staging" element={<RequireSection section="shows"><Staging /></RequireSection>} />
+      <Route path="/rehearsal" element={<RequireSection section="attendance"><Rehearsal /></RequireSection>} />
       <Route path="/songs" element={<RequireSection section="repertoire"><Songs /></RequireSection>} />
       <Route path="/admin" element={<RequireSection section="users"><Admin /></RequireSection>} />
       <Route path="/analytics" element={<RequireAuth><Analytics /></RequireAuth>} />

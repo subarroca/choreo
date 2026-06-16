@@ -3,6 +3,7 @@ import Modal from '../ui/Modal'
 import Button from '../ui/Button'
 import Textarea from '../ui/Textarea'
 import { formatDate } from '../../lib/formatters'
+import { parseJson } from '../../lib/parseJson'
 
 const REHEARSAL_TYPES = {
   veu: 'Veu', coreo: 'Coreo', ambdues: 'Veu + Coreo',
@@ -12,7 +13,7 @@ const REHEARSAL_TYPES = {
 function parseRehearsalMeta(notes) {
   if (!notes) return { type: '', time: '', location: '', freeNotes: '' }
   try {
-    const p = JSON.parse(notes)
+    const p = parseJson(notes)
     if (p && typeof p === 'object' && ('type' in p || 'time' in p || 'location' in p)) {
       return { type: p.type ?? '', time: p.time ?? '', location: p.location ?? '', freeNotes: p.notes ?? '' }
     }

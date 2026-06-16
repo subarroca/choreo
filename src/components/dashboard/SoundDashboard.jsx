@@ -45,7 +45,7 @@ export default function SoundDashboard({ nextShow, readiness, readinessLoading, 
               <span className="text-xs font-medium">Rider tècnic</span>
             </Link>
           )}
-          <Link to="/attendance"
+          <Link to="/rehearsal"
             className="flex flex-col items-center gap-2 rounded-xl border border-rim bg-pane p-4 text-muted hover:text-body hover:border-wire transition-colors group">
             <CalendarDays size={20} className="group-hover:text-cyan-400 transition-colors" />
             <span className="text-xs font-medium">Assajos</span>

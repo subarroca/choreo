@@ -22,7 +22,7 @@ function useNavItems() {
   if (can('shows', 'view'))
     items.push({ to: '/shows', label: t.nav.shows, Icon: Clapperboard })
   if (can('attendance', 'view'))
-    items.push({ to: '/attendance', label: t.nav.rehearsals, Icon: CalendarDays })
+    items.push({ to: '/rehearsal', label: t.nav.rehearsals, Icon: CalendarDays })
   if (can('members', 'view'))
     items.push({ to: '/members', label: t.nav.members, Icon: Users })
   if (isPrivileged)

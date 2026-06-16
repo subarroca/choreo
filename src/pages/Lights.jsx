@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { Plus, Menu, ListOrdered, AlignLeft, Play, Hash } from '../lib/icons'
+import { Plus, Menu, ListOrdered, AlignLeft, Play, Hash, Undo2, Redo2 } from '../lib/icons'
 import Layout from '../components/Layout'
 import ShowToolbar from '../components/ShowToolbar'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
@@ -10,6 +10,7 @@ import Button from '../components/ui/Button'
 import Textarea from '../components/ui/Textarea'
 import { ICON } from '../lib/ui'
 import { useLightCues } from '../hooks/useLightCues'
+import { useHistoryHotkeys } from '../hooks/useHistory'
 import { nextCueNumber, sortCues, lyricsLines } from '../lib/lights'
 import { isSongType, repertoireType } from '../lib/repertoireTypes'
 import ScoreView from '../components/lights/ScoreView'
@@ -49,10 +50,12 @@ function LyricsEditor({ repSong, onSave, onClose }) {
 export default function Lights() {
   const { id: showId } = useParams()
   const {
+    history,
     show, songs, repertoire, momentsBySong, positionsByMoment, members, cues, presets,
     loading, saving,
     loadMomentPositions, createCue, updateCue, deleteCue, renumberCues, createPreset, deletePreset, saveLyrics,
   } = useLightCues(showId)
+  useHistoryHotkeys(history)
 
   const [view, setView] = useState(() => localStorage.getItem('lightsView') || 'score')
   const [selectedSongId, setSelectedSongId] = useState(null)
@@ -163,6 +166,16 @@ export default function Lights() {
           </div>
           {saving && <span className="text-xs text-ghost">Guardant…</span>}
           <div className="ml-auto flex items-center gap-2">
+            <button onClick={history.undo} disabled={!history.canUndo}
+              aria-label="Desfés" aria-keyshortcuts="Control+Z Meta+Z" title="Desfés (Ctrl/Cmd+Z)"
+              className="p-1.5 rounded-lg text-faint hover:text-body hover:bg-fill disabled:opacity-30 disabled:hover:bg-transparent">
+              <Undo2 size={ICON.sm} />
+            </button>
+            <button onClick={history.redo} disabled={!history.canRedo}
+              aria-label="Refés" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z" title="Refés (Ctrl/Cmd+Shift+Z)"
+              className="p-1.5 rounded-lg text-faint hover:text-body hover:bg-fill disabled:opacity-30 disabled:hover:bg-transparent">
+              <Redo2 size={ICON.sm} />
+            </button>
             {cues.length > 0 && (
               <button onClick={renumberCues} title="Reassignar memòries consecutivament (1, 2, 3...)"
                 className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-line text-muted hover:text-body hover:bg-fill transition-colors">

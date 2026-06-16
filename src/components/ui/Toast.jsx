@@ -9,8 +9,10 @@ export function toast(message, type = 'success') {
   listeners.forEach(fn => fn({ id, message, type }))
   return id
 }
-toast.error = (msg) => toast(msg, 'error')
-toast.warn  = (msg) => toast(msg, 'warn')
+toast.error   = (msg) => toast(msg, 'error')
+toast.warn    = (msg) => toast(msg, 'warn')
+toast.success = (msg) => toast(msg, 'success')
+toast.info    = (msg) => toast(msg, 'success')
 
 const STYLES = {
   success: { cls: 'bg-cyan-950 border-cyan-700 text-cyan-100', Icon: CheckCircle, iconCls: 'text-cyan-400' },
@@ -42,7 +44,7 @@ export function ToastHost() {
             <Icon size={15} className={`shrink-0 ${iconCls}`} />
             <span className="flex-1">{t.message}</span>
             <button onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))}
-              className="ml-1 text-current opacity-50 hover:opacity-100 transition-opacity">
+              aria-label="Tancar" className="ml-1 text-current opacity-50 hover:opacity-100 transition-opacity">
               <X size={13} />
             </button>
           </div>

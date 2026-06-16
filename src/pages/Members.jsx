@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { Users, ChevronDown, ChevronUp, Plus, Search } from '../lib/icons'
+import { Users, ChevronDown, ChevronUp, Plus, Search, Undo2, Redo2 } from '../lib/icons'
+import { useHistory, useHistoryHotkeys } from '../hooks/useHistory'
+import { runMutation } from '../lib/mutate'
 import { supabase } from '../lib/supabase'
 import { VOICE_COLORS, VOICE_LABELS, VOICE_ORDER } from '../lib/constants'
 import { useSearchParams } from 'react-router-dom'
@@ -18,7 +20,6 @@ import { confirmDialog } from '../components/ui/ConfirmDialog'
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery'
 import { ICON } from '../lib/ui'
 import { SkeletonRow } from '../components/ui/Skeleton'
-import { toast } from '../components/ui/Toast'
 import { calcAge } from '../lib/formatters'
 
 function MemberMeta({ member }) {
@@ -99,42 +100,84 @@ export default function Members() {
       ((a.last_name || a.name) + '').localeCompare((b.last_name || b.name) + '', 'ca'))
   }, [currentChoirId])
 
-  async function handleCreate(fields) {
-    const payload = { active: true, ...fields }
-    if (currentChoirId) payload.choir_id = currentChoirId
-    const { data, error } = await supabase.from('members').insert(payload).select().single()
-    if (error) { toast.error('Error en crear la persona'); return }
-    setMembers(prev => [...prev, data].sort((a, b) =>
-      ((a.last_name || a.name) + '').localeCompare((b.last_name || b.name) + '', 'ca')))
-    setOverlayMember(data)
-    toast('Persona creada')
+  const history = useHistory()
+  useHistoryHotkeys(history)
+
+  const sortMembers = list => [...list].sort((a, b) =>
+    ((a.last_name || a.name) + '').localeCompare((b.last_name || b.name) + '', 'ca'))
+
+  // Insert a full member row (used by create's `do` and delete's `undo`).
+  // The id is generated client-side so do/undo/redo always reference the same
+  // row identity, keeping the inverse stable across repeated undo/redo.
+  function insertMemberCmd(row, msg) {
+    return runMutation({
+      optimistic: () => { setMembers(prev => sortMembers([...prev, row])); setOverlayMember(row) },
+      persist: () => supabase.from('members').insert(row),
+      rollback: () => setMembers(prev => prev.filter(m => m.id !== row.id)),
+      errorMsg: 'Error en crear la persona', successMsg: msg,
+    })
+  }
+  function deleteMemberCmd(row, msg) {
+    return runMutation({
+      optimistic: () => { setMembers(prev => prev.filter(m => m.id !== row.id)); setOverlayMember(null) },
+      persist: () => supabase.from('members').delete().eq('id', row.id),
+      rollback: () => setMembers(prev => sortMembers([...prev, row])),
+      errorMsg: 'Error en eliminar la persona', successMsg: msg,
+    })
+  }
+  function updateMemberCmd(id, fields, msg) {
+    return runMutation({
+      optimistic: () => setMembers(prev => sortMembers(prev.map(m => m.id === id ? { ...m, ...fields } : m))),
+      persist: async () => {
+        const res = await supabase.from('members').update(fields).eq('id', id).select().single()
+        if (!res.error && res.data) { setMembers(prev => sortMembers(prev.map(m => m.id === id ? res.data : m))); setOverlayMember(res.data) }
+        return res
+      },
+      errorMsg: 'Error en desar', successMsg: msg,
+    })
   }
 
-  async function handleUpdate(id, fields) {
-    const { data, error } = await supabase.from('members').update(fields).eq('id', id).select().single()
-    if (error) { toast.error('Error en desar'); return }
-    setMembers(prev => prev.map(m => m.id === id ? data : m)
-      .sort((a, b) => ((a.last_name || a.name) + '').localeCompare((b.last_name || b.name) + '', 'ca')))
-    setOverlayMember(data)
-    toast('Canvis desats')
+  function handleCreate(fields) {
+    const row = { id: crypto.randomUUID(), active: true, ...fields }
+    if (currentChoirId) row.choir_id = currentChoirId
+    history.dispatch({
+      label: 'create-member',
+      do: () => insertMemberCmd(row, 'Persona creada'),
+      undo: () => deleteMemberCmd(row, 'Creació desfeta'),
+    })
   }
 
-  async function handleSetActive(id, active) {
+  function handleUpdate(id, fields) {
+    const prev = members.find(m => m.id === id)
+    if (!prev) return
+    const prevFields = Object.fromEntries(Object.keys(fields).map(k => [k, prev[k]]))
+    history.dispatch({
+      label: 'update-member',
+      do: () => updateMemberCmd(id, fields, 'Canvis desats'),
+      undo: () => updateMemberCmd(id, prevFields, 'Canvi desfet'),
+    })
+  }
+
+  function handleSetActive(id, active) {
     const fields = active ? { active: true, left_at: null } : { active: false, left_at: new Date().toISOString() }
-    const { data, error } = await supabase.from('members').update(fields).eq('id', id).select().single()
-    if (!error) {
-      setMembers(prev => prev.map(m => m.id === id ? data : m))
-      setOverlayMember(data)
-      toast(active ? 'Persona reactivada' : 'Persona donada de baixa', active ? 'success' : 'warn')
-    }
+    const prev = members.find(m => m.id === id)
+    const prevFields = prev ? { active: prev.active, left_at: prev.left_at } : { active: !active, left_at: null }
+    history.dispatch({
+      label: 'setactive-member',
+      do: () => updateMemberCmd(id, fields, active ? 'Persona reactivada' : 'Persona donada de baixa'),
+      undo: () => updateMemberCmd(id, prevFields, 'Estat restaurat'),
+    })
   }
 
   async function handleDelete(id) {
     if (!(await confirmDialog('Eliminar definitivament aquesta persona?'))) return
-    await supabase.from('members').delete().eq('id', id)
-    setMembers(prev => prev.filter(m => m.id !== id))
-    setOverlayMember(null)
-    toast('Persona eliminada', 'warn')
+    const row = members.find(m => m.id === id)
+    if (!row) return
+    history.dispatch({
+      label: 'delete-member',
+      do: () => deleteMemberCmd(row, 'Persona eliminada'),
+      undo: () => insertMemberCmd(row, 'Eliminació desfeta'),
+    })
   }
 
   const activeMembers   = members.filter(m => m.active !== false)
@@ -170,9 +213,21 @@ export default function Members() {
             title="Persones"
             icon={Users}
             actions={canEdit && (
-              <Button onClick={() => setOverlayMember('new')}>
-                <Plus size={ICON.sm} /> Afegir
-              </Button>
+              <div className="flex items-center gap-1.5">
+                <button onClick={history.undo} disabled={!history.canUndo}
+                  aria-label="Desfés" aria-keyshortcuts="Control+Z Meta+Z" title="Desfés (Ctrl/Cmd+Z)"
+                  className="p-2 rounded-lg text-faint hover:text-body hover:bg-fill disabled:opacity-30 disabled:hover:bg-transparent">
+                  <Undo2 size={ICON.sm} />
+                </button>
+                <button onClick={history.redo} disabled={!history.canRedo}
+                  aria-label="Refés" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z" title="Refés (Ctrl/Cmd+Shift+Z)"
+                  className="p-2 rounded-lg text-faint hover:text-body hover:bg-fill disabled:opacity-30 disabled:hover:bg-transparent">
+                  <Redo2 size={ICON.sm} />
+                </button>
+                <Button onClick={() => setOverlayMember('new')}>
+                  <Plus size={ICON.sm} /> Afegir
+                </Button>
+              </div>
             )}
             tabs={
               <div className="space-y-2 py-2">

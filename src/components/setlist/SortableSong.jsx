@@ -3,6 +3,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Link } from 'react-router-dom'
 import { GripVertical, Pencil, X, ChevronDown, ChevronRight, Plus, MessageSquare, Info, Clipboard } from '../../lib/icons'
 import { formatDuration } from './SongForm'
+import { parseJsonArray } from '../../lib/parseJson'
 import { repertoireType, isSongType } from '../../lib/repertoireTypes'
 import { VOICE_COLORS } from '../../lib/constants'
 
@@ -26,7 +27,7 @@ function MomentThumbnailLarge({ positions = [], changedMembers, gridRows = 8, gr
 }
 
 function TextItem({ song, members, onEdit, onDelete, listeners, attributes, style }) {
-  const speakerIds = song.speakers ? JSON.parse(song.speakers) : []
+  const speakerIds = parseJsonArray(song.speakers)
   const speakerNames = speakerIds
     .map(id => members.find(m => m.id === id))
     .filter(Boolean)
@@ -50,10 +51,12 @@ function TextItem({ song, members, onEdit, onDelete, listeners, attributes, styl
         </div>
         <button onClick={() => onEdit(song)}
           className="text-faint hover:text-body p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
+          aria-label="Editar"
           <Pencil size={14} />
         </button>
         <button onClick={() => onDelete(song.id)}
           className="text-ghost hover:text-red-500 p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
+          aria-label="Eliminar"
           <X size={14} />
         </button>
       </div>
@@ -78,10 +81,12 @@ function IndicationItem({ song, onEdit, onDelete, listeners, attributes, style }
         </div>
         <button onClick={() => onEdit(song)}
           className="text-faint hover:text-body p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
+          aria-label="Editar"
           <Pencil size={14} />
         </button>
         <button onClick={() => onDelete(song.id)}
           className="text-ghost hover:text-red-500 p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
+          aria-label="Eliminar"
           <X size={14} />
         </button>
       </div>
@@ -156,10 +161,12 @@ export default function SortableSong({
         </span>
         <button onClick={() => onEdit(song)}
           className="text-faint hover:text-body p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
+          aria-label="Editar"
           <Pencil size={15} />
         </button>
         <button onClick={() => onDelete(song.id)}
           className="text-ghost hover:text-red-500 p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
+          aria-label="Eliminar"
           <X size={15} />
         </button>
       </div>

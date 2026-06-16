@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { parseJsonArray, parseJson } from '../../lib/parseJson'
 import { BookOpen, CalendarDays, LayoutDashboard, ArrowRight, MapPin, CalendarClock, Music, Check, X, ExternalLink, FileText, ChevronDown, ChevronUp, Users } from '../../lib/icons'
 import { t } from '../../locales/ca'
 import { useAuth } from '../../hooks/useAuth.jsx'
@@ -10,7 +11,6 @@ import { daysUntil, parseRehearsalMeta } from './DashboardWidgets.jsx'
 import Badge from '../ui/Badge'
 import UpcomingBirthdays from './UpcomingBirthdays'
 import { VOICE_COLORS, VOICE_LABELS } from '../../lib/constants'
-import { t } from '../../locales/ca'
 
 const REHEARSAL_TYPES = t.rehearsalTypes
 
@@ -46,8 +46,7 @@ function SongsList({ songIds, allSongs }) {
       </p>
       <div className="flex flex-col gap-1.5">
         {visible.map(song => {
-          let atts = []
-          try { atts = JSON.parse(song.attachments || '[]') } catch {}
+          const atts = parseJsonArray(song.attachments)
           return (
             <div key={song.id} className="bg-fill/30 rounded-lg px-2 py-1.5">
               <p className="text-xs font-medium text-body truncate">{song.title}</p>
@@ -108,7 +107,7 @@ function RehearsalCard({ rehearsal, isFirst, nextShow, allSongs, myMemberId, sec
   })
 
   let songIds = []
-  try { songIds = JSON.parse(rehearsal.song_ids || '[]') } catch {}
+  songIds = parseJsonArray(rehearsal.song_ids)
 
   const [attStatus, setAttStatus] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -225,7 +224,7 @@ export default function SingerDashboard({ nextShow, upcomingRehearsals, members,
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-muted uppercase tracking-wide">Propers assajos</h3>
-            <Link to="/attendance" className="text-xs text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 flex items-center gap-1 transition-colors">
+            <Link to="/rehearsal" className="text-xs text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 flex items-center gap-1 transition-colors">
               Tots <ArrowRight size={ICON.xs} />
             </Link>
           </div>
@@ -244,7 +243,7 @@ export default function SingerDashboard({ nextShow, upcomingRehearsals, members,
         <h3 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Accés ràpid</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {nextShow && (
-            <Link to={`/show/${nextShow.id}/rehearsal`}
+            <Link to={`/show/${nextShow.id}/staging`}
               className="flex flex-col items-center gap-2 rounded-xl border border-rim bg-pane p-4 text-muted hover:text-body hover:border-wire transition-colors group">
               <LayoutDashboard size={20} className="group-hover:text-cyan-400 transition-colors" />
               <span className="text-xs font-medium text-center">La meva posició</span>
@@ -257,7 +256,7 @@ export default function SingerDashboard({ nextShow, upcomingRehearsals, members,
               <span className="text-xs font-medium">Repertori</span>
             </Link>
           )}
-          <Link to="/attendance"
+          <Link to="/rehearsal"
             className="flex flex-col items-center gap-2 rounded-xl border border-rim bg-pane p-4 text-muted hover:text-body hover:border-wire transition-colors group">
             <CalendarDays size={20} className="group-hover:text-cyan-400 transition-colors" />
             <span className="text-xs font-medium">Assajos</span>

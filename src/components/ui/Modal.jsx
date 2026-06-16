@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { X } from '../../lib/icons'
 import { ICON } from '../../lib/ui.js'
 
@@ -21,10 +21,44 @@ const WIDTHS = {
  *     …content…
  *   </Modal>
  */
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+
 export default function Modal({ open, onClose, title, children, width = 'md', footer }) {
+  const panelRef = useRef(null)
+  const triggerRef = useRef(null)
+
+  useEffect(() => {
+    if (open) {
+      // Store the element that had focus before the modal opened.
+      triggerRef.current = document.activeElement
+      // Move focus into the panel on the next paint.
+      requestAnimationFrame(() => {
+        const first = panelRef.current?.querySelector(FOCUSABLE)
+        first?.focus()
+      })
+    } else if (triggerRef.current) {
+      // Restore focus to the trigger when the modal closes.
+      triggerRef.current.focus()
+      triggerRef.current = null
+    }
+  }, [open])
+
   useEffect(() => {
     if (!open) return
-    function onKey(e) { if (e.key === 'Escape') onClose() }
+    function onKey(e) {
+      if (e.key === 'Escape') { onClose(); return }
+      // Focus trap: keep Tab/Shift+Tab inside the modal.
+      if (e.key !== 'Tab') return
+      const focusable = [...(panelRef.current?.querySelectorAll(FOCUSABLE) ?? [])]
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus()
+      }
+    }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [open, onClose])
@@ -41,6 +75,7 @@ export default function Modal({ open, onClose, title, children, width = 'md', fo
       />
       {/* Panel — bottom-sheet on mobile, side panel on sm+ */}
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}

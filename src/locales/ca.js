@@ -37,7 +37,7 @@ export const t = {
   // ─── Show toolbar tabs ────────────────────────────────────────
   tabs: {
     setlist: 'Escaleta',
-    rehearsal: 'Assaig',
+    staging: 'Pases',
     lights: 'Llums',
     poster: 'Pòster',
     mics: 'Micros',

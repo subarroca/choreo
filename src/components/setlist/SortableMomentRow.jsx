@@ -57,7 +57,7 @@ export default function SortableMomentRow({ moment, index, showId, songId, onDel
         className="flex items-center gap-1 text-xs text-cyan-600 hover:text-cyan-400 px-2.5 py-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
         <ArrowRight size={16} />
       </Link>
-      <button onClick={() => onDelete(moment.id)}
+      <button onClick={() => onDelete(moment.id)} aria-label="Eliminar moment"
         className="text-gray-700 hover:text-red-500 p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
         <X size={16} />
       </button>

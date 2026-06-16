@@ -1,6 +1,7 @@
 // Lighting design vocabulary — based on real technician notes
 // ("NO FR", "poc FR", "FR", "+FR", "FOSC", "barrido",
 // "chase", "mòbils", "canó", "+ SALA"…)
+import { parseJsonArray, parseJson } from './parseJson'
 
 // ─── Intensitats: 5 passes consistents en % ───────────────────
 // Es guarda 0-4; es mostra 0/25/50/75/100 %.
@@ -86,10 +87,6 @@ export const TRIGGER_TYPES = [
 export const FOLLOWSPOT_POSITIONS = ['esquerra', 'centre', 'dreta']
 
 // ─── Parsers (els camps JSON arriben com a string de Supabase) ─
-function parseJsonArray(v) {
-  if (Array.isArray(v)) return v
-  try { const p = JSON.parse(v || '[]'); return Array.isArray(p) ? p : [] } catch { return [] }
-}
 
 export const cueEffects = (cue) => parseJsonArray(cue?.effects)
 export const cueFollowspots = (cue) => parseJsonArray(cue?.followspots)
@@ -98,7 +95,7 @@ export const cueFollowspots = (cue) => parseJsonArray(cue?.followspots)
 export function cueLevels(cue, side) {
   const raw = side === 'back' ? cue?.back_levels : cue?.front_levels
   let obj = raw
-  if (typeof raw === 'string') { try { obj = JSON.parse(raw) } catch { obj = null } }
+  if (typeof raw === 'string') { obj = parseJson(raw) }
   if (!obj || typeof obj !== 'object') obj = {}
   const out = {}
   for (const z of ZONE_KEYS) out[z] = Math.max(0, Math.min(4, Number(obj[z]) || 0))
@@ -111,11 +108,9 @@ export const sideMax = (levels) => Math.max(...ZONE_KEYS.map(z => levels[z] ?? 0
 export function cueZoneColors(cue, side) {
   const raw = side === 'front' ? cue?.front_color : cue?.back_color
   if (!raw) return { esquerra: null, centre: null, dreta: null }
-  try {
-    const parsed = JSON.parse(raw)
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed))
-      return { esquerra: null, centre: null, dreta: null, ...parsed }
-  } catch {}
+  const parsed = parseJson(raw)
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed))
+    return { esquerra: null, centre: null, dreta: null, ...parsed }
   return { esquerra: raw, centre: raw, dreta: raw }
 }
 

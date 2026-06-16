@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext } from 'react'
 import { supabase } from '../lib/supabase'
 import { defaultPermissions, derivePersona } from '../lib/roles.js'
+import { toast } from '../components/ui/Toast'
 
 const AuthContext = createContext(null)
 
@@ -24,10 +25,18 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function loadProfile(userId) {
-    const { data: prof } = await supabase
+    const { data: prof, error: profError } = await supabase
       .from('profiles').select('*').eq('id', userId).single()
-    setProfile(prof)
 
+    if (profError) {
+      // Surface the error: permissions fall back to 'member' defaults safely,
+      // but the user should know something went wrong.
+      toast.error('No s\'ha pogut carregar el perfil d\'usuari')
+      setPermissions(defaultPermissions('member'))
+      return
+    }
+
+    setProfile(prof)
     const role = prof?.role ?? 'member'
 
     // Admins/directors: full permissions, skip DB lookup

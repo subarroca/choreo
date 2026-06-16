@@ -76,7 +76,9 @@ const auth = {
     }
   },
   async signInWithPassword(credentials) {
-    if (credentials?.email === 'demo' && credentials?.password === 'demo') {
+    // Demo mode is only available in dev builds (VITE_DEV_MODE=true).
+    // The compile-time constant is stripped from production bundles.
+    if (isDev && credentials?.email === 'demo' && credentials?.password === 'demo') {
       setDemoMode(true)
       notifyDemoAuth('SIGNED_IN', DEV_SESSION)
       return { data: { session: DEV_SESSION }, error: null }

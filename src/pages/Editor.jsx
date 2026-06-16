@@ -11,6 +11,7 @@ import {
 } from '../lib/editorCanvas'
 import { drawHeightProfile } from '../lib/editorHeightProfile'
 import { autoPlaceByArrangement as _autoPlace } from '../lib/editorArrange'
+import { parseJsonArray } from '../lib/parseJson'
 import EditorSidebar from '../components/editor/EditorSidebar'
 import EditorCanvas from '../components/editor/EditorCanvas'
 import EditorToolbar from '../components/editor/EditorToolbar'
@@ -69,7 +70,7 @@ export default function Editor() {
   const [directorManualX, setDirectorManualX] = useState(null)
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [panels, setPanels] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('editorPanels') ?? '{}') } catch { return {} }
+    return parseJson(localStorage.getItem('editorPanels'), {})
   })
   const isPanelOpen = (key, def = true) => panels[key] ?? def
   function togglePanel(key, def = true) {
@@ -348,7 +349,7 @@ export default function Editor() {
 
   // ─── Derived ─────────────────────────────────────────────
   const choirMembers = members.filter(m => m.role !== 'director')
-  const showMics = Array.isArray(show?.mics) ? show.mics : (show?.mics ? JSON.parse(show.mics) : [])
+  const showMics = parseJsonArray(show?.mics)
   const unplacedCount = choirMembers.filter(m => !placements[m.id]).length
   const allVoices = [...new Set(choirMembers.map(m => m.voice))]
     .sort((a, b) => { const ia = VOICE_ORDER.indexOf(a), ib = VOICE_ORDER.indexOf(b); return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) })

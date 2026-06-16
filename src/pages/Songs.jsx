@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { BookOpen, Plus, Pencil, ExternalLink, Music, Globe, Lock, FileText, Upload, X, Search, Archive } from '../lib/icons'
+import { parseJsonArray } from '../lib/parseJson'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'
@@ -136,7 +137,7 @@ function SongForm({ initial, onSave, onCancel, onDelete }) {
   const [isPublic, setIsPublic]   = useState(initial?.is_public ?? false)
   const [archived, setArchived]   = useState(initial?.archived ?? false)
   const [attachments, setAttachments] = useState(() => {
-    if (initial?.attachments) { try { return JSON.parse(initial.attachments) } catch { return [] } }
+    if (initial?.attachments) { return parseJsonArray(initial.attachments) }
     const legacy = []
     if (initial?.source_url) legacy.push({ type: 'reference', label: 'Referència', url: initial.source_url })
     if (initial?.score_url)  legacy.push({ type: 'score',     label: 'Partitura',  url: initial.score_url })
@@ -278,7 +279,7 @@ export default function Songs() {
   }
 
   function parseAttachments(song) {
-    if (song.attachments) { try { return JSON.parse(song.attachments) } catch { return [] } }
+    if (song.attachments) { return parseJsonArray(song.attachments) }
     const a = []
     if (song.source_url) a.push({ type: 'reference', label: 'Referència', url: song.source_url })
     if (song.score_url)  a.push({ type: 'score',     label: 'Partitura',  url: song.score_url })

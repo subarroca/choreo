@@ -6,8 +6,12 @@ import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { supabase } from '../lib/supabase'
 import { confirmDialog } from '../components/ui/ConfirmDialog'
 import { toast } from '../components/ui/Toast'
+import { runMutation } from '../lib/mutate'
+import { useHistory } from './useHistory'
+import { parseJsonArray, parseJson } from '../lib/parseJson'
 
 export function useSetlistData({ showId, navigate }) {
+  const history = useHistory()
   const [show, setShow] = useState(null)
   const [parts, setParts] = useState([])
   const [songs, setSongs] = useState([])
@@ -45,9 +49,7 @@ export function useSetlistData({ showId, navigate }) {
       const showData = showRes.data
       setShow(showData)
       if (showData?.mic_assignments) {
-        setMicAssignments(typeof showData.mic_assignments === 'string'
-          ? JSON.parse(showData.mic_assignments)
-          : showData.mic_assignments)
+        setMicAssignments(parseJson(showData.mic_assignments, {}))
       }
       const partList = partsRes.data ?? []
       setParts(partList)
@@ -105,7 +107,7 @@ export function useSetlistData({ showId, navigate }) {
           const soloistsMap = {}
           for (const m of (momentData ?? [])) {
             if (m.soloists) {
-              try { soloistsMap[m.id] = JSON.parse(m.soloists) } catch { soloistsMap[m.id] = [] }
+              soloistsMap[m.id] = parseJsonArray(m.soloists)
             }
           }
           setSoloistsByMoment(soloistsMap)
@@ -117,48 +119,135 @@ export function useSetlistData({ showId, navigate }) {
   }, [showId])
 
   // ─── Parts CRUD ──────────────────────────────────────────
-  async function handleCreatePart({ title }) {
-    const { data, error } = await supabase.from('parts')
-      .insert({ show_id: showId, title, order_index: parts.length }).select().single()
-    if (!error) { setParts(prev => [...prev, data]); toast('Part creada') }
-    return !error
+  function handleCreatePart({ title }) {
+    const row = { id: crypto.randomUUID(), show_id: showId, title, order_index: parts.length }
+    history.dispatch({
+      label: 'create-part',
+      do: () => runMutation({
+        optimistic: () => setParts(prev => [...prev, row]),
+        persist: () => supabase.from('parts').insert(row),
+        rollback: () => setParts(prev => prev.filter(p => p.id !== row.id)),
+        errorMsg: 'Error en crear la part', successMsg: 'Part creada',
+      }),
+      undo: () => runMutation({
+        optimistic: () => setParts(prev => prev.filter(p => p.id !== row.id)),
+        persist: () => supabase.from('parts').delete().eq('id', row.id),
+        rollback: () => setParts(prev => [...prev, row]),
+        errorMsg: 'Error en desfer la part',
+      }),
+    })
+    return true
   }
 
-  async function handleUpdatePart(partId, { title }) {
-    const { data, error } = await supabase.from('parts').update({ title }).eq('id', partId).select().single()
-    if (!error) { setParts(prev => prev.map(p => p.id === partId ? data : p)); toast('Part desada') }
-    return !error
+  function handleUpdatePart(partId, { title }) {
+    const prev = parts.find(p => p.id === partId)
+    const prevTitle = prev?.title
+    history.dispatch({
+      label: 'update-part',
+      do: () => runMutation({
+        optimistic: () => setParts(p => p.map(x => x.id === partId ? { ...x, title } : x)),
+        persist: () => supabase.from('parts').update({ title }).eq('id', partId),
+        rollback: () => setParts(p => p.map(x => x.id === partId ? { ...x, title: prevTitle } : x)),
+        errorMsg: 'Error en desar la part', successMsg: 'Part desada',
+      }),
+      undo: () => runMutation({
+        optimistic: () => setParts(p => p.map(x => x.id === partId ? { ...x, title: prevTitle } : x)),
+        persist: () => supabase.from('parts').update({ title: prevTitle }).eq('id', partId),
+        rollback: () => setParts(p => p.map(x => x.id === partId ? { ...x, title } : x)),
+        errorMsg: 'Error en desfer el canvi',
+      }),
+    })
+    return true
   }
 
   async function handleDeletePart(partId) {
     if (!(await confirmDialog('Eliminar aquesta part? Les cançons quedaran sense part.'))) return false
-    await supabase.from('parts').delete().eq('id', partId)
-    setSongs(prev => prev.map(s => s.part_id === partId ? { ...s, part_id: null } : s))
-    setParts(prev => prev.filter(p => p.id !== partId))
-    toast('Part eliminada', 'warn')
+    const row = parts.find(p => p.id === partId)
+    const prevSongs = songs
+    history.dispatch({
+      label: 'delete-part',
+      do: () => runMutation({
+        optimistic: () => { setParts(p => p.filter(x => x.id !== partId)); setSongs(s => s.map(x => x.part_id === partId ? { ...x, part_id: null } : x)) },
+        persist: () => supabase.from('parts').delete().eq('id', partId),
+        rollback: () => { if (row) setParts(p => [...p, row]); setSongs(prevSongs) },
+        errorMsg: 'Error en eliminar la part', successMsg: 'Part eliminada',
+      }),
+      undo: () => runMutation({
+        optimistic: () => { if (row) setParts(p => [...p, row]); setSongs(prevSongs) },
+        persist: async () => {
+          if (!row) return {}
+          const res = await supabase.from('parts').insert(row)
+          if (!res.error) await supabase.from('songs').update({ part_id: partId }).in('id', prevSongs.filter(s => s.part_id === partId).map(s => s.id))
+          return res
+        },
+        rollback: () => { setParts(p => p.filter(x => x.id !== partId)); setSongs(s => s.map(x => x.part_id === partId ? { ...x, part_id: null } : x)) },
+        errorMsg: 'Error en desfer l\'eliminació',
+      }),
+    })
     return true
   }
 
   // ─── Songs CRUD ──────────────────────────────────────────
-  async function handleCreateSong(fields) {
-    const { data, error } = await supabase.from('songs')
-      .insert({ ...fields, show_id: showId, order_index: songs.length }).select().single()
-    if (!error) { setSongs(prev => [...prev, data]); setMoments(prev => ({ ...prev, [data.id]: [] })); toast('Cançó afegida') }
-    return !error
+  function handleCreateSong(fields) {
+    const row = { id: crypto.randomUUID(), ...fields, show_id: showId, order_index: songs.length }
+    history.dispatch({
+      label: 'create-song',
+      do: () => runMutation({
+        optimistic: () => { setSongs(prev => [...prev, row]); setMoments(prev => ({ ...prev, [row.id]: [] })) },
+        persist: () => supabase.from('songs').insert(row),
+        rollback: () => { setSongs(prev => prev.filter(s => s.id !== row.id)); setMoments(prev => { const n = { ...prev }; delete n[row.id]; return n }) },
+        errorMsg: 'Error en afegir la cançó', successMsg: 'Cançó afegida',
+      }),
+      undo: () => runMutation({
+        optimistic: () => { setSongs(prev => prev.filter(s => s.id !== row.id)); setMoments(prev => { const n = { ...prev }; delete n[row.id]; return n }) },
+        persist: () => supabase.from('songs').delete().eq('id', row.id),
+        rollback: () => { setSongs(prev => [...prev, row]); setMoments(prev => ({ ...prev, [row.id]: [] })) },
+        errorMsg: 'Error en desfer l\'afegit',
+      }),
+    })
+    return true
   }
 
-  async function handleUpdateSong(songId, fields) {
-    const { data, error } = await supabase.from('songs').update(fields).eq('id', songId).select().single()
-    if (!error) { setSongs(prev => prev.map(s => s.id === songId ? data : s)); toast('Cançó desada') }
-    return !error
+  function handleUpdateSong(songId, fields) {
+    const prev = songs.find(s => s.id === songId)
+    const prevFields = prev ? Object.fromEntries(Object.keys(fields).map(k => [k, prev[k]])) : {}
+    history.dispatch({
+      label: 'update-song',
+      do: () => runMutation({
+        optimistic: () => setSongs(s => s.map(x => x.id === songId ? { ...x, ...fields } : x)),
+        persist: () => supabase.from('songs').update(fields).eq('id', songId),
+        rollback: () => setSongs(s => s.map(x => x.id === songId ? { ...x, ...prevFields } : x)),
+        errorMsg: 'Error en desar la cançó', successMsg: 'Cançó desada',
+      }),
+      undo: () => runMutation({
+        optimistic: () => setSongs(s => s.map(x => x.id === songId ? { ...x, ...prevFields } : x)),
+        persist: () => supabase.from('songs').update(prevFields).eq('id', songId),
+        rollback: () => setSongs(s => s.map(x => x.id === songId ? { ...x, ...fields } : x)),
+        errorMsg: 'Error en desfer el canvi',
+      }),
+    })
+    return true
   }
 
   async function handleDeleteSong(songId) {
     if (!(await confirmDialog('Eliminar aquesta cançó i tots els seus moments?'))) return false
-    await supabase.from('songs').delete().eq('id', songId)
-    setSongs(prev => prev.filter(s => s.id !== songId))
-    setMoments(prev => { const n = { ...prev }; delete n[songId]; return n })
-    toast('Cançó eliminada', 'warn')
+    const row = songs.find(s => s.id === songId)
+    const prevMoments = moments[songId] ?? []
+    history.dispatch({
+      label: 'delete-song',
+      do: () => runMutation({
+        optimistic: () => { setSongs(prev => prev.filter(s => s.id !== songId)); setMoments(prev => { const n = { ...prev }; delete n[songId]; return n }) },
+        persist: () => supabase.from('songs').delete().eq('id', songId),
+        rollback: () => { if (row) setSongs(prev => [...prev, row]); setMoments(prev => ({ ...prev, [songId]: prevMoments })) },
+        errorMsg: 'Error en eliminar la cançó', successMsg: 'Cançó eliminada',
+      }),
+      undo: () => runMutation({
+        optimistic: () => { if (row) setSongs(prev => [...prev, row]); setMoments(prev => ({ ...prev, [songId]: prevMoments })) },
+        persist: () => row ? supabase.from('songs').insert(row) : Promise.resolve({}),
+        rollback: () => { setSongs(prev => prev.filter(s => s.id !== songId)); setMoments(prev => { const n = { ...prev }; delete n[songId]; return n }) },
+        errorMsg: 'Error en desfer l\'eliminació',
+      }),
+    })
     return true
   }
 
@@ -204,29 +293,52 @@ export function useSetlistData({ showId, navigate }) {
     await Promise.all(reordered.map((m, i) => supabase.from('moments').update({ order_index: i }).eq('id', m.id)))
   }
 
-  async function handleAddMoment(songId, navigateAfter = false) {
+  function handleAddMoment(songId, navigateAfter = false) {
     const existing = moments[songId] ?? []
-    const { data, error } = await supabase.from('moments')
-      .insert({ song_id: songId, title: `Moment ${existing.length + 1}`, order_index: existing.length, grid_mode: 'alternate' })
-      .select().single()
-    if (!error) {
-      setMoments(prev => ({ ...prev, [songId]: [...(prev[songId] ?? []), data] }))
-      setExpandedSongs(prev => ({ ...prev, [songId]: true }))
-      setAllExpanded(true)
-      toast('Moment creat')
-      if (navigateAfter) navigate(`/show/${showId}/song/${songId}/moment/${data.id}`)
-    }
+    const row = { id: crypto.randomUUID(), song_id: songId, title: `Moment ${existing.length + 1}`, order_index: existing.length, grid_mode: 'alternate' }
+    history.dispatch({
+      label: 'create-moment',
+      do: async () => {
+        const ok = await runMutation({
+          optimistic: () => { setMoments(prev => ({ ...prev, [songId]: [...(prev[songId] ?? []), row] })); setExpandedSongs(prev => ({ ...prev, [songId]: true })); setAllExpanded(true) },
+          persist: () => supabase.from('moments').insert(row),
+          rollback: () => setMoments(prev => { const n = { ...prev }; n[songId] = (n[songId] ?? []).filter(m => m.id !== row.id); return n }),
+          errorMsg: 'Error en crear el moment', successMsg: 'Moment creat',
+        })
+        if (ok && navigateAfter) navigate(`/show/${showId}/song/${songId}/moment/${row.id}`)
+      },
+      undo: () => runMutation({
+        optimistic: () => setMoments(prev => { const n = { ...prev }; n[songId] = (n[songId] ?? []).filter(m => m.id !== row.id); return n }),
+        persist: () => supabase.from('moments').delete().eq('id', row.id),
+        rollback: () => setMoments(prev => ({ ...prev, [songId]: [...(prev[songId] ?? []), row] })),
+        errorMsg: 'Error en desfer el moment',
+      }),
+    })
   }
 
   async function handleDeleteMoment(momentId) {
     if (!(await confirmDialog('Eliminar aquest moment?'))) return
-    await supabase.from('moments').delete().eq('id', momentId)
-    setMoments(prev => {
-      const next = {}
-      for (const [sid, list] of Object.entries(prev)) next[sid] = list.filter(m => m.id !== momentId)
-      return next
+    let songId = null
+    let row = null
+    for (const [sid, list] of Object.entries(moments)) {
+      const found = list.find(m => m.id === momentId)
+      if (found) { songId = sid; row = found; break }
+    }
+    history.dispatch({
+      label: 'delete-moment',
+      do: () => runMutation({
+        optimistic: () => setMoments(prev => { const n = {}; for (const [sid, list] of Object.entries(prev)) n[sid] = list.filter(m => m.id !== momentId); return n }),
+        persist: () => supabase.from('moments').delete().eq('id', momentId),
+        rollback: () => { if (songId && row) setMoments(prev => ({ ...prev, [songId]: [...(prev[songId] ?? []), row] })) },
+        errorMsg: 'Error en eliminar el moment', successMsg: 'Moment eliminat',
+      }),
+      undo: () => runMutation({
+        optimistic: () => { if (songId && row) setMoments(prev => ({ ...prev, [songId]: [...(prev[songId] ?? []), row] })) },
+        persist: () => row ? supabase.from('moments').insert(row) : Promise.resolve({}),
+        rollback: () => setMoments(prev => { const n = {}; for (const [sid, list] of Object.entries(prev)) n[sid] = list.filter(m => m.id !== momentId); return n }),
+        errorMsg: 'Error en desfer l\'eliminació',
+      }),
     })
-    toast('Moment eliminat', 'warn')
   }
 
   async function handlePasteMoment(targetSongId, copiedMoment) {
@@ -248,14 +360,26 @@ export function useSetlistData({ showId, navigate }) {
   }
 
   // ─── Cast exclusions ─────────────────────────────────────
-  async function toggleExclusion(memberId, currentlyExcluded) {
-    if (currentlyExcluded) {
-      await supabase.from('show_exclusions').delete().eq('show_id', showId).eq('member_id', memberId)
-      setExclusions(prev => { const n = new Set(prev); n.delete(memberId); return n })
-    } else {
-      await supabase.from('show_exclusions').insert({ show_id: showId, member_id: memberId })
-      setExclusions(prev => new Set([...prev, memberId]))
-    }
+  function toggleExclusion(memberId, currentlyExcluded) {
+    history.dispatch({
+      label: 'toggle-exclusion',
+      do: () => runMutation({
+        optimistic: () => setExclusions(prev => { const n = new Set(prev); currentlyExcluded ? n.delete(memberId) : n.add(memberId); return n }),
+        persist: () => currentlyExcluded
+          ? supabase.from('show_exclusions').delete().eq('show_id', showId).eq('member_id', memberId)
+          : supabase.from('show_exclusions').insert({ show_id: showId, member_id: memberId }),
+        rollback: () => setExclusions(prev => { const n = new Set(prev); currentlyExcluded ? n.add(memberId) : n.delete(memberId); return n }),
+        errorMsg: 'Error en actualitzar el càsting',
+      }),
+      undo: () => runMutation({
+        optimistic: () => setExclusions(prev => { const n = new Set(prev); currentlyExcluded ? n.add(memberId) : n.delete(memberId); return n }),
+        persist: () => currentlyExcluded
+          ? supabase.from('show_exclusions').insert({ show_id: showId, member_id: memberId })
+          : supabase.from('show_exclusions').delete().eq('show_id', showId).eq('member_id', memberId),
+        rollback: () => setExclusions(prev => { const n = new Set(prev); currentlyExcluded ? n.delete(memberId) : n.add(memberId); return n }),
+        errorMsg: 'Error en desfer el càsting',
+      }),
+    })
   }
 
   // ─── Derived ─────────────────────────────────────────────
@@ -274,6 +398,7 @@ export function useSetlistData({ showId, navigate }) {
   if (!sections.length && !songs.length) sections.push({ key: '__none__', part: null, songs: [] })
 
   return {
+    history,
     show, setShow, parts, songs, moments, micAssignments,
     allMembers, setAllMembers, exclusions, loading, repertoire,
     positionsByMoment, diffByMoment, soloistsByMoment,

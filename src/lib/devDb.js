@@ -4,7 +4,7 @@
 import { SEED_MEMBERS, SEED_SHOWS, SEED_PARTS, SEED_SONGS, SEED_REPERTOIRE, SEED_MOMENTS, SEED_SECTIONS } from './devSeedData.js'
 import { SEED_POSITIONS } from './devSeedPositions.js'
 import { SEED_LIGHT_CUES, SEED_LIGHT_PRESETS } from './devSeedLights.js'
-import { SEED_REHEARSALS, SEED_ATTENDANCE, SEED_REHEARSAL_SCHEDULE } from './devSeedAttendance.js'
+import { SEED_REHEARSALS, SEED_ATTENDANCE, SEED_REHEARSAL_SCHEDULE } from './devSeedRehearsal.js'
 
 export const DEV_USER = {
   id: 'dev-user-001',
@@ -24,7 +24,12 @@ function load(table) {
 }
 
 function save(table, rows) {
-  localStorage.setItem(`devdb_${table}`, JSON.stringify(rows))
+  try {
+    localStorage.setItem(`devdb_${table}`, JSON.stringify(rows))
+  } catch (err) {
+    // Quota exceeded or storage unavailable — surface in dev, don't crash.
+    console.error(`[devDb] failed to persist "${table}"`, err)
+  }
 }
 
 function ensureSeedData() {

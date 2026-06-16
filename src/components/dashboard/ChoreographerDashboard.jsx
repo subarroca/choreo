@@ -15,7 +15,7 @@ export default function ChoreographerDashboard({ nextShow, readiness, readinessL
           readinessLoading={readinessLoading}
           extraLinks={
             <>
-              <Link to={`/show/${nextShow.id}/rehearsal`}>
+              <Link to={`/show/${nextShow.id}/staging`}>
                 <Button size="sm" variant="ghost">{t.dashboard.rehearsalGuide}</Button>
               </Link>
             </>
@@ -38,7 +38,7 @@ export default function ChoreographerDashboard({ nextShow, readiness, readinessL
             <Users size={20} className="group-hover:text-cyan-400 transition-colors" />
             <span className="text-xs font-medium">Persones</span>
           </Link>
-          <Link to="/attendance"
+          <Link to="/rehearsal"
             className="flex flex-col items-center gap-2 rounded-xl border border-rim bg-pane p-4 text-muted hover:text-body hover:border-wire transition-colors group">
             <ArrowRight size={20} className="group-hover:text-cyan-400 transition-colors" />
             <span className="text-xs font-medium">Assajos</span>

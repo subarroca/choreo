@@ -1,3 +1,32 @@
+const METRO_COLORS = [
+  '#DC0034', // L1 vermell
+  '#9B2D8E', // L2 lila
+  '#3FAB36', // L3 verd
+  '#FFBE00', // L4 groc
+  '#0068B0', // L5 blau
+  '#00B2CA', // L6 blau clar
+  '#E05020', // L7 taronja
+  '#00A87D', // L8/L9 verd menta
+]
+
+const TERRA_GRAYS = ['#9CA3AF', '#6B7280', '#4B5563', '#374151']
+
+export function rowChipStyle(rowIndex, rowElevations, rowLabels) {
+  const elev = rowElevations?.[rowIndex] ?? 0
+  if (elev > 0) {
+    const uniqueElevs = [...new Set((rowElevations ?? []).filter(e => e > 0))].sort((a, b) => a - b)
+    const tarimaIdx = uniqueElevs.indexOf(elev)
+    const color = METRO_COLORS[tarimaIdx] ?? METRO_COLORS[METRO_COLORS.length - 1]
+    const label = rowLabels?.[rowIndex] ?? `Tarima ${tarimaIdx + 1}`
+    return { color, label, textColor: tarimaIdx === 3 ? '#1a1a1a' : '#ffffff' }
+  }
+  const terraRows = (rowElevations ?? []).reduce((acc, e, i) => { if (e === 0) acc.push(i); return acc }, [])
+  const terraIdx = terraRows.indexOf(rowIndex)
+  const color = TERRA_GRAYS[Math.min(terraIdx, TERRA_GRAYS.length - 1)]
+  const label = rowLabels?.[rowIndex] ?? 'Terra'
+  return { color, label, textColor: '#ffffff' }
+}
+
 export function colPosition(col, COLS) {
   if (col < COLS / 3) return 'esquerra'
   if (col > 2 * COLS / 3) return 'dreta'

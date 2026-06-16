@@ -13,7 +13,7 @@ function serializeRehearsalMeta(type, time, location, freeNotes) {
   return JSON.stringify({ type: type || '', time: time || '', location: location || '', notes: freeNotes || '' })
 }
 
-export function useAttendanceData() {
+export function useRehearsalData() {
   const [members, setMembers] = useState([])
   const [rehearsals, setRehearsals] = useState([])
   const [schedule, setSchedule] = useState(null)
