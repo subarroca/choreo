@@ -6,12 +6,45 @@ import { supabase } from '../lib/supabase'
 import { inputCls } from './ui/Input'
 import Select from './ui/Select'
 import { calcAge, yearsInChoir, memberInitials, deriveName } from '../lib/formatters'
+import { loadAchievementsForUser } from '../hooks/useAchievements.js'
+import { getAchievement, calcTotalXP, ACHIEVEMENT_CATEGORIES } from '../lib/achievements.js'
+import AchievementBadge from './ui/AchievementBadge'
 
 const ALL_VOICES = ['soprano1','soprano2','alto1','alto2','tenor1','tenor2','baritone','bass']
 const ROLES = Object.keys(ROLE_LABELS)
 const labelCls = 'text-xs text-faint mb-1 block'
 
-// ─── Voice dropdown ───────────────────────────────────────────
+// ─── Member achievements panel ────────────────────────────────
+function MemberAchievements({ userId }) {
+  const [rows, setRows] = useState(null)
+
+  useEffect(() => {
+    if (!userId) return
+    loadAchievementsForUser(userId).then(setRows)
+  }, [userId])
+
+  if (!userId || rows === null) return null
+  if (rows.length === 0) return null
+
+  const earnedKeys = rows.map(r => r.achievement_key)
+  const totalXP    = calcTotalXP(earnedKeys)
+
+  return (
+    <div className="border-t border-rim pt-3 mt-1 space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-ghost uppercase tracking-wider">Assoliments</p>
+        {totalXP > 0 && (
+          <span className="text-[10px] text-ghost">{totalXP} XP</span>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {earnedKeys.map(key => (
+          <AchievementBadge key={key} achievementKey={key} earned size="sm" />
+        ))}
+      </div>
+    </div>
+  )
+}
 function VoiceSelect({ value, onChange }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
@@ -237,6 +270,8 @@ function ProfileView({ member, onEdit }) {
             )}
           </div>
         )}
+        {/* Achievements */}
+        <MemberAchievements userId={member.user_id} />
       </div>
 
       {/* Footer */}

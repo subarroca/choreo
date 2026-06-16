@@ -14,6 +14,23 @@ const CATEGORIES = [
   { value: 'idea',    label: 'Idea' },
 ]
 
+/** Fire-and-forget: check and award feedback-related achievement badges */
+async function awardFeedbackBadges(userId) {
+  if (!userId) return
+  const [feedRes, earnedRes] = await Promise.all([
+    supabase.from('feedback').select('id').eq('user_id', userId),
+    supabase.from('user_achievements').select('achievement_key').eq('user_id', userId),
+  ])
+  const count   = (feedRes.data   ?? []).length
+  const earned  = new Set((earnedRes.data ?? []).map(r => r.achievement_key))
+  const toAward = []
+  if (count >= 1 && !earned.has('first_feedback'))  toAward.push('first_feedback')
+  if (count >= 5 && !earned.has('collaborator_5'))  toAward.push('collaborator_5')
+  for (const key of toAward) {
+    await supabase.from('user_achievements').insert({ user_id: userId, achievement_key: key, progress: 100 })
+  }
+}
+
 export default function FeedbackButton() {
   const { user } = useAuth()
   const location = useLocation()
@@ -33,6 +50,8 @@ export default function FeedbackButton() {
         url: location.pathname,
         category,
       })
+      // Fire-and-forget achievement check
+      awardFeedbackBadges(user?.id)
       toast('Gràcies pel suggeriment!')
       setText('')
       setCategory('millora')

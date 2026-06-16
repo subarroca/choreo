@@ -5,11 +5,13 @@ import { BookOpen, CalendarDays, LayoutDashboard, ArrowRight, MapPin, CalendarCl
 import { t } from '../../locales/ca'
 import { useAuth } from '../../hooks/useAuth.jsx'
 import { useMyMember } from '../../hooks/useMyMember.js'
+import useAchievements from '../../hooks/useAchievements.js'
 import { supabase } from '../../lib/supabase'
 import { ICON } from '../../lib/ui'
 import { daysUntil, parseRehearsalMeta } from './DashboardWidgets.jsx'
 import Badge from '../ui/Badge'
 import UpcomingBirthdays from './UpcomingBirthdays'
+import AchievementsProgress from '../ui/AchievementsProgress'
 import { VOICE_COLORS, VOICE_LABELS } from '../../lib/constants'
 
 const REHEARSAL_TYPES = t.rehearsalTypes
@@ -96,7 +98,7 @@ function AttendancePill({ status, saving, onToggle }) {
   )
 }
 
-function RehearsalCard({ rehearsal, isFirst, nextShow, allSongs, myMemberId, sectionMembers, rehearsalAttendance }) {
+function RehearsalCard({ rehearsal, isFirst, nextShow, allSongs, myMemberId, sectionMembers, rehearsalAttendance, onCheckAchievements }) {
   const meta = parseRehearsalMeta(rehearsal.notes)
   const time  = rehearsal.time     ?? meta.time
   const loc   = rehearsal.location ?? meta.location
@@ -130,6 +132,7 @@ function RehearsalCard({ rehearsal, isFirst, nextShow, allSongs, myMemberId, sec
     )
     setAttStatus(next)
     setSaving(false)
+    if (next === 'present') onCheckAchievements?.()
   }
 
   return (
@@ -218,6 +221,8 @@ export default function SingerDashboard({ nextShow, upcomingRehearsals, members,
     ? (members ?? []).filter(m => m.voice === myMember.voice && m.id !== myMember.id)
     : []
 
+  const { earnedKeys, totalXP, newlyEarned, dismissNew, checkAttendanceAchievements } = useAchievements()
+
   return (
     <div className="space-y-6">
       {upcomingRehearsals?.length > 0 && (
@@ -232,7 +237,8 @@ export default function SingerDashboard({ nextShow, upcomingRehearsals, members,
             {upcomingRehearsals.slice(0, 3).map((r, i) => (
               <RehearsalCard key={r.id} rehearsal={r} isFirst={i === 0}
                 nextShow={nextShow} allSongs={allSongs} myMemberId={myMember?.id}
-                sectionMembers={sectionMembers} rehearsalAttendance={rehearsalAttendance} />
+                sectionMembers={sectionMembers} rehearsalAttendance={rehearsalAttendance}
+                onCheckAchievements={checkAttendanceAchievements} />
             ))}
           </div>
         </div>
@@ -265,6 +271,16 @@ export default function SingerDashboard({ nextShow, upcomingRehearsals, members,
       </div>
 
       <UpcomingBirthdays members={members} />
+
+      {/* Achievements */}
+      <div className="rounded-xl border border-rim bg-pane p-4">
+        <AchievementsProgress
+          earnedKeys={earnedKeys}
+          totalXP={totalXP}
+          newlyEarned={newlyEarned}
+          onDismissNew={dismissNew}
+        />
+      </div>
     </div>
   )
 }

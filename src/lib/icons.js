@@ -156,6 +156,15 @@ export const Icons = {
   mapPin:          _l.MapPin,
   clock:           _l.Clock,
   trigger:         _l.Zap,
+
+  // ── Achievements / Gamification ──────────────────────────────────────────
+  achieveTrophy:   _l.Trophy,
+  achieveStar:     _l.Star,
+  achieveFlame:    _l.Flame,
+  achieveCrown:    _l.Crown,
+  achieveWelcome:  _l.PartyPopper,
+  achieveContrib:  _l.HeartHandshake,
+  achieveBadge:    _l.BadgeCheck,
 }
 
 // ─── Migration aliases ────────────────────────────────────────────────────────

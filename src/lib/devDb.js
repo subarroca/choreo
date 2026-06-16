@@ -5,6 +5,7 @@ import { SEED_MEMBERS, SEED_SHOWS, SEED_PARTS, SEED_SONGS, SEED_REPERTOIRE, SEED
 import { SEED_POSITIONS } from './devSeedPositions.js'
 import { SEED_LIGHT_CUES, SEED_LIGHT_PRESETS } from './devSeedLights.js'
 import { SEED_REHEARSALS, SEED_ATTENDANCE, SEED_REHEARSAL_SCHEDULE } from './devSeedRehearsal.js'
+import { ACHIEVEMENTS } from './achievements.js'
 
 export const DEV_USER = {
   id: 'dev-user-001',
@@ -237,14 +238,47 @@ function ensureSeedData() {
     .map(r => ({ id: `att-${r.rehearsal_id}-${r.member_id}`, ...r }))
   if (toAddAtt.length) save('attendance', [...existingAtt, ...toAddAtt])
 
+  // ── Achievements (definitions) ───────────────────────────────
+  const existingAchievements = load('achievements')
+  const existingAchKeys = new Set(existingAchievements.map(a => a.key))
+  const toAddAch = ACHIEVEMENTS
+    .filter(a => !existingAchKeys.has(a.key))
+    .map(a => ({
+      id:          `ach-${a.key}`,
+      key:         a.key,
+      category:    a.category,
+      name:        a.name,
+      description: a.description,
+      icon_key:    a.icon,
+      threshold:   a.threshold,
+      xp_reward:   a.xp,
+      created_at:  new Date().toISOString(),
+    }))
+  if (toAddAch.length) save('achievements', [...existingAchievements, ...toAddAch])
+
+  // ── User achievements (earned) — ensure table exists ─────────
+  if (!localStorage.getItem('devdb_user_achievements')) {
+    save('user_achievements', [])
+  }
+
   // ── Profiles (dev user) ──────────────────────────────────────
   const existingProfiles = load('profiles')
-  if (!existingProfiles.find(p => p.id === DEV_USER.id)) {
-    save('profiles', [...existingProfiles, {
-      id: DEV_USER.id,
-      email: DEV_USER.email,
-      full_name: DEV_USER.user_metadata.full_name,
-      role: DEV_USER.user_metadata.role,
+  // Migrate: add gamification columns if missing
+  const migratedProfiles = existingProfiles.map(p => ({
+    last_active_at: null,
+    active_days:    0,
+    ...p,
+  }))
+  const profilesChanged = JSON.stringify(migratedProfiles) !== JSON.stringify(existingProfiles)
+  if (profilesChanged) save('profiles', migratedProfiles)
+  if (!migratedProfiles.find(p => p.id === DEV_USER.id)) {
+    save('profiles', [...load('profiles'), {
+      id:            DEV_USER.id,
+      email:         DEV_USER.email,
+      full_name:     DEV_USER.user_metadata.full_name,
+      role:          DEV_USER.user_metadata.role,
+      last_active_at: null,
+      active_days:   0,
     }])
   }
 }

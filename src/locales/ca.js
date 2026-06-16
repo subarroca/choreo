@@ -413,4 +413,22 @@ export const t = {
     anonymousUser: 'Usuari anònim',
     allPages:      'Totes les pàgines',
   },
+
+  // ─── Achievements / Gamification ─────────────────────────────
+  achievements: {
+    title:          'Assoliments',
+    totalXP:        (n) => `${n} XP`,
+    xpLabel:        'XP totals',
+    noBadges:       'Encara no has aconseguit cap insígnia.',
+    progress:       'Propers assoliments',
+    noProgress:     'Segueix assajant per desbloquejar insígnies!',
+    earned:         'Obtinguda',
+    earnedAt:       (date) => `Obtinguda el ${date}`,
+    unlocked:       'Insígnia desbloqueada!',
+    categories: {
+      attendance:   'Assistència',
+      engagement:   'Participació',
+      contribution: 'Contribució',
+    },
+  },
 }
