@@ -23,6 +23,7 @@ import Staging from './pages/Staging'
 import Rehearsal from './pages/Rehearsal'
 import Analytics from './pages/Analytics'
 import FeedbackAdmin from './pages/FeedbackAdmin'
+import MascotPreview from './pages/MascotPreview'
 
 function RequireAuth({ children }) {
   const { session, loading } = useAuth()
@@ -74,6 +75,7 @@ function AppRoutes() {
       <Route path="/admin" element={<RequireSection section="users"><Admin /></RequireSection>} />
       <Route path="/analytics" element={<RequireAuth><Analytics /></RequireAuth>} />
       <Route path="/feedback" element={<RequireAuth><FeedbackAdmin /></RequireAuth>} />
+      <Route path="/mascot" element={<MascotPreview />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
