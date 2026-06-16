@@ -49,14 +49,12 @@ function TextItem({ song, members, onEdit, onDelete, listeners, attributes, styl
             <p className="text-xs text-faint mt-1 line-clamp-2 whitespace-pre-line">{song.body}</p>
           )}
         </div>
-        <button onClick={() => onEdit(song)}
+        <button onClick={() => onEdit(song)} aria-label="Editar"
           className="text-faint hover:text-body p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
-          aria-label="Editar"
           <Pencil size={14} />
         </button>
-        <button onClick={() => onDelete(song.id)}
+        <button onClick={() => onDelete(song.id)} aria-label="Eliminar"
           className="text-ghost hover:text-red-500 p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
-          aria-label="Eliminar"
           <X size={14} />
         </button>
       </div>
@@ -79,14 +77,12 @@ function IndicationItem({ song, onEdit, onDelete, listeners, attributes, style }
             <p className="text-xs text-faint mt-1 line-clamp-2 whitespace-pre-line">{song.body}</p>
           )}
         </div>
-        <button onClick={() => onEdit(song)}
+        <button onClick={() => onEdit(song)} aria-label="Editar"
           className="text-faint hover:text-body p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
-          aria-label="Editar"
           <Pencil size={14} />
         </button>
-        <button onClick={() => onDelete(song.id)}
+        <button onClick={() => onDelete(song.id)} aria-label="Eliminar"
           className="text-ghost hover:text-red-500 p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
-          aria-label="Eliminar"
           <X size={14} />
         </button>
       </div>
@@ -159,14 +155,12 @@ export default function SortableSong({
         <span className="text-xs text-faint bg-fill px-2.5 py-1 rounded-full shrink-0 tabular-nums">
           {moments.length}m
         </span>
-        <button onClick={() => onEdit(song)}
+        <button onClick={() => onEdit(song)} aria-label="Editar"
           className="text-faint hover:text-body p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
-          aria-label="Editar"
           <Pencil size={15} />
         </button>
-        <button onClick={() => onDelete(song.id)}
+        <button onClick={() => onDelete(song.id)} aria-label="Eliminar"
           className="text-ghost hover:text-red-500 p-2.5 rounded-lg hover:bg-fill transition-colors shrink-0">
-          aria-label="Eliminar"
           <X size={15} />
         </button>
       </div>
