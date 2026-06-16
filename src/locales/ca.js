@@ -122,6 +122,7 @@ export const t = {
     scheduleLabel:   "Horari habitual d'assaig",
     tabRehearsals:   'Assajos',
     tabSummary:      'Resum acumulat',
+    tabSongs:        'Per cançó',
     emptyHint:       'Afegeix una data per registrar l\'assistència.',
     upcoming:        'Proper',
     showAll:         (n) => `Veure tots (${n} assajos)`,

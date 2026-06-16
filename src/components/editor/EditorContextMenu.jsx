@@ -1,4 +1,4 @@
-import { X, Crosshair, MicVocal, UserRound, Waypoints } from '../../lib/icons'
+import { X, Crosshair, MicVocal, UserRound, Waypoints, Check } from '../../lib/icons'
 import { isTouchUI } from '../../lib/touch'
 
 export default function EditorContextMenu({
@@ -21,11 +21,11 @@ export default function EditorContextMenu({
     <>
       <button className={itemCls + (isMe ? ' text-cyan-400' : ' text-soft')}
         onClick={() => { const v = isMe ? '' : m.id; onSetHighlight(v); localStorage.setItem('highlightMemberId', v); onClose() }}>
-        <Crosshair size={16} /> {isMe ? '✓ Focus' : 'Focus'}
+        <Crosshair size={16} /> {isMe && <Check size={12} className="inline" />} Focus
       </button>
       <button className={itemCls + (isSoloist ? ' text-amber-400' : ' text-soft')}
         onClick={() => onToggleSoloist(m.id)}>
-        <MicVocal size={16} /> {isSoloist ? '✓ Solista' : 'Marcar com solista'}
+        <MicVocal size={16} /> {isSoloist && <Check size={12} className="inline" />} {isSoloist ? 'Solista' : 'Marcar com solista'}
       </button>
       {isSoloist && (
         <div className="flex items-center gap-2 px-4 py-2 text-xs text-muted">

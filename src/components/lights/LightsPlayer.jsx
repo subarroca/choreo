@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { X, Play, Pause, SkipBack, ChevronLeft, ChevronRight } from '../../lib/icons'
+import { X, Play, Pause, SkipBack, ChevronLeft, ChevronRight, Zap } from '../../lib/icons'
 import { lyricsLines, buildPlaybackSteps, sortCues, effectiveMomentId, formatCueNumber, cueSummary, lightColor } from '../../lib/lights'
 import StageSim from './StageSim'
 
@@ -163,7 +163,7 @@ export default function LightsPlayer({
         <div className="lg:w-[40%] shrink-0 flex flex-col justify-center gap-1 min-h-[200px]">
           {step?.cue && step.line == null && (
             <p className="text-amber-400 text-sm font-medium uppercase tracking-wide mb-2">
-              ⚡ {step.cue.trigger_text || `Cue ${formatCueNumber(step.cue.cue_number)}`}
+              <Zap size={14} className="inline mr-1" />{step.cue.trigger_text || `Cue ${formatCueNumber(step.cue.cue_number)}`}
             </p>
           )}
           {windowLines.length === 0 && step?.line == null && !step?.cue && (

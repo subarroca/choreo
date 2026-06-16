@@ -197,8 +197,8 @@ function SectionAttendanceBlock({ rehearsal, sectionMembers, rehearsalAttendance
     <div className="mt-2 pt-2 border-t border-rim/60">
       <p className="text-xs text-muted font-medium mb-1.5 flex items-center gap-1">
         <Users size={11} /> La meva corda
-        <span className="text-green-400 ml-1">{confirmed.length}✓</span>
-        {absent.length > 0 && <span className="text-red-400">{absent.length}✗</span>}
+        <span className="text-green-400 ml-1 flex items-center gap-0.5">{confirmed.length}<Check size={10} /></span>
+        {absent.length > 0 && <span className="text-red-400 flex items-center gap-0.5">{absent.length}<X size={10} /></span>}
         {unconfirmed.length > 0 && <span className="text-ghost">{unconfirmed.length}?</span>}
       </p>
       <div className="flex flex-wrap gap-1.5">

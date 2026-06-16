@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, AtSign, Mail, Ruler, Calendar, UserPlus, Pencil, ChevronLeft, ChevronDown, MoreHorizontal, Phone, TrendingUp, Clapperboard, MicVocal, Shuffle } from '../lib/icons'
+import { X, AtSign, Mail, Ruler, Calendar, UserPlus, Pencil, ChevronLeft, ChevronDown, MoreHorizontal, Phone, TrendingUp, Clapperboard, MicVocal, Shuffle, Check } from '../lib/icons'
 import { memberShowComplexity, COMPLEXITY_COLORS } from '../lib/positionComplexity'
 import { VOICE_COLORS, VOICE_LABELS, ROLE_LABELS } from '../lib/constants'
 import { supabase } from '../lib/supabase'
@@ -46,7 +46,7 @@ function VoiceSelect({ value, onChange }) {
                   className={isSelected ? 'font-medium' : 'text-soft'}>
                   {VOICE_LABELS[v]}
                 </span>
-                {isSelected && <span className="ml-auto text-xs" style={{ color: vc.bg }}>✓</span>}
+                {isSelected && <Check size={12} className="ml-auto" style={{ color: vc.bg }} />}
               </button>
             )
           })}

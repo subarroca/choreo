@@ -155,6 +155,7 @@ export const Icons = {
   clipboard:       _l.Clipboard,
   mapPin:          _l.MapPin,
   clock:           _l.Clock,
+  trigger:         _l.Zap,
 }
 
 // ─── Migration aliases ────────────────────────────────────────────────────────
@@ -275,3 +276,4 @@ export const Target         = Icons.target
 export const Clipboard      = Icons.clipboard
 export const MapPin         = Icons.mapPin
 export const Clock          = Icons.clock
+export const Zap            = Icons.trigger

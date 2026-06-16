@@ -49,6 +49,16 @@ import { X } from 'lucide-react'
 - **camelCase English keys only**: concept names must be `camelCase`, ASCII, and semantically meaningful in English. No Catalan words, no lucide icon names as keys (e.g. `mapPin`, `clock` are borderline — prefer `venue`, `time` when renaming).
 - **Validate with**: `node scripts/check-icons.js` — exits non-zero if any rule is violated.
 
+## No Emojis in Code — Hard Rule
+
+**Never use emoji characters in JSX, strings, or template literals in source code.** This includes status indicators (✓ ✗ ⚡ ~), decorative symbols (🎭 🕐 📍), and any Unicode emoji.
+
+Use Lucide icons instead:
+- Status: `<Check />`, `<X />`, `<AlertTriangle />`, `<Zap />`
+- Decorative/semantic: find or add an appropriate key in `src/lib/icons.js`
+
+If no suitable icon exists, add one to `Icons` in `src/lib/icons.js` first, then use it.
+
 ## Architecture
 
 ### Directory Structure

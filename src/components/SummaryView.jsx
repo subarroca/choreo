@@ -1,5 +1,6 @@
 import { VOICE_COLORS } from '../lib/constants'
 import { memberInitials, formatDate, isUpcoming } from '../lib/formatters'
+import { Check, X as XIcon } from '../lib/icons'
 
 const REASONS = {
   viatge:   { label: 'Viatge' },
@@ -54,10 +55,10 @@ export default function SummaryView({ members, rehearsals, summaryData }) {
                     const reason = rec?.reason
                     return (
                       <td key={r.id} className="px-2 py-2 border-b border-rim/40 text-center" title={reason ? REASONS[reason]?.label : undefined}>
-                        {s === 'present' && <span className="text-green-400 font-bold">✓</span>}
-                        {s === 'absent'  && <span className="text-red-400 font-bold">✗</span>}
+                        {s === 'present' && <Check size={13} className="text-green-400 mx-auto" />}
+                        {s === 'absent'  && <XIcon size={13} className="text-red-400 mx-auto" />}
                         {s === 'excused' && (
-                          <span className="text-amber-400" title={reason ? REASONS[reason]?.label : 'Excusat'}>~</span>
+                          <span className="text-amber-400 text-xs font-bold" title={reason ? REASONS[reason]?.label : 'Excusat'}>~</span>
                         )}
                         {!rec && <span className="text-gray-700">—</span>}
                       </td>
