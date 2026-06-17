@@ -53,7 +53,8 @@ export default function RehearsalScheduleConfig({ schedule, onScheduleChange, ex
     while (cur <= until) {
       const iso = toISO(cur)
       if (!existingSet.has(iso)) {
-        toCreate.push({ date: iso, time: cfg.time, location: cfg.location, type: null, notes: null })
+        const notesStr = JSON.stringify({ type: '', time: cfg.time || '', location: cfg.location || '', notes: '', duration: cfg.duration ?? 90 })
+        toCreate.push({ date: iso, time: cfg.time, location: cfg.location, type: null, notes: notesStr })
       }
       cur = new Date(cur)
       cur.setDate(cur.getDate() + 7)
@@ -76,7 +77,7 @@ export default function RehearsalScheduleConfig({ schedule, onScheduleChange, ex
         <span className="flex items-center gap-2 text-sm font-semibold text-body">
           <List size={14} className="text-muted" /> {t.attendance.scheduleLabel}
         </span>
-        <span className="text-xs text-muted">{DAYS[cfg.day_of_week ?? 2]} · {cfg.time || '—'} · {cfg.location || 'Lloc no definit'}</span>
+        <span className="text-xs text-muted">{DAYS[cfg.day_of_week ?? 2]} · {cfg.time || '—'} · {cfg.duration ?? 90} min · {cfg.location || 'Lloc no definit'}</span>
       </button>
 
       {open && (
@@ -92,10 +93,16 @@ export default function RehearsalScheduleConfig({ schedule, onScheduleChange, ex
                 onChange={e => saveSchedule({ time: e.target.value })}
                 className={inputCls} />
             </div>
-            <div className="flex flex-col gap-1 col-span-2">
+            <div className="flex flex-col gap-1">
               <label className="text-xs text-muted">Lloc habitual</label>
               <input type="text" placeholder="Sala, adreça…" value={cfg.location ?? ''}
                 onChange={e => saveSchedule({ location: e.target.value })}
+                className={inputCls} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted">Durada (min)</label>
+              <input type="number" min="30" max="300" step="15" value={cfg.duration ?? 90}
+                onChange={e => saveSchedule({ duration: Number(e.target.value) })}
                 className={inputCls} />
             </div>
           </div>

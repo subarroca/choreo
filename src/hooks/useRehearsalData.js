@@ -7,10 +7,10 @@ import { t } from '../locales/ca'
 
 const STATUS_CYCLE = ['present', 'absent', 'excused']
 
-function serializeRehearsalMeta(type, time, location, freeNotes) {
-  const hasExtra = type || time || location
+function serializeRehearsalMeta(type, time, location, freeNotes, duration) {
+  const hasExtra = type || time || location || duration
   if (!hasExtra) return freeNotes || null
-  return JSON.stringify({ type: type || '', time: time || '', location: location || '', notes: freeNotes || '' })
+  return JSON.stringify({ type: type || '', time: time || '', location: location || '', notes: freeNotes || '', duration: duration || 90 })
 }
 
 export function useRehearsalData() {
@@ -33,7 +33,6 @@ export function useRehearsalData() {
       setMembers(membersRes.data ?? [])
       const reh = rehearsalsRes.data ?? []
       setRehearsals(reh)
-      if (reh.length) setSelectedId(reh[reh.length - 1].id)
       setSchedule((scheduleRes.data ?? [])[0] ?? null)
       setLoading(false)
     }
@@ -62,8 +61,8 @@ export function useRehearsalData() {
     setSummaryData(byMember)
   }, [])
 
-  async function addRehearsal(date, type, time, location, notes) {
-    const notesStr = serializeRehearsalMeta(type, time, location, notes)
+  async function addRehearsal(date, type, time, location, notes, duration) {
+    const notesStr = serializeRehearsalMeta(type, time, location, notes, duration)
     const { data } = await supabase.from('rehearsals').insert({ date, notes: notesStr }).select().single()
     if (data) {
       const updated = [...rehearsals, data].sort((a, b) => a.date < b.date ? -1 : 1)
@@ -74,8 +73,8 @@ export function useRehearsalData() {
     return !!data
   }
 
-  async function saveRehearsalMeta(id, type, time, location, notes) {
-    const notesStr = serializeRehearsalMeta(type, time, location, notes)
+  async function saveRehearsalMeta(id, type, time, location, notes, duration) {
+    const notesStr = serializeRehearsalMeta(type, time, location, notes, duration)
     const { data } = await supabase.from('rehearsals').update({ notes: notesStr }).eq('id', id).select().single()
     if (data) { setRehearsals(prev => prev.map(r => r.id === data.id ? data : r)); toast(t.attendance.saved) }
     return data
@@ -118,11 +117,12 @@ export function useRehearsalData() {
 
   async function submitNotice(memberId, reason) {
     if (!memberId || !selectedId) return
+    const status = reason === '' ? 'present' : 'excused'
     await supabase.from('attendance').upsert(
-      { rehearsal_id: selectedId, member_id: memberId, status: 'excused', reason },
+      { rehearsal_id: selectedId, member_id: memberId, status, reason },
       { onConflict: 'rehearsal_id,member_id' }
     )
-    setAttendance(prev => ({ ...prev, [memberId]: { status: 'excused', reason } }))
+    setAttendance(prev => ({ ...prev, [memberId]: { status, reason } }))
   }
 
   return {

@@ -1,6 +1,8 @@
 // Upcoming birthdays widget — compact grid with featured card for today
 import { VOICE_COLORS } from '../../lib/constants'
 import { memberInitials } from '../../lib/formatters'
+import { Icons } from '../../lib/icons'
+const PartyPopper = Icons.achieveWelcome
 
 function daysUntilBirthday(birthDate) {
   if (!birthDate) return null
@@ -29,7 +31,7 @@ function MemberAvatar({ member, size }) {
 }
 
 function FeaturedCard({ member }) {
-  const label = member.daysUntil === 0 ? 'Avui! 🎉' : member.daysUntil === 1 ? 'Demà!' : `En ${member.daysUntil} dies`
+  const label = member.daysUntil === 0 ? <span className="flex items-center gap-1 justify-center"><PartyPopper size={12} /> Avui!</span> : member.daysUntil === 1 ? 'Demà!' : `En ${member.daysUntil} dies`
   return (
     <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 flex flex-col items-center gap-3 text-center justify-center min-h-[160px]">
       <MemberAvatar member={member} size="lg" />
@@ -68,6 +70,7 @@ export default function UpcomingBirthdays({ members }) {
     .map(m => ({ ...m, daysUntil: daysUntilBirthday(m.birth_date) }))
     .filter(m => m.daysUntil !== null && m.daysUntil <= 14)
     .sort((a, b) => a.daysUntil - b.daysUntil)
+    .slice(0, 6)
 
   if (!upcoming.length) return null
 

@@ -25,7 +25,7 @@ export const t = {
     songs: 'Cançons',
     rehearsals: 'Assajos',
     analytics: 'Analítica',
-    admin: 'Admin',
+    admin: 'Permisos',
     feedback: 'Feedback',
     search: 'Cerca',
     searchHint: 'Cerca (⌘K)',
@@ -288,7 +288,7 @@ export const t = {
 
   // ─── Admin page ───────────────────────────────────────────────
   admin: {
-    pageTitle:     "Gestió d'usuaris",
+    pageTitle:     "Gestió de permisos",
     pageSubtitle:  "Gestiona els rols i permisos dels membres de l'aplicació",
     simulateHint:  "Previsualitza l'aplicació des del punt de vista d'un altre rol sense canviar permisos reals.",
     exitSim:       'Sortir de simulació',

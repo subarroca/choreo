@@ -9,8 +9,8 @@ import { ACHIEVEMENTS } from './achievements.js'
 
 export const DEV_USER = {
   id: 'dev-user-001',
-  email: 'salvador.subarroca@gmail.com',
-  user_metadata: { role: 'director', full_name: 'Salvador Subarroca' },
+  email: 'subarroca@gmail.com',
+  user_metadata: { role: 'director', full_name: 'Salvador Subarroca', voice: 'tenor1' },
 }
 
 export const DEV_SESSION = { user: DEV_USER }
@@ -261,26 +261,26 @@ function ensureSeedData() {
     save('user_achievements', [])
   }
 
-  // ── Profiles (dev user) ──────────────────────────────────────
+  // ── Profiles ──────────────────────────────────────────────────
+  const SEED_PROFILES = [
+    { id: DEV_USER.id, email: DEV_USER.email, full_name: DEV_USER.user_metadata.full_name, role: DEV_USER.user_metadata.role, voice: DEV_USER.user_metadata.voice ?? null },
+    { id: 'dev-user-002', email: 'marta.fdez@gmail.com',   full_name: 'Marta Fernández',   role: 'member', voice: 'soprano1' },
+    { id: 'dev-user-003', email: 'nacho.hinojal@gmail.com', full_name: 'Nacho Hinojal',   role: 'member', voice: 'tenor2'  },
+    { id: 'dev-user-004', email: 'ricard.mas@gmail.com',    full_name: 'Ricard Mas',       role: 'member', voice: 'bass'    },
+    { id: 'dev-user-005', email: 'anna.puig@gmail.com',     full_name: 'Anna Puig',        role: 'member', voice: 'alto1'   },
+  ]
   const existingProfiles = load('profiles')
-  // Migrate: add gamification columns if missing
-  const migratedProfiles = existingProfiles.map(p => ({
-    last_active_at: null,
-    active_days:    0,
-    ...p,
-  }))
-  const profilesChanged = JSON.stringify(migratedProfiles) !== JSON.stringify(existingProfiles)
-  if (profilesChanged) save('profiles', migratedProfiles)
-  if (!migratedProfiles.find(p => p.id === DEV_USER.id)) {
-    save('profiles', [...load('profiles'), {
-      id:            DEV_USER.id,
-      email:         DEV_USER.email,
-      full_name:     DEV_USER.user_metadata.full_name,
-      role:          DEV_USER.user_metadata.role,
-      last_active_at: null,
-      active_days:   0,
-    }])
+  const migratedProfiles = existingProfiles.map(p => ({ last_active_at: null, active_days: 0, ...p }))
+  // Ensure all seed profiles exist and are up-to-date
+  let profilesUpdated = JSON.stringify(migratedProfiles) !== JSON.stringify(existingProfiles)
+  const finalProfiles = [...migratedProfiles]
+  for (const sp of SEED_PROFILES) {
+    const idx = finalProfiles.findIndex(p => p.id === sp.id)
+    const full = { last_active_at: null, active_days: 0, ...sp }
+    if (idx === -1) { finalProfiles.push(full); profilesUpdated = true }
+    else if (!finalProfiles[idx].voice && sp.voice) { finalProfiles[idx] = { ...finalProfiles[idx], voice: sp.voice }; profilesUpdated = true }
   }
+  if (profilesUpdated) save('profiles', finalProfiles)
 }
 
 ensureSeedData()

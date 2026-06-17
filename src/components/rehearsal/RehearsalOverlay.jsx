@@ -30,14 +30,14 @@ const REHEARSAL_TYPES = t.rehearsalTypes
 const ATTACHMENT_COLORS = { reference: 'text-blue-400', score: 'text-purple-400', audio: 'text-green-400' }
 
 function parseRehearsalMeta(notes) {
-  if (!notes) return { type: '', time: '', location: '', freeNotes: '' }
+  if (!notes) return { type: '', time: '', location: '', freeNotes: '', duration: 90 }
   try {
     const p = parseJson(notes)
     if (p && typeof p === 'object' && ('type' in p || 'time' in p || 'location' in p)) {
-      return { type: p.type ?? '', time: p.time ?? '', location: p.location ?? '', freeNotes: p.notes ?? '' }
+      return { type: p.type ?? '', time: p.time ?? '', location: p.location ?? '', freeNotes: p.notes ?? '', duration: p.duration ?? 90 }
     }
   } catch {}
-  return { type: '', time: '', location: '', freeNotes: notes }
+  return { type: '', time: '', location: '', freeNotes: notes, duration: 90 }
 }
 
 function RehearsalSongs({ rehearsal, allSongs }) {
@@ -75,7 +75,7 @@ function RehearsalSongs({ rehearsal, allSongs }) {
 }
 
 export default function RehearsalOverlay({
-  rehearsal, members, attendance, isAdmin, saving, allSongs,
+  rehearsal, members, attendance, isAdmin, saving, allSongs, myMemberId,
   onClose, onSave, onDelete, onToggleStatus, onSetReason, onSubmitNotice,
 }) {
   const [editing, setEditing] = useState(false)
@@ -83,10 +83,12 @@ export default function RehearsalOverlay({
   const [editLocation, setEditLocation] = useState('')
   const [editType, setEditType] = useState('')
   const [editNotes, setEditNotes] = useState('')
+  const [editDuration, setEditDuration] = useState(90)
   const [showNotifyForm, setShowNotifyForm] = useState(false)
   const [notifyMemberId, setNotifyMemberId] = useState('')
   const [notifyReason, setNotifyReason] = useState('viatge')
-  const [showAllMembers, setShowAllMembers] = useState(false)
+  const [expandPresent, setExpandPresent] = useState(false)
+  const [expandAbsent, setExpandAbsent] = useState(false)
 
   useEffect(() => {
     function onKey(e) { if (e.key === 'Escape') { editing ? setEditing(false) : onClose() } }
@@ -97,8 +99,8 @@ export default function RehearsalOverlay({
   useEffect(() => {
     if (rehearsal) {
       const m = parseRehearsalMeta(rehearsal.notes)
-      setEditTime(m.time); setEditLocation(m.location); setEditType(m.type); setEditNotes(m.freeNotes)
-      setEditing(false); setShowNotifyForm(false); setShowAllMembers(false)
+      setEditTime(m.time); setEditLocation(m.location); setEditType(m.type); setEditNotes(m.freeNotes); setEditDuration(m.duration ?? 90)
+      setEditing(false); setShowNotifyForm(false); setExpandPresent(false); setExpandAbsent(false)
     }
   }, [rehearsal?.id])
 
@@ -108,7 +110,9 @@ export default function RehearsalOverlay({
   const time = rehearsal.time ?? meta.time
   const loc = rehearsal.location ?? meta.location
   const type = rehearsal.type ?? meta.type
+  const duration = meta.duration ?? 90
   const upcoming = isUpcoming(rehearsal.date)
+  const myStatus = myMemberId ? (attendance[myMemberId]?.status ?? null) : null
 
   const stats = { present: 0, absent: 0, excused: 0 }
   for (const m of members) {
@@ -117,7 +121,7 @@ export default function RehearsalOverlay({
   }
 
   async function handleSave() {
-    await onSave(rehearsal.id, editType, editTime, editLocation, editNotes)
+    await onSave(rehearsal.id, editType, editTime, editLocation, editNotes, editDuration)
     setEditing(false)
   }
 
@@ -128,9 +132,11 @@ export default function RehearsalOverlay({
 
   const excusedMembers = members.filter(m => attendance[m.id]?.status === 'excused')
 
-  // For past rehearsals, show all members by default but allow collapse
-  const memberList = members
-  const MEMBER_PREVIEW = 12
+  const presentMembers = members.filter(m => (attendance[m.id]?.status ?? 'present') === 'present')
+  const absentExcusedMembers = members.filter(m => {
+    const s = attendance[m.id]?.status ?? 'present'
+    return s === 'absent' || s === 'excused'
+  })
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-stretch sm:justify-end">
@@ -158,10 +164,11 @@ export default function RehearsalOverlay({
                 {type && <Badge color="cyan">{REHEARSAL_TYPES[type]}</Badge>}
                 {upcoming && <Badge color="amber">{t.attendance.upcoming}</Badge>}
               </div>
-              {(time || loc) && !editing && (
+              {(time || loc || duration) && !editing && (
                 <div className="flex flex-wrap items-center gap-3 text-sm text-muted">
                   {time && <span className="flex items-center gap-1"><Clock size={12} />{time}</span>}
                   {loc  && <span className="flex items-center gap-1"><MapPin size={12} />{loc}</span>}
+                  {duration && <span className="flex items-center gap-1"><Clock size={12} />{duration} min</span>}
                 </div>
               )}
             </div>
@@ -186,6 +193,10 @@ export default function RehearsalOverlay({
                 <div className="flex flex-col gap-1">
                   <label className={labelCls}>Lloc</label>
                   <input type="text" placeholder="Sala, adreça…" value={editLocation} onChange={e => setEditLocation(e.target.value)} className={inputCls} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className={labelCls}>Durada (min)</label>
+                  <input type="number" min="30" max="300" step="15" value={editDuration} onChange={e => setEditDuration(Number(e.target.value))} className={inputCls} />
                 </div>
               </div>
               <div className="flex flex-col gap-1">
@@ -220,6 +231,31 @@ export default function RehearsalOverlay({
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           <RehearsalSongs rehearsal={rehearsal} allSongs={allSongs} />
+
+          {/* My attendance (upcoming) */}
+          {upcoming && myMemberId && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted">La meva assistència:</span>
+              <button
+                onClick={() => onSubmitNotice(myMemberId, '')}
+                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${
+                  myStatus === 'present'
+                    ? 'bg-green-600 text-white border-green-600 shadow-sm'
+                    : 'bg-fill text-muted border-rim hover:bg-green-600/10 hover:text-green-400 hover:border-green-700/50'
+                }`}>
+                <Check size={11} /> Hi vaig
+              </button>
+              <button
+                onClick={() => onSubmitNotice(myMemberId, 'altre')}
+                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${
+                  myStatus === 'excused' || myStatus === 'absent'
+                    ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                    : 'bg-fill text-muted border-rim hover:bg-red-600/10 hover:text-red-400 hover:border-red-700/50'
+                }`}>
+                <X size={11} /> No hi vaig
+              </button>
+            </div>
+          )}
 
           {/* Absence notices (upcoming) */}
           {upcoming && (
@@ -281,55 +317,93 @@ export default function RehearsalOverlay({
             </div>
           )}
 
-          {/* Member attendance list (past) */}
+          {/* Member attendance list (past) — compact summary + expandable sections */}
           {!upcoming && (
-            <div className="space-y-1">
-              {(showAllMembers ? memberList : memberList.slice(0, MEMBER_PREVIEW)).map(m => {
-                const status = attendance[m.id]?.status ?? 'present'
-                const reason = attendance[m.id]?.reason ?? ''
-                const cfg = STATUS_CONFIG[status]
-                const StatusIcon = cfg.icon
-                const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
-                return (
-                  <div key={m.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-pane hover:bg-fill/30 transition-colors">
-                    <span className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                      style={{ backgroundColor: c.bg, color: c.fg }}>{memberInitials(m)}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm text-body truncate">
-                        {m.last_name
-                          ? <><span className="font-semibold">{m.last_name}</span>{m.first_name ? `, ${m.first_name}` : ''}</>
-                          : <span className="font-medium">{m.name}</span>}
-                      </div>
-                      <div className="text-xs font-medium" style={{ color: c.bg }}>{VOICE_LABELS[m.voice]}</div>
-                    </div>
-                    {(status === 'absent' || status === 'excused') && isAdmin && (
-                      <select value={reason} onChange={e => onSetReason(m.id, e.target.value)}
-                        className="text-xs bg-fill border border-line rounded-lg px-2 py-1 text-muted focus:outline-none focus:border-cyan-500">
-                        <option value="">Motiu…</option>
-                        {Object.entries(REASONS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                      </select>
-                    )}
-                    {(status === 'absent' || status === 'excused') && !isAdmin && reason && (
-                      <span className="text-xs text-ghost">{REASONS[reason]?.label}</span>
-                    )}
-                    {isAdmin ? (
-                      <button onClick={() => onToggleStatus(m.id)}
-                        className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium shrink-0 transition-colors ${cfg.cls}`}>
-                        <StatusIcon size={11} /> {cfg.label}
-                      </button>
-                    ) : (
-                      <span className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium shrink-0 ${cfg.cls}`}>
-                        <StatusIcon size={11} /> {cfg.label}
-                      </span>
-                    )}
-                  </div>
-                )
-              })}
-              {!showAllMembers && memberList.length > MEMBER_PREVIEW && (
-                <button onClick={() => setShowAllMembers(true)}
-                  className="flex items-center justify-center gap-1.5 text-xs text-muted hover:text-body py-2 w-full transition-colors">
-                  <ChevronDown size={13} /> Veure tots ({memberList.length})
+            <div className="space-y-2">
+              {/* Present section */}
+              <div className="rounded-xl border border-rim overflow-hidden">
+                <button onClick={() => setExpandPresent(v => !v)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-fill/40 transition-colors">
+                  <span className="flex items-center gap-2 text-sm font-medium text-green-600 dark:text-green-400">
+                    <Check size={14} /> {t.attendanceStatus.present}
+                    <span className="text-xs font-bold bg-green-700/20 text-green-400 px-1.5 py-0.5 rounded-full">{presentMembers.length}</span>
+                  </span>
+                  <ChevronDown size={14} className={`text-ghost transition-transform ${expandPresent ? 'rotate-180' : ''}`} />
                 </button>
+                {expandPresent && (
+                  <div className="border-t border-rim divide-y divide-rim/50">
+                    {presentMembers.map(m => {
+                      const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
+                      return (
+                        <div key={m.id} className="flex items-center gap-3 px-3 py-2 hover:bg-fill/20 transition-colors">
+                          <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                            style={{ backgroundColor: c.bg, color: c.fg }}>{memberInitials(m)}</span>
+                          <div className="flex-1 min-w-0 text-sm text-body truncate">
+                            {m.last_name ? <><span className="font-medium">{m.last_name}</span>{m.first_name ? `, ${m.first_name}` : ''}</> : m.name}
+                          </div>
+                          {isAdmin && (
+                            <button onClick={() => onToggleStatus(m.id)}
+                              className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium shrink-0 transition-colors bg-green-100 border-green-300 text-green-700 dark:bg-green-700/30 dark:text-green-300 dark:border-green-700/50 hover:opacity-70">
+                              <Check size={10} /> {t.attendanceStatus.present}
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Absent/excused section */}
+              {absentExcusedMembers.length > 0 && (
+                <div className="rounded-xl border border-rim overflow-hidden">
+                  <button onClick={() => setExpandAbsent(v => !v)}
+                    className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-fill/40 transition-colors">
+                    <span className="flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400">
+                      <X size={14} /> Absents
+                      <span className="text-xs font-bold bg-red-700/20 text-red-400 px-1.5 py-0.5 rounded-full">{absentExcusedMembers.length}</span>
+                    </span>
+                    <ChevronDown size={14} className={`text-ghost transition-transform ${expandAbsent ? 'rotate-180' : ''}`} />
+                  </button>
+                  {expandAbsent && (
+                    <div className="border-t border-rim divide-y divide-rim/50">
+                      {absentExcusedMembers.map(m => {
+                        const status = attendance[m.id]?.status ?? 'absent'
+                        const reason = attendance[m.id]?.reason ?? ''
+                        const cfg = STATUS_CONFIG[status]
+                        const StatusIcon = cfg.icon
+                        const c = VOICE_COLORS[m.voice] ?? VOICE_COLORS.extra
+                        return (
+                          <div key={m.id} className="flex items-center gap-3 px-3 py-2 hover:bg-fill/20 transition-colors">
+                            <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                              style={{ backgroundColor: c.bg, color: c.fg }}>{memberInitials(m)}</span>
+                            <div className="flex-1 min-w-0 text-sm text-body truncate">
+                              {m.last_name ? <><span className="font-medium">{m.last_name}</span>{m.first_name ? `, ${m.first_name}` : ''}</> : m.name}
+                            </div>
+                            {isAdmin && (
+                              <select value={reason} onChange={e => onSetReason(m.id, e.target.value)}
+                                className="text-xs bg-fill border border-line rounded-lg px-2 py-1 text-muted focus:outline-none focus:border-cyan-500">
+                                <option value="">Motiu…</option>
+                                {Object.entries(REASONS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                              </select>
+                            )}
+                            {!isAdmin && reason && <span className="text-xs text-ghost">{REASONS[reason]?.label}</span>}
+                            {isAdmin ? (
+                              <button onClick={() => onToggleStatus(m.id)}
+                                className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium shrink-0 transition-colors ${cfg.cls}`}>
+                                <StatusIcon size={10} /> {cfg.label}
+                              </button>
+                            ) : (
+                              <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium shrink-0 ${cfg.cls}`}>
+                                <StatusIcon size={10} /> {cfg.label}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}

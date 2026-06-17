@@ -23,7 +23,7 @@ export const SEED_MEMBERS = [
 
   // ── TENORS 1 (verd fosc) ──
   { id: 'dev-m-t1-nh', first_name: 'Nacho',   last_name: 'Hinojal',  name: 'Nacho Hinojal', initials: 'NH', voice: 'tenor2', role: 'choir', height: 175, birth_date: '1986-07-03', joined_at: null, instagram: '', google_account: '' },
-  { id: 'dev-m-t1-ss', first_name: 'Salvador',last_name: 'Subarroca',name: 'Salvador Subarroca', initials: 'SS', voice: 'tenor1', role: 'choir', height: 176, birth_date: '1984-06-28', joined_at: null, instagram: 'salvadorsubarroca', google_account: 'salvador.subarroca@gmail.com' },
+  { id: 'dev-m-t1-ss', first_name: 'Salvador',last_name: 'Subarroca',name: 'Salvador Subarroca', initials: 'SS', voice: 'tenor1', role: 'choir', height: 176, birth_date: '1984-06-28', joined_at: null, instagram: 'salvadorsubarroca', google_account: 'subarroca@gmail.com' },
   { id: 'dev-m-t1-ll', first_name: 'Lluc',    last_name: 'Lopez',    name: 'Lluc Lopez',    initials: 'LL', voice: 'tenor1', role: 'choir', height: 174, birth_date: '1992-10-17', joined_at: null, instagram: '', google_account: '' },
   { id: 'dev-m-t1-mp', first_name: 'Marc',    last_name: 'Pascual',  name: 'Marc Pascual',  initials: 'MP', voice: 'tenor1', role: 'choir', height: 178, birth_date: '1989-05-29', joined_at: null, instagram: '', google_account: '' },
   { id: 'dev-m-t1-dr', first_name: 'David',   last_name: 'Rosado',   name: 'David Rosado',  initials: 'DR', voice: 'tenor1', role: 'choir', height: 180, birth_date: '1994-08-21', joined_at: null, instagram: '', google_account: '' },

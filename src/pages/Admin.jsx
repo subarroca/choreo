@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Shield, Check, X, ChevronDown, ChevronUp, Eye, EyeOff } from '../lib/icons'
+import { Shield, Check, X, ChevronDown, ChevronUp, Eye, EyeOff, LayoutGrid, List, Play } from '../lib/icons'
+import PermissionsMatrix from '../components/admin/PermissionsMatrix.jsx'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import Layout from '../components/Layout'
 import PageContainer from '../components/ui/PageContainer'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
-import ListRow from '../components/ui/ListRow'
 import { useNavigate } from 'react-router-dom'
 import { ICON } from '../lib/ui'
 import { SECTIONS, SECTION_KEYS, ROLE_TEMPLATES, TEMPLATE_KEYS, defaultPermissions } from '../lib/roles.js'
@@ -34,52 +34,97 @@ function PermToggle({ active, onChange, label }) {
 
 const SIM_PRESETS = ['choreographer', 'lighting', 'sound', 'cap_de_corda', 'member']
 
-function SimulationPanel() {
-  const { isSimulating, simulatedPermissions, setSimulatedPermissions, exitSimulation } = useAuth()
+function SimulationPanel({ users, perms }) {
+  const { isSimulating, setSimulatedPermissions, exitSimulation } = useAuth()
+  const [selectedUserId, setSelectedUserId] = useState('')
+
   function setTemplate(key) {
     const tpl = ROLE_TEMPLATES[key]?.perms
-    if (tpl) setSimulatedPermissions(structuredClone(tpl))
+    if (tpl) { setSimulatedPermissions(structuredClone(tpl)); setSelectedUserId('') }
   }
+
+  function simulateUser(userId) {
+    const p = perms[userId]
+    if (p) { setSimulatedPermissions(structuredClone(p)); setSelectedUserId(userId) }
+  }
+
+  const simCls = isSimulating
+    ? 'border-amber-300 bg-amber-50 dark:border-amber-700/60 dark:bg-amber-900/20'
+    : 'border-rim bg-fill/30'
+  const btnCls = isSimulating
+    ? 'border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700/60 dark:text-amber-300 dark:hover:bg-amber-900/30'
+    : 'border-line text-muted hover:text-cyan-400 hover:border-cyan-700'
+
+  const members = (users ?? []).filter(u => u.role !== 'admin' && u.role !== 'director')
+
   return (
-    <div className={`rounded-xl border p-4 mb-6 ${isSimulating ? 'border-amber-300 bg-amber-50 dark:border-amber-700/60 dark:bg-amber-900/20' : 'border-rim bg-fill/30'}`}>
-      <div className="flex items-center justify-between mb-3">
+    <div className={`rounded-xl border p-4 mb-6 ${simCls}`}>
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <Eye size={ICON.sm} className={isSimulating ? 'text-amber-600 dark:text-amber-400' : 'text-muted'} />
           <span className="text-sm font-semibold text-body">Simular vista com a…</span>
         </div>
         {isSimulating && (
-          <button onClick={exitSimulation}
+          <button onClick={() => { exitSimulation(); setSelectedUserId('') }}
             className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors">
             <EyeOff size={11} /> Sortir de simulació
           </button>
         )}
       </div>
-      <p className="text-xs text-faint mb-3">Previsualitza l'aplicació des del punt de vista d'un altre rol sense canviar permisos reals.</p>
-      <div className="flex flex-wrap gap-2">
-        {SIM_PRESETS.map(k => (
-          <button key={k} onClick={() => setTemplate(k)}
-            className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
-              isSimulating
-                ? 'border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700/60 dark:text-amber-300 dark:hover:bg-amber-900/30'
-                : 'border-line text-muted hover:text-cyan-400 hover:border-cyan-700'
-            }`}>
-            {ROLE_TEMPLATES[k].label}
-          </button>
-        ))}
+      <p className="text-xs text-faint mb-3">Previsualitza l'aplicació des del punt de vista d'un altre usuari sense canviar permisos reals.</p>
+
+      <div className="space-y-3">
+        {/* Per rol */}
+        <div>
+          <p className="text-xs text-ghost mb-1.5">Per rol</p>
+          <div className="flex flex-wrap gap-2">
+            {SIM_PRESETS.map(k => (
+              <button key={k} onClick={() => setTemplate(k)}
+                className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${btnCls}`}>
+                {ROLE_TEMPLATES[k].label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Per usuari concret */}
+        {members.length > 0 && (
+          <div>
+            <p className="text-xs text-ghost mb-1.5">Per usuari concret</p>
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedUserId}
+                onChange={e => setSelectedUserId(e.target.value)}
+                className="flex-1 bg-fill border border-line rounded-lg px-3 py-2 text-sm text-body focus:outline-none focus:border-cyan-500">
+                <option value="">— Selecciona un usuari —</option>
+                {members.map(u => (
+                  <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
+                ))}
+              </select>
+              <button
+                onClick={() => selectedUserId && simulateUser(selectedUserId)}
+                disabled={!selectedUserId}
+                className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-line text-muted hover:text-cyan-400 hover:border-cyan-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                <Play size={13} /> Simula
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
 export default function Admin() {
-  const { role } = useAuth()
+  const { role, setSimulatedPermissions } = useAuth()
   const navigate = useNavigate()
   const [users, setUsers]     = useState([])
   const [perms, setPerms]     = useState({})
-  const [voiceSections, setVoiceSections] = useState({}) // userId → string[]
-  const [voices, setVoices] = useState({})               // userId → voice key
+  const [voiceSections, setVoiceSections] = useState({})
+  const [voices, setVoices] = useState({})
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(null)
+  const [view, setView] = useState('list')
 
   useEffect(() => {
     if (role && role !== 'admin' && role !== 'director') navigate('/')
@@ -157,14 +202,32 @@ export default function Admin() {
     <Layout fullWidth>
       <PageContainer
         header={
-          <PageHeader title="Gestió d'usuaris" icon={Shield} subtitle="Gestiona els rols i permisos dels membres de l'aplicació" />
+          <PageHeader
+            title="Gestió de permisos"
+            icon={Shield}
+            subtitle="Gestiona els rols i permisos dels membres de l'aplicació"
+            actions={
+              <div className="flex items-center gap-1 border border-rim rounded-lg overflow-hidden">
+                <button onClick={() => setView('list')}
+                  className={`p-2 transition-colors ${view === 'list' ? 'bg-fill text-body' : 'text-ghost hover:text-body'}`}>
+                  <List size={16} />
+                </button>
+                <button onClick={() => setView('matrix')}
+                  className={`p-2 transition-colors ${view === 'matrix' ? 'bg-fill text-body' : 'text-ghost hover:text-body'}`}>
+                  <LayoutGrid size={16} />
+                </button>
+              </div>
+            }
+          />
         }
       >
-        <SimulationPanel />
+        <SimulationPanel users={users} perms={perms} />
         {loading ? (
           <p className="text-faint text-sm py-8">Carregant...</p>
         ) : users.length === 0 ? (
           <EmptyState icon={Shield} title="Cap usuari registrat." />
+        ) : view === 'matrix' ? (
+          <PermissionsMatrix users={users} perms={perms} onToggle={togglePerm} />
         ) : (
           <div className="divide-y divide-rim">
             {users.map(u => {
@@ -174,21 +237,31 @@ export default function Admin() {
 
               return (
                 <div key={u.id}>
-                  <ListRow
+                  <div
                     onClick={() => setExpanded(isOpen ? null : u.id)}
-                    title={u.full_name || u.email}
-                    meta={u.full_name ? u.email : null}
-                    trailing={
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs px-2 py-0.5 rounded border ${ROLE_BADGE[u.role] ?? ROLE_BADGE.member}`}>
-                          {u.role ?? 'member'}
-                        </span>
-                        {isOpen
-                          ? <ChevronUp size={ICON.sm} className="text-ghost" />
-                          : <ChevronDown size={ICON.sm} className="text-ghost" />}
-                      </div>
-                    }
-                  />
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-fill/60 cursor-pointer transition-colors"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm text-body truncate">{u.full_name || u.email}</div>
+                      {u.full_name && <div className="text-xs text-muted truncate">{u.email}</div>}
+                    </div>
+                    <div className="shrink-0 flex items-center gap-2">
+                      <span className={`text-xs px-2 py-0.5 rounded border ${ROLE_BADGE[u.role] ?? ROLE_BADGE.member}`}>
+                        {u.role ?? 'member'}
+                      </span>
+                      {!isAdmin && (
+                        <button
+                          title="Simular com aquest usuari"
+                          onClick={e => { e.stopPropagation(); setSimulatedPermissions(structuredClone(perms[u.id] ?? {})) }}
+                          className="p-1 rounded text-ghost hover:text-cyan-400 hover:bg-fill transition-colors">
+                          <Play size={13} />
+                        </button>
+                      )}
+                      {isOpen
+                        ? <ChevronUp size={ICON.sm} className="text-ghost" />
+                        : <ChevronDown size={ICON.sm} className="text-ghost" />}
+                    </div>
+                  </div>
 
                   {isOpen && (
                     <div className="px-3 py-3 bg-fill/30 border-t border-rim space-y-3">

@@ -4,6 +4,7 @@ import { parseJson } from '../lib/parseJson'
 import { CalendarDays, Plus, Clock, MapPin, ChevronDown, Check, X } from '../lib/icons'
 import Button from '../components/ui/Button'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { useMyMember } from '../hooks/useMyMember.js'
 import { inputCls } from '../components/ui/Input'
 import Select from '../components/ui/Select'
 import Badge from '../components/ui/Badge'
@@ -38,6 +39,7 @@ function parseRehearsalMeta(notes) {
 export default function Attendance() {
   const { role } = useAuth()
   const isAdmin = role === 'admin' || role === 'director'
+  const myMember = useMyMember()
 
   const {
     members, rehearsals, setRehearsals, schedule, setSchedule, selectedId, setSelectedId,
@@ -70,19 +72,20 @@ export default function Attendance() {
   const [newLocation, setNewLocation] = useState('')
   const [newType, setNewType] = useState('')
   const [newNotes, setNewNotes] = useState('')
+  const [newDuration, setNewDuration] = useState(90)
 
   useEffect(() => {
     if (tab === 'resum') loadSummary()
   }, [tab, loadSummary])
 
   function resetForm() {
-    setNewDate(''); setNewTime(''); setNewLocation(''); setNewType(''); setNewNotes('')
+    setNewDate(''); setNewTime(''); setNewLocation(''); setNewType(''); setNewNotes(''); setNewDuration(90)
     setAddingDate(false)
   }
 
   async function addRehearsalDate() {
     if (!newDate) return
-    await addRehearsal(newDate, newType, newTime, newLocation, newNotes)
+    await addRehearsal(newDate, newType, newTime, newLocation, newNotes, newDuration)
     resetForm()
   }
 
@@ -142,7 +145,11 @@ export default function Attendance() {
                   <option value="">— Tipus —</option>
                   {Object.entries(REHEARSAL_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </Select>
-                <div className="flex flex-col gap-1 col-span-2 sm:col-span-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted">Durada (min)</label>
+                  <input type="number" min="30" max="300" step="15" value={newDuration} onChange={e => setNewDuration(Number(e.target.value))} className={inputCls} />
+                </div>
+                <div className="flex flex-col gap-1 col-span-2 sm:col-span-1">
                   <label className="text-xs text-muted">Notes</label>
                   <input type="text" placeholder="Notes opcionals" value={newNotes} onChange={e => setNewNotes(e.target.value)} className={inputCls} />
                 </div>
@@ -176,6 +183,7 @@ export default function Attendance() {
               ) : (() => {
                 const past = rehearsals.filter(r => r.date < todayStr)
                 const upcoming = rehearsals.filter(r => r.date >= todayStr)
+                const nextId = upcoming[0]?.id ?? null
                 const hidden = [...past.slice(0, -1), ...upcoming.slice(3)]
                 const visible = showAllRehearsals
                   ? rehearsals
@@ -188,7 +196,7 @@ export default function Attendance() {
                       const time = r.time ?? meta.time
                       const loc  = r.location ?? meta.location
                       const type = r.type ?? meta.type
-                      const isNext = isUpcoming(r.date)
+                      const isNext = r.id === nextId
                       const isPast = r.date < todayStr
 
                       const trailing = (
@@ -242,6 +250,7 @@ export default function Attendance() {
           isAdmin={isAdmin}
           saving={saving}
           allSongs={allSongs}
+          myMemberId={myMember?.id}
           onClose={() => setSelectedId(null)}
           onSave={saveRehearsalMeta}
           onDelete={deleteRehearsal}

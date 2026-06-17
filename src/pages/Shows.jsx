@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Clapperboard, Pencil, Trash2, ImageIcon, X, Plus, Undo2, Redo2 } from '../lib/icons'
+import { Clapperboard, Pencil, Trash2, ImageIcon, X, Plus, Undo2, Redo2, ExternalLink } from '../lib/icons'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useChoir } from '../hooks/useChoir.jsx'
@@ -22,6 +22,7 @@ function ShowForm({ initial, onSave, onCancel, onDelete }) {
   const [name, setName] = useState(initial?.name ?? '')
   const [date, setDate] = useState(initial?.date ?? '')
   const [venue, setVenue] = useState(initial?.venue ?? '')
+  const [photosUrl, setPhotosUrl] = useState(initial?.photos_url ?? '')
   const [posterUrl, setPosterUrl] = useState(initial?.poster_url ?? '')
   const [posterPreview, setPosterPreview] = useState(initial?.poster_url ?? '')
   const [uploading, setUploading] = useState(false)
@@ -47,7 +48,7 @@ function ShowForm({ initial, onSave, onCancel, onDelete }) {
 
   function handleSubmit(e) {
     e.preventDefault()
-    onSave({ name, date: date || null, venue, poster_url: posterUrl || null })
+    onSave({ name, date: date || null, venue, poster_url: posterUrl || null, photos_url: photosUrl || null })
   }
 
   return (
@@ -67,6 +68,12 @@ function ShowForm({ initial, onSave, onCancel, onDelete }) {
           <input value={venue} onChange={e => setVenue(e.target.value)}
             placeholder="Gran Teatre del Liceu" className={inputCls} />
         </div>
+      </div>
+
+      <div className="space-y-1">
+        <label className={labelCls}>Fotos (Google Photos)</label>
+        <input value={photosUrl} onChange={e => setPhotosUrl(e.target.value)}
+          placeholder="https://photos.google.com/share/…" className={inputCls} />
       </div>
 
       <div className="flex items-start gap-3">
@@ -166,6 +173,12 @@ function ShowCard({ show, stats, canEdit, onEdit, onDelete, onClick }) {
             <span className="text-[10px] text-ghost">{stats.songCount} {stats.songCount === 1 ? 'cançó' : 'cançons'}</span>
             <span className="text-[10px] text-ghost">{stats.momentCount} moments</span>
           </div>
+        )}
+        {show.photos_url && (
+          <a href={show.photos_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+            className="flex items-center gap-1 text-[10px] text-cyan-400 hover:text-cyan-300 transition-colors mt-0.5">
+            <ExternalLink size={9} /> Fotos
+          </a>
         )}
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Clapperboard, CalendarDays, ArrowRight, MapPin, Clock, X, Check } from '../../lib/icons'
+import { Clapperboard, CalendarDays, ArrowRight, MapPin, Clock, X, Check, ExternalLink } from '../../lib/icons'
 import { ICON } from '../../lib/ui'
 import { VOICE_COLORS, VOICE_SHORT } from '../../lib/constants'
 import { parseJson } from '../../lib/parseJson'
@@ -166,6 +166,11 @@ export function NextShowCard({ show, readiness, readinessLoading, extraLinks }) 
             <Link to={`/show/${show.id}`}>
               <Button size="sm">Setlist <ArrowRight size={ICON.xs} /></Button>
             </Link>
+            {show.photos_url && (
+              <a href={show.photos_url} target="_blank" rel="noopener noreferrer">
+                <Button size="sm" variant="ghost"><ExternalLink size={ICON.xs} /> Fotos</Button>
+              </a>
+            )}
             {extraLinks}
           </div>
         </div>
@@ -206,11 +211,10 @@ function RehearsalMiniCard({ rehearsal, attendanceMap, myMemberId }) {
       .then(({ data }) => setMyStatus(data?.[0]?.status ?? null))
   }, [rehearsal.id, myMemberId])
 
-  async function toggle(e) {
+  async function setStatus(e, next) {
     e.preventDefault()
     if (!myMemberId || saving) return
     setSaving(true)
-    const next = myStatus === 'present' ? 'excused' : 'present'
     await supabase.from('attendance').upsert(
       { rehearsal_id: rehearsal.id, member_id: myMemberId, status: next, reason: '' },
       { onConflict: 'rehearsal_id,member_id' }
@@ -236,20 +240,24 @@ function RehearsalMiniCard({ rehearsal, attendanceMap, myMemberId }) {
       {type && <Badge color="cyan" className="self-start">{REHEARSAL_TYPES[type]}</Badge>}
       <div className="flex items-center justify-between gap-2 mt-auto pt-1 border-t border-rim/60">
         {myMemberId ? (
-          <button onClick={toggle} disabled={saving}
-            className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium transition-colors ${
-              myStatus === 'present'
-                ? 'bg-green-700/20 text-green-300 border-green-700/40 hover:bg-green-700/30'
-                : myStatus === 'excused' || myStatus === 'absent'
-                ? 'bg-red-700/20 text-red-300 border-red-700/40 hover:bg-red-700/30'
-                : 'bg-fill text-muted border-rim hover:border-wire hover:text-body'
-            }`}>
-            {myStatus === 'present'
-              ? <><Check size={10} /> Hi vaig</>
-              : myStatus === 'excused' || myStatus === 'absent'
-              ? <><X size={10} /> No hi vaig</>
-              : 'Confirma'}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button onClick={e => setStatus(e, 'present')} disabled={saving}
+              className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border font-medium transition-colors ${
+                myStatus === 'present'
+                  ? 'bg-green-600 text-white border-green-600 shadow-sm'
+                  : 'bg-fill text-muted border-rim hover:bg-green-600/10 hover:text-green-400 hover:border-green-700/50'
+              }`}>
+              <Check size={11} /> Hi vaig
+            </button>
+            <button onClick={e => setStatus(e, 'excused')} disabled={saving}
+              className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border font-medium transition-colors ${
+                myStatus === 'excused' || myStatus === 'absent'
+                  ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                  : 'bg-fill text-muted border-rim hover:bg-red-600/10 hover:text-red-400 hover:border-red-700/50'
+              }`}>
+              <X size={11} /> No hi vaig
+            </button>
+          </div>
         ) : <span />}
         {(excusedCount > 0 || absentCount > 0) && (
           <div className="flex items-center gap-2 text-xs text-ghost">

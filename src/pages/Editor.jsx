@@ -11,7 +11,7 @@ import {
 } from '../lib/editorCanvas'
 import { drawHeightProfile } from '../lib/editorHeightProfile'
 import { autoPlaceByArrangement as _autoPlace } from '../lib/editorArrange'
-import { parseJsonArray } from '../lib/parseJson'
+import { parseJson, parseJsonArray } from '../lib/parseJson'
 import EditorSidebar from '../components/editor/EditorSidebar'
 import EditorCanvas from '../components/editor/EditorCanvas'
 import EditorToolbar from '../components/editor/EditorToolbar'

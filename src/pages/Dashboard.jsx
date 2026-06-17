@@ -31,13 +31,13 @@ function greeting() {
 
 function personaBadge(persona) {
   const map = {
-    admin:          { label: t.roles.administrator, cls: 'bg-amber-500/20 text-amber-400' },
-    director:       { label: t.roles.director,      cls: 'bg-cyan-500/20 text-cyan-400' },
-    choreographer:  { label: t.roles.choreographer, cls: 'bg-violet-500/20 text-violet-400' },
-    lighting:       { label: t.roles.lighting,      cls: 'bg-amber-500/20 text-amber-400' },
-    sound:          { label: t.roles.sound,         cls: 'bg-emerald-500/20 text-emerald-400' },
-    cap_de_corda:   { label: t.roles.capDeCorda,    cls: 'bg-orange-500/20 text-orange-400' },
-    member:         { label: t.roles.member_label,  cls: 'bg-fill text-faint' },
+    admin:          { label: t.roles.administrator, cls: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-400/30' },
+    director:       { label: t.roles.director,      cls: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-400/30' },
+    choreographer:  { label: t.roles.choreographer, cls: 'bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-400/30' },
+    lighting:       { label: t.roles.lighting,      cls: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-400/30' },
+    sound:          { label: t.roles.sound,         cls: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-400/30' },
+    cap_de_corda:   { label: t.roles.capDeCorda,    cls: 'bg-orange-500/15 text-orange-700 dark:text-orange-300 border border-orange-400/30' },
+    member:         { label: t.roles.member_label,  cls: 'bg-fill text-muted border border-rim' },
   }
   return map[persona] ?? map.member
 }
@@ -69,7 +69,8 @@ export default function Dashboard() {
     () => shows.find(s => s.date && new Date(s.date) >= today) ?? shows[0] ?? null,
     [shows, today]
   )
-  const recentShows = useMemo(() => shows.slice(0, 4), [shows])
+  const cutoff = useMemo(() => { const d = new Date(); d.setDate(d.getDate() - 5); d.setHours(0,0,0,0); return d }, [])
+  const recentShows = useMemo(() => shows.filter(s => !s.date || new Date(s.date) >= cutoff).slice(0, 4), [shows, cutoff])
 
   const todayStr = new Date().toISOString().slice(0, 10)
   const { data: upcomingRehearsals = [] } = useSupabaseQuery(async () => {
